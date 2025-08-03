@@ -16,7 +16,7 @@ import {
 import { cn } from "@/lib/utils"
 import { Label } from "@/components/ui/label"
 
-const Form = <
+function Form<
   TFieldValues extends FieldValues = FieldValues,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TContext = any,
@@ -26,7 +26,7 @@ const Form = <
   ...props
 }: {
   children: React.ReactNode
-} & UseFormReturn<TFieldValues, TContext, TTransformedValues>) => {
+} & UseFormReturn<TFieldValues, TContext, TTransformedValues>) {
   return <FormProvider {...props}>{children}</FormProvider>
 }
 
