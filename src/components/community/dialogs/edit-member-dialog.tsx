@@ -39,7 +39,7 @@ interface EditMemberDialogProps {
 
 export function EditMemberDialog({ member }: EditMemberDialogProps) {
   const { 
-    dialogState, closeDialog, updateMember, families,
+    dialogState, closeDialog, updateMember, families
   } = useCommunity();
 
   const form = useForm<EditMemberForm>({

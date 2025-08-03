@@ -37,6 +37,7 @@ export interface CustomContribution {
   name: string;
   amount: number;
   description?: string;
+  tiers: string[];
 }
 
 export type NewMemberData = Omit<Member, 'id' | 'name' | 'age' | 'tier' | 'contribution' | 'payments'>;

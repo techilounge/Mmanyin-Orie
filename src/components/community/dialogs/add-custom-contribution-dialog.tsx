@@ -10,17 +10,22 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Checkbox } from '@/components/ui/checkbox';
+
+const TIERS = ['Under 18', 'Tier 1 (18-24)', 'Tier 2 (25+)'];
 
 const formSchema = z.object({
   name: z.string().min(1, 'Template name is required.'),
   amount: z.coerce.number().min(0, 'Amount must be a positive number.'),
   description: z.string().optional(),
+  tiers: z.array(z.string()).refine((value) => value.some((item) => item), {
+    message: "You have to select at least one tier.",
+  }),
 });
 
 export function AddCustomContributionDialog() {
@@ -28,7 +33,7 @@ export function AddCustomContributionDialog() {
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: '', amount: 0, description: '' },
+    defaultValues: { name: '', amount: 0, description: '', tiers: [] },
   });
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
@@ -77,6 +82,51 @@ export function AddCustomContributionDialog() {
                       <Input type="number" step="0.01" placeholder="0.00" className="pl-7" {...field} />
                     </div>
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="tiers"
+              render={() => (
+                <FormItem>
+                  <div className="mb-4">
+                    <FormLabel className="text-base">Applicable Tiers</FormLabel>
+                  </div>
+                  {TIERS.map((item) => (
+                    <FormField
+                      key={item}
+                      control={form.control}
+                      name="tiers"
+                      render={({ field }) => {
+                        return (
+                          <FormItem
+                            key={item}
+                            className="flex flex-row items-start space-x-3 space-y-0"
+                          >
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value?.includes(item)}
+                                onCheckedChange={(checked) => {
+                                  return checked
+                                    ? field.onChange([...field.value, item])
+                                    : field.onChange(
+                                        field.value?.filter(
+                                          (value) => value !== item
+                                        )
+                                      )
+                                }}
+                              />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              {item}
+                            </FormLabel>
+                          </FormItem>
+                        )
+                      }}
+                    />
+                  ))}
                   <FormMessage />
                 </FormItem>
               )}

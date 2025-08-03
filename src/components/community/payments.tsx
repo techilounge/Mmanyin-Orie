@@ -6,12 +6,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DollarSign, User, Users } from 'lucide-react';
-import type { Member } from '@/lib/types';
-import { Badge } from '../ui/badge';
+import type { Member, CustomContribution } from '@/lib/types';
 import { Progress } from '../ui/progress';
 
 export function Payments() {
-  const { members, settings, getPaidAmount, getBalance, openDialog } = useCommunity();
+  const { members, settings, getPaidAmount, getBalance, openDialog, customContributions } = useCommunity();
   const [selectedMemberId, setSelectedMemberId] = useState<string>('');
 
   const selectedMember = members.find(m => m.id.toString() === selectedMemberId);
@@ -28,49 +27,58 @@ export function Payments() {
     const balance = getBalance(member);
     const progress = member.contribution > 0 ? (paidAmount / member.contribution) * 100 : 100;
 
+    const applicableContributions = customContributions.filter(c => c.tiers.includes(member.tier));
+
     return (
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Payment Details for {member.name}</CardTitle>
-          <CardDescription>
-            Family: {member.family} | Tier: {member.tier}
-          </CardDescription>
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle>Payment Details for {member.name}</CardTitle>
+              <CardDescription>
+                Family: {member.family} | Tier: {member.tier}
+              </CardDescription>
+            </div>
+            <Button 
+              onClick={() => openDialog({type: 'record-payment', member})}
+              disabled={balance <= 0}
+              size="sm"
+            >
+              Record Payment
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
+          <div className="mb-4">
+              <div className='text-sm text-muted-foreground'>
+                  Total Paid: {settings.currency}{paidAmount.toLocaleString()} / Total Owed: {settings.currency}{member.contribution.toLocaleString()}
+              </div>
+              <Progress value={progress} className='h-2 mt-1' indicatorClassName={getPaymentStatusColor(balance, member.contribution)} />
+          </div>
+
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Contribution Type</TableHead>
-                <TableHead>Expected Amount</TableHead>
-                <TableHead>Amount Paid</TableHead>
-                <TableHead>Balance</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead>Amount</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow>
-                <TableCell className="font-medium">
-                  {member.useCustomContribution ? 'Custom Contribution' : 'Standard Contribution'}
-                </TableCell>
-                <TableCell>{settings.currency}{member.contribution.toLocaleString()}</TableCell>
-                <TableCell>{settings.currency}{paidAmount.toLocaleString()}</TableCell>
-                <TableCell>{settings.currency}{balance.toLocaleString()}</TableCell>
-                <TableCell>
-                  <div className='w-40'>
-                      <Progress value={progress} className='h-2 mt-1' indicatorClassName={getPaymentStatusColor(balance, member.contribution)} />
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Button 
-                    onClick={() => openDialog({type: 'record-payment', member})}
-                    disabled={balance <= 0}
-                    size="sm"
-                  >
-                    Record Payment
-                  </Button>
-                </TableCell>
-              </TableRow>
+              {applicableContributions.length > 0 ? applicableContributions.map((contrib: CustomContribution) => (
+                <TableRow key={contrib.id}>
+                  <TableCell className="font-medium">
+                    {contrib.name}
+                    {contrib.description && <p className="text-xs text-muted-foreground">{contrib.description}</p>}
+                  </TableCell>
+                  <TableCell>{settings.currency}{contrib.amount.toLocaleString()}</TableCell>
+                </TableRow>
+              )) : (
+                <TableRow>
+                  <TableCell colSpan={2} className="text-center text-muted-foreground">
+                    No contributions assigned to this member's tier.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>

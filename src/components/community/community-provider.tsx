@@ -31,7 +31,7 @@ interface CommunityContextType {
   openDialog: (state: DialogState) => void;
   closeDialog: () => void;
 
-  getContribution: (age: number) => number;
+  getContribution: (member: Member) => number;
   getTier: (age: number) => string;
   calculateAge: (yearOfBirth: number) => number;
   getPaidAmount: (member: Member) => number;
@@ -43,16 +43,16 @@ export const CommunityContext = createContext<CommunityContextType | undefined>(
 const DEFAULT_SETTINGS: Settings = {
   tier1Age: 18,
   tier2Age: 25,
-  tier1Contribution: 50,
-  tier2Contribution: 100,
+  tier1Contribution: 0,
+  tier2Contribution: 0,
   currency: '₦',
 };
 
 const DEFAULT_FAMILIES = ['Smith', 'Johnson', 'Williams'];
 const DEFAULT_CUSTOM_CONTRIBUTIONS: CustomContribution[] = [
-    { id: 1, name: 'Student Discount', amount: 25, description: 'Reduced rate for students' },
-    { id: 2, name: 'Senior Citizen', amount: 30, description: 'Discounted rate for seniors 65+' },
-    { id: 3, name: 'Sponsor Level', amount: 200, description: 'Premium sponsor contribution' }
+    { id: 1, name: 'Annual Dues', amount: 100, description: 'Yearly community dues', tiers: ['Tier 2 (25+)'] },
+    { id: 2, name: 'Youth Dues', amount: 50, description: 'Discounted yearly dues', tiers: ['Tier 1 (18-24)'] },
+    { id: 3, name: 'Building Fund', amount: 200, description: 'Contribution for the new community hall', tiers: ['Tier 1 (18-24)', 'Tier 2 (25+)'] }
 ];
 
 export function CommunityProvider({ children }: { children: ReactNode }) {
@@ -85,7 +85,9 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       setMembers(migratedMembers);
       setFamilies(savedFamilies ? JSON.parse(savedFamilies) : DEFAULT_FAMILIES);
       setSettings(savedSettings ? JSON.parse(savedSettings) : DEFAULT_SETTINGS);
-      setCustomContributions(savedCustomContributions ? JSON.parse(savedCustomContributions) : DEFAULT_CUSTOM_CONTRIBUTIONS);
+      const initialContributions = savedCustomContributions ? JSON.parse(savedCustomContributions) : DEFAULT_CUSTOM_CONTRIBUTIONS;
+      const migratedContributions = initialContributions.map(c => ({...c, tiers: c.tiers || [] }));
+      setCustomContributions(migratedContributions);
     } catch (error) {
       console.error("Failed to load data from localStorage", error);
     } finally {
@@ -117,10 +119,10 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     return 'Tier 2 (25+)';
   };
 
-  const getContribution = (age: number) => {
-    if (age < settings.tier1Age) return 0;
-    if (age >= settings.tier1Age && age < settings.tier2Age) return settings.tier1Contribution;
-    return settings.tier2Contribution;
+  const getContribution = (member: Member) => {
+    return customContributions
+      .filter(c => c.tiers.includes(member.tier))
+      .reduce((sum, c) => sum + c.amount, 0);
   };
 
   const getPaidAmount = (member: Member) => {
@@ -152,13 +154,12 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
 
   const addMember = (data: Omit<NewMemberData, 'useCustomContribution' | 'customContribution'>) => {
     const age = calculateAge(data.yearOfBirth);
+    const tier = getTier(age);
     const fullName = [data.firstName, data.middleName, data.lastName]
       .filter(part => part && part.trim())
       .join(' ');
     
-    const defaultContribution = getContribution(age);
-
-    const member: Member = {
+    let member: Member = {
       id: Date.now(),
       name: fullName,
       firstName: data.firstName,
@@ -169,12 +170,13 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       email: data.email || '',
       phone: data.phone || '',
       age,
-      tier: getTier(age),
-      contribution: defaultContribution,
+      tier,
+      contribution: 0, // Will be calculated
       useCustomContribution: false,
       customContribution: null,
       payments: []
     };
+    member.contribution = getContribution(member);
 
     setMembers(prev => [...prev, member]);
     if (!families.includes(data.family)) {
@@ -185,18 +187,19 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
 
   const updateMember = (updatedData: Member) => {
     const age = calculateAge(updatedData.yearOfBirth);
+    const tier = getTier(age);
     const fullName = [updatedData.firstName, updatedData.middleName, updatedData.lastName]
       .filter(part => part && part.trim())
       .join(' ');
-    const defaultContribution = getContribution(age);
     
     const updatedMember: Member = {
       ...updatedData,
       name: fullName,
       age,
-      tier: getTier(age),
-      contribution: defaultContribution,
+      tier,
+      contribution: 0, // will be recalculated
     };
+    updatedMember.contribution = getContribution(updatedMember);
     
     setMembers(prev => prev.map(m => m.id === updatedData.id ? updatedMember : m));
     closeDialog();
@@ -230,7 +233,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
   const recalculateTiers = () => {
     setMembers(prev => prev.map(member => {
       const tier = getTier(member.age);
-      const contribution = getContribution(member.age);
+      const contribution = getContribution({ ...member, tier });
       return { ...member, tier, contribution };
     }));
     toast({ title: "Tiers Updated", description: "All member tiers and default contributions have been recalculated." });
@@ -240,18 +243,21 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     const newContrib: CustomContribution = { id: Date.now(), ...data };
     setCustomContributions(prev => [...prev, newContrib]);
     toast({ title: "Template Added", description: `"${data.name}" has been added.` });
+    recalculateTiers();
   };
 
   const updateCustomContribution = (updatedContribution: CustomContribution) => {
     setCustomContributions(prev => prev.map(c => c.id === updatedContribution.id ? updatedContribution : c));
     toast({ title: "Template Updated", description: `"${updatedContribution.name}" has been updated.` });
     closeDialog();
+    recalculateTiers();
   };
 
   const deleteCustomContribution = (id: number) => {
     const contribName = customContributions.find(c => c.id === id)?.name || 'Template';
     setCustomContributions(prev => prev.filter(c => c.id !== id));
     toast({ title: "Template Deleted", description: `"${contribName}" has been removed.` });
+    recalculateTiers();
   };
 
   const contextValue = useMemo(() => ({
