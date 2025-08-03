@@ -63,10 +63,10 @@ export function EditMemberDialog() {
         phone: editingMember.phone,
         useCustomContribution: editingMember.useCustomContribution,
         customContribution: editingMember.customContribution,
-        paidAmount: editingMember.paidAmount
+        paidAmount: editingMember.paidAmount,
       });
     }
-  }, [editingMember, form.reset]);
+  }, [editingMember, form]);
   
   if (!editingMember) return null;
 
