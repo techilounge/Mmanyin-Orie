@@ -65,29 +65,30 @@ export function Payments() {
           <div className="border rounded-lg">
             <Table>
                 <TableHeader>
-                <TableRow>
-                    <TableHead className="w-12"></TableHead>
-                    <TableHead>Contribution Type</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead className="text-right">Paid</TableHead>
-                    <TableHead className="text-right">Balance</TableHead>
-                    <TableHead className="text-center w-40">Actions</TableHead>
-                </TableRow>
+                  <TableRow>
+                      <TableHead className="w-12"></TableHead>
+                      <TableHead>Contribution Type</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead className="text-right">Paid</TableHead>
+                      <TableHead className="text-right">Balance</TableHead>
+                      <TableHead className="text-center w-40">Actions</TableHead>
+                  </TableRow>
                 </TableHeader>
-                <TableBody>
+                
                 {applicableContributions.length > 0 ? applicableContributions.map((contrib: CustomContribution) => {
                     const balance = getBalanceForContribution(member, contrib);
                     const paid = getPaidAmountForContribution(member, contrib.id);
                     const paymentsForContribution = member.payments.filter(p => p.contributionId === contrib.id);
                     return (
-                    <Collapsible asChild key={contrib.id}>
-                        <>
+                      <Collapsible asChild key={contrib.id} >
+                        <TableBody className="data-[state=open]:bg-muted/30">
                           <TableRow>
                               <TableCell>
                               {paymentsForContribution.length > 0 && (
                                   <CollapsibleTrigger asChild>
                                   <Button variant="ghost" size="icon" className="h-8 w-8">
                                       <ChevronDown className="h-4 w-4 transition-transform data-[state=open]:rotate-180" />
+                                      <span className="sr-only">Toggle payment history</span>
                                   </Button>
                                   </CollapsibleTrigger>
                               )}
@@ -111,8 +112,8 @@ export function Payments() {
                               </TableCell>
                           </TableRow>
                           <CollapsibleContent asChild>
-                              <tr className="bg-muted/50 hover:bg-muted/50">
-                              <td colSpan={6} className="p-0">
+                              <TableRow>
+                              <TableCell colSpan={6} className="p-0">
                                   <div className="p-4">
                                   <h4 className="font-semibold mb-2 text-sm">Payment History for {contrib.name}</h4>
                                   {paymentsForContribution.length > 0 ? (
@@ -137,20 +138,21 @@ export function Payments() {
                                       <p className="text-sm text-muted-foreground">No payments recorded yet.</p>
                                   )}
                                   </div>
-                              </td>
-                              </tr>
+                              </TableCell>
+                              </TableRow>
                           </CollapsibleContent>
-                        </>
-                    </Collapsible>
+                        </TableBody>
+                      </Collapsible>
                     )
                 }) : (
+                  <TableBody>
                     <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground">
-                        No contributions assigned to this member's tier.
-                    </TableCell>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                          No contributions assigned to this member's tier.
+                      </TableCell>
                     </TableRow>
+                  </TableBody>
                 )}
-                </TableBody>
             </Table>
           </div>
         </CardContent>
