@@ -1,5 +1,6 @@
 'use client';
-import { useState } from 'react';
+
+import { useState, useMemo } from 'react';
 import { useCommunity } from '@/hooks/use-community';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Search, Edit2, Trash2, X, Users, AlertCircle } from 'lucide-react';
+import { Search, Edit2, Trash2, Users, AlertCircle, X } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,10 +18,11 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+} from '@/components/ui/alert-dialog';
 
 export function Members() {
   const { members, families, deleteMember, openDialog, getTier } = useCommunity();
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filterFamily, setFilterFamily] = useState('');
   const [filterTier, setFilterTier] = useState('');
@@ -32,19 +34,23 @@ export function Members() {
     setFilterTier('');
   };
 
-  const filteredMembers = members.filter(member => {
-    const searchLower = searchTerm.toLowerCase();
-    const tier = getTier(member.age);
-    const matchesSearch = member.name.toLowerCase().includes(searchLower) ||
-                         member.family.toLowerCase().includes(searchLower);
-    const matchesFamily = !filterFamily || member.family === filterFamily;
-    const matchesTier = !filterTier || tier === filterTier;
-    return matchesSearch && matchesFamily && matchesTier;
-  });
+  const filteredMembers = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    return members.filter((m) => {
+      const tier = getTier(m.age);
+      const matchesSearch =
+        !q ||
+        m.name.toLowerCase().includes(q) ||
+        m.family.toLowerCase().includes(q) ||
+        (m.email ?? '').toLowerCase().includes(q) ||
+        (m.phone ?? '').toLowerCase().includes(q);
 
-  const handleDeleteClick = (id: number) => {
-    setMemberToDelete(id);
-  };
+      const matchesFamily = !filterFamily || m.family === filterFamily;
+      const matchesTier = !filterTier || tier === filterTier;
+
+      return matchesSearch && matchesFamily && matchesTier;
+    });
+  }, [members, searchTerm, filterFamily, filterTier, getTier]);
 
   const confirmDelete = () => {
     if (memberToDelete !== null) {
@@ -52,6 +58,13 @@ export function Members() {
       setMemberToDelete(null);
     }
   };
+
+  const tierOptions = useMemo(() => {
+    // Build from current settings via getTier over existing ages
+    const set = new Set<string>();
+    members.forEach((m) => set.add(getTier(m.age)));
+    return Array.from(set).sort();
+  }, [members, getTier]);
 
   return (
     <div className="space-y-6">
@@ -70,28 +83,35 @@ export function Members() {
                 />
               </div>
             </div>
+
             <div className="flex flex-wrap gap-3">
               <Select value={filterFamily} onValueChange={setFilterFamily}>
                 <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="All Families" />
                 </SelectTrigger>
                 <SelectContent>
-                  {families.sort().map(family => (
-                    <SelectItem key={family} value={family}>{family}</SelectItem>
+                  {families.sort().map((f) => (
+                    <SelectItem key={f} value={f}>
+                      {f}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+
               <Select value={filterTier} onValueChange={setFilterTier}>
                 <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="All Tiers" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Under 18">Under 18</SelectItem>
-                  <SelectItem value="Tier 1 (18-24)">Tier 1 (18-24)</SelectItem>
-                  <SelectItem value="Tier 2 (25+)">Tier 2 (25+)</SelectItem>
+                  {tierOptions.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
-              <Button onClick={clearFilters} variant="outline">
+
+              <Button variant="outline" onClick={clearFilters}>
                 <X size={16} />
                 <span className="hidden sm:inline ml-1">Clear</span>
               </Button>
@@ -102,86 +122,102 @@ export function Members() {
       
       <Card>
         <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Family</TableHead>
-                <TableHead>Birth Year</TableHead>
-                <TableHead>Age</TableHead>
-                <TableHead>Tier</TableHead>
-                <TableHead>Contribution</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredMembers.map(member => (
-                <TableRow key={member.id}>
-                  <TableCell className="font-medium">{member.name}</TableCell>
-                  <TableCell>{member.family}</TableCell>
-                  <TableCell>{member.yearOfBirth}</TableCell>
-                  <TableCell>{member.age}</TableCell>
-                  <TableCell>
-                     <Badge variant={
-                        member.tier.includes('Tier 1') ? 'secondary' :
-                        member.tier.includes('Tier 2') ? 'outline' : 'default'
-                      } className={`text-xs ${
-                        member.tier.includes('Tier 1') ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200' :
-                        member.tier.includes('Tier 2') ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200' :
-                        ''
-                      }`}>{member.tier}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <span>${member.contribution.toLocaleString()}</span>
-                      {member.useCustomContribution && (
-                        <Badge variant="outline" className="bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-200">Custom</Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    <div>
-                      {member.email && <div className="truncate max-w-[150px]">{member.email}</div>}
-                      {member.phone && <div>{member.phone}</div>}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button variant="ghost" size="icon" onClick={() => openDialog({ type: 'edit-member', member })} aria-label="Edit member">
-                        <Edit2 size={16} className="text-primary" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(member.id)} aria-label="Delete member">
-                        <Trash2 size={16} className="text-destructive" />
-                      </Button>
-                    </div>
-                  </TableCell>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Family</TableHead>
+                  <TableHead>Birth Year</TableHead>
+                  <TableHead>Age</TableHead>
+                  <TableHead>Tier</TableHead>
+                  <TableHead>Contribution</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          {filteredMembers.length === 0 && (
-            <div className="text-center py-12">
-              <Users className="mx-auto h-12 w-12 text-muted-foreground" />
-              <h3 className="mt-2 text-sm font-medium text-foreground">No members found</h3>
-              <p className="mt-1 text-sm text-muted-foreground">Try adjusting your search or filter criteria.</p>
-            </div>
-          )}
+              </TableHeader>
+
+              <TableBody>
+                {filteredMembers.map((m) => {
+                  const tier = getTier(m.age);
+                  return (
+                    <TableRow key={m.id}>
+                      <TableCell className="font-medium">{m.name}</TableCell>
+                      <TableCell>{m.family}</TableCell>
+                      <TableCell>{m.yearOfBirth}</TableCell>
+                      <TableCell>{m.age}</TableCell>
+                      <TableCell>
+                        <Badge variant={tier.includes('Tier 1') ? 'secondary' : tier.includes('Tier 2') ? 'outline' : 'default'}  className={`text-xs ${
+                        tier.includes('Tier 1') ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200' :
+                        tier.includes('Tier 2') ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200' :
+                        ''
+                      }`}>
+                          {tier}
+                        </Badge>
+                      </TableCell>
+                       <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span>${m.contribution.toLocaleString()}</span>
+                          {m.useCustomContribution && (
+                            <Badge variant="outline" className="bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-200">Custom</Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col text-sm text-muted-foreground">
+                          {m.email && <span className="truncate max-w-[150px]">{m.email}</span>}
+                          {m.phone && <span>{m.phone}</span>}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openDialog({ type: 'edit-member', member: m })}
+                            aria-label="Edit member"
+                          >
+                            <Edit2 size={16} className="text-primary" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setMemberToDelete(m.id)}
+                            aria-label="Delete member"
+                          >
+                            <Trash2 size={16} className="text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+
+            {filteredMembers.length === 0 && (
+              <div className="text-center py-12">
+                <Users className="mx-auto h-12 w-12 text-muted-foreground" />
+                <h3 className="mt-2 text-sm font-medium text-foreground">No members found</h3>
+                <p className="mt-1 text-sm text-muted-foreground">Try adjusting your search or filter criteria.</p>
+              </div>
+            )}
         </div>
       </Card>
 
-       <AlertDialog open={memberToDelete !== null} onOpenChange={(open) => !open && setMemberToDelete(null)}>
+      <AlertDialog open={memberToDelete !== null} onOpenChange={(open) => !open && setMemberToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2"><AlertCircle className="text-destructive" /> Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle className="flex items-center gap-2"><AlertCircle className="text-destructive"/>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the member
-              "{members.find(m => m.id === memberToDelete)?.name}" from the registry.
-            </AlexDialogDescription>
+              This action cannot be undone. This will permanently delete "
+              {members.find((x) => x.id === memberToDelete)?.name}" from the registry.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

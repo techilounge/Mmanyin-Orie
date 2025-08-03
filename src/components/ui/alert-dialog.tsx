@@ -8,14 +8,7 @@ import { buttonVariants } from "@/components/ui/button"
 
 const AlertDialog = AlertDialogPrimitive.Root
 
-const AlertDialogTrigger = React.forwardRef<
-  React.ElementRef<typeof AlertDialogPrimitive.Trigger>,
-  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Trigger>
->(({ className, ...props }, ref) => (
-  <AlertDialogPrimitive.Trigger ref={ref} className={cn(className)} {...props} />
-));
-AlertDialogTrigger.displayName = AlertDialogPrimitive.Trigger.displayName
-
+const AlertDialogTrigger = AlertDialogPrimitive.Trigger
 
 const AlertDialogPortal = AlertDialogPrimitive.Portal
 
