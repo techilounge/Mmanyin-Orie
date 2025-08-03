@@ -77,7 +77,7 @@ export function Members() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">All Families</SelectItem>
-                  {families.map(family => (
+                  {families.sort().map(family => (
                     <SelectItem key={family} value={family}>{family}</SelectItem>
                   ))}
                 </SelectContent>
