@@ -10,25 +10,12 @@ import {
   type ControllerProps,
   type FieldPath,
   type FieldValues,
-  type UseFormReturn,
 } from "react-hook-form"
 
 import { cn } from "@/lib/utils"
 import { Label } from "@/components/ui/label"
 
-function Form<
-  TFieldValues extends FieldValues = FieldValues,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  TContext = any,
-  TTransformedValues extends FieldValues | undefined = undefined,
->({
-  children,
-  ...props
-}: {
-  children: React.ReactNode
-} & UseFormReturn<TFieldValues, TContext, TTransformedValues>) {
-  return <FormProvider {...props}>{children}</FormProvider>
-}
+const Form = FormProvider
 
 type FormFieldContextValue<
   TFieldValues extends FieldValues = FieldValues,
