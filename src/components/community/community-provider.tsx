@@ -26,6 +26,8 @@ interface CommunityContextType {
   deleteCustomContribution: (id: number) => void;
 
   recordPayment: (memberId: number, contributionId: number, paymentData: Omit<NewPaymentData, 'contributionId'>) => void;
+  updatePayment: (memberId: number, updatedPayment: Payment) => void;
+  deletePayment: (memberId: number, paymentId: number) => void;
 
   dialogState: DialogState;
   openDialog: (state: DialogState) => void;
@@ -244,6 +246,29 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     toast({ title: "Payment Recorded", description: `Payment of ${settings.currency}${paymentData.amount} for ${memberName} towards ${contributionName} has been recorded.` });
     closeDialog();
   };
+
+  const updatePayment = (memberId: number, updatedPayment: Payment) => {
+    setMembers(prev => prev.map(m => {
+      if (m.id === memberId) {
+        const updatedPayments = m.payments.map(p => p.id === updatedPayment.id ? updatedPayment : p);
+        return { ...m, payments: updatedPayments };
+      }
+      return m;
+    }));
+    toast({ title: "Payment Updated", description: `Payment details have been updated.` });
+    closeDialog();
+  };
+
+  const deletePayment = (memberId: number, paymentId: number) => {
+    setMembers(prev => prev.map(m => {
+      if (m.id === memberId) {
+        const updatedPayments = m.payments.filter(p => p.id !== paymentId);
+        return { ...m, payments: updatedPayments };
+      }
+      return m;
+    }));
+    toast({ title: "Payment Deleted", description: `The payment has been removed.` });
+  };
   
   const updateSettings = (newSettings: Settings) => {
     setSettings(newSettings);
@@ -297,6 +322,8 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     updateCustomContribution,
     deleteCustomContribution,
     recordPayment,
+    updatePayment,
+    deletePayment,
     dialogState,
     openDialog,
     closeDialog,

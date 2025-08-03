@@ -5,13 +5,18 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { DollarSign, User, Users } from 'lucide-react';
-import type { Member, CustomContribution } from '@/lib/types';
+import { DollarSign, User, Users, ChevronDown, Edit, Trash2 } from 'lucide-react';
+import type { Member, CustomContribution, Payment } from '@/lib/types';
 import { Progress } from '../ui/progress';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
+import { format } from 'date-fns';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
+
 
 export function Payments() {
-  const { members, settings, getPaidAmount, getBalance, openDialog, customContributions, getPaidAmountForContribution, getBalanceForContribution } = useCommunity();
+  const { members, settings, getPaidAmount, getBalance, openDialog, customContributions, getPaidAmountForContribution, getBalanceForContribution, deletePayment } = useCommunity();
   const [selectedMemberId, setSelectedMemberId] = useState<string>('');
+  const [paymentToDelete, setPaymentToDelete] = useState<{memberId: number, paymentId: number} | null>(null);
 
   const selectedMember = members.find(m => m.id.toString() === selectedMemberId);
 
@@ -20,6 +25,13 @@ export function Payments() {
     if (balance <= 0) return 'bg-green-500';
     if (balance < contribution) return 'bg-yellow-500';
     return 'bg-secondary';
+  }
+
+  const confirmDelete = () => {
+    if (paymentToDelete) {
+        deletePayment(paymentToDelete.memberId, paymentToDelete.paymentId);
+        setPaymentToDelete(null);
+    }
   }
 
   const renderMemberPayments = (member: Member) => {
@@ -50,50 +62,97 @@ export function Payments() {
               <Progress value={progress} className='h-2 mt-1' indicatorClassName={getPaymentStatusColor(totalBalance, totalOwed)} />
           </div>
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Contribution Type</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead className="text-right">Paid</TableHead>
-                <TableHead className="text-right">Balance</TableHead>
-                <TableHead className="text-center">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {applicableContributions.length > 0 ? applicableContributions.map((contrib: CustomContribution) => {
-                const balance = getBalanceForContribution(member, contrib);
-                const paid = getPaidAmountForContribution(member, contrib.id);
-                return (
-                  <TableRow key={contrib.id}>
-                    <TableCell className="font-medium">
-                      {contrib.name}
-                      {contrib.description && <p className="text-xs text-muted-foreground max-w-xs">{contrib.description}</p>}
-                    </TableCell>
-                    <TableCell className="text-right">{settings.currency}{contrib.amount.toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-green-600 dark:text-green-400">{settings.currency}{paid.toLocaleString()}</TableCell>
-                    <TableCell className="text-right font-medium">{settings.currency}{balance.toLocaleString()}</TableCell>
-                    <TableCell className="text-center">
-                       <Button 
-                        onClick={() => openDialog({type: 'record-payment', member, contribution: contrib})}
-                        disabled={balance <= 0}
-                        size="sm"
-                        variant="outline"
-                      >
-                        Record Payment
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                )
-              }) : (
+          <div className="border rounded-lg">
+            <Table>
+                <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
-                    No contributions assigned to this member's tier.
-                  </TableCell>
+                    <TableHead className="w-12"></TableHead>
+                    <TableHead>Contribution Type</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead className="text-right">Paid</TableHead>
+                    <TableHead className="text-right">Balance</TableHead>
+                    <TableHead className="text-center w-40">Actions</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                </TableHeader>
+                <TableBody>
+                {applicableContributions.length > 0 ? applicableContributions.map((contrib: CustomContribution) => {
+                    const balance = getBalanceForContribution(member, contrib);
+                    const paid = getPaidAmountForContribution(member, contrib.id);
+                    const paymentsForContribution = member.payments.filter(p => p.contributionId === contrib.id);
+                    return (
+                    <Collapsible asChild key={contrib.id}>
+                        <>
+                        <TableRow>
+                            <TableCell>
+                            {paymentsForContribution.length > 0 && (
+                                <CollapsibleTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <ChevronDown className="h-4 w-4 transition-transform data-[state=open]:rotate-180" />
+                                </Button>
+                                </CollapsibleTrigger>
+                            )}
+                            </TableCell>
+                            <TableCell className="font-medium">
+                            {contrib.name}
+                            {contrib.description && <p className="text-xs text-muted-foreground max-w-xs">{contrib.description}</p>}
+                            </TableCell>
+                            <TableCell className="text-right">{settings.currency}{contrib.amount.toLocaleString()}</TableCell>
+                            <TableCell className="text-right text-green-600 dark:text-green-400">{settings.currency}{paid.toLocaleString()}</TableCell>
+                            <TableCell className="text-right font-medium">{settings.currency}{balance.toLocaleString()}</TableCell>
+                            <TableCell className="text-center">
+                            <Button 
+                                onClick={() => openDialog({type: 'record-payment', member, contribution: contrib})}
+                                disabled={balance <= 0}
+                                size="sm"
+                                variant="outline"
+                            >
+                                Record Payment
+                            </Button>
+                            </TableCell>
+                        </TableRow>
+                        <CollapsibleContent asChild>
+                            <tr>
+                            <td colSpan={6} className="p-0">
+                                <div className="bg-muted/50 p-4">
+                                <h4 className="font-semibold mb-2 text-sm">Payment History for {contrib.name}</h4>
+                                {paymentsForContribution.length > 0 ? (
+                                    <div className="space-y-2">
+                                    {paymentsForContribution.map((payment: Payment) => (
+                                        <div key={payment.id} className="flex justify-between items-center bg-background p-2 rounded-md">
+                                        <div className="text-sm">
+                                            <span className="font-medium">{settings.currency}{payment.amount.toLocaleString()}</span> on <span>{format(new Date(payment.date), "PPP")}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDialog({ type: 'edit-payment', member, contribution: contrib, payment })}>
+                                            <Edit className="h-4 w-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setPaymentToDelete({memberId: member.id, paymentId: payment.id})}>
+                                            <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                        </div>
+                                    ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">No payments recorded yet.</p>
+                                )}
+                                </div>
+                            </td>
+                            </tr>
+                        </CollapsibleContent>
+                        </>
+                    </Collapsible>
+                    )
+                }) : (
+                    <TableRow>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground">
+                        No contributions assigned to this member's tier.
+                    </TableCell>
+                    </TableRow>
+                )}
+                </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     )
@@ -136,6 +195,22 @@ export function Payments() {
           <p className="mt-1 text-sm text-muted-foreground">Please select a member above to see their payment information.</p>
         </div>
       )}
+       <AlertDialog open={paymentToDelete !== null} onOpenChange={(open) => !open && setPaymentToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the payment record.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
