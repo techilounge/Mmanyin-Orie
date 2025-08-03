@@ -49,7 +49,7 @@ export function Families() {
                 </div>
                 <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
                   <p className="text-sm text-muted-foreground flex items-center gap-1"><DollarSign size={14} /> Contributions</p>
-                  <p className="text-xl font-bold text-green-700 dark:text-green-300">${familyContribution.toLocaleString()}</p>
+                  <p className="text-xl font-bold text-green-700 dark:text-green-300">₦{familyContribution.toLocaleString()}</p>
                 </div>
               </div>
               <div className="space-y-2 mb-4 flex-grow max-h-40 overflow-y-auto pr-2">

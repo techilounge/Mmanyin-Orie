@@ -156,7 +156,7 @@ export function Members() {
                       </TableCell>
                        <TableCell>
                         <div className="flex items-center gap-2">
-                          <span>${m.contribution.toLocaleString()}</span>
+                          <span>₦{m.contribution.toLocaleString()}</span>
                           {m.useCustomContribution && (
                             <Badge variant="outline" className="bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-200">Custom</Badge>
                           )}

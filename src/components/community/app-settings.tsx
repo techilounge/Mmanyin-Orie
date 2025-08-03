@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Settings, DollarSign, Plus, Trash2 } from 'lucide-react';
+import { Settings, Plus, Trash2 } from 'lucide-react';
+import { DollarSign } from 'lucide-react';
 
 export function AppSettings() {
   const { settings, updateSettings, recalculateTiers, customContributions, openDialog, deleteCustomContribution } = useCommunity();
@@ -37,11 +38,11 @@ export function AppSettings() {
               <Input id="tier2Age" name="tier2Age" type="number" value={settings.tier2Age} onChange={handleSettingChange} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="tier1Contribution">Tier 1 Contribution ($)</Label>
+              <Label htmlFor="tier1Contribution">Tier 1 Contribution (₦)</Label>
               <Input id="tier1Contribution" name="tier1Contribution" type="number" value={settings.tier1Contribution} onChange={handleSettingChange} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="tier2Contribution">Tier 2 Contribution ($)</Label>
+              <Label htmlFor="tier2Contribution">Tier 2 Contribution (₦)</Label>
               <Input id="tier2Contribution" name="tier2Contribution" type="number" value={settings.tier2Contribution} onChange={handleSettingChange} />
             </div>
           </div>
@@ -79,7 +80,7 @@ export function AppSettings() {
                   <div className="flex flex-wrap items-center gap-3">
                     <h4 className="font-medium text-foreground">{contrib.name}</h4>
                     <span className="px-3 py-1 bg-accent text-accent-foreground rounded-full text-sm font-medium">
-                      ${contrib.amount}
+                      ₦{contrib.amount}
                     </span>
                   </div>
                   {contrib.description && (

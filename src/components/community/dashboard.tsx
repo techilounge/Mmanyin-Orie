@@ -39,7 +39,7 @@ export function Dashboard() {
         <StatCard title="Total Families" value={stats.totalFamilies} icon={Home} colorClass="bg-indigo-100 dark:bg-indigo-900/20" iconBgClass="bg-white/50 text-indigo-600 dark:text-indigo-400" />
         <StatCard title="Tier 1 (18-24)" value={stats.tier1Members} icon={Users} colorClass="bg-green-100 dark:bg-green-900/20" iconBgClass="bg-white/50 text-green-600 dark:text-green-400" />
         <StatCard title="Tier 2 (25+)" value={stats.tier2Members} icon={Users} colorClass="bg-purple-100 dark:bg-purple-900/20" iconBgClass="bg-white/50 text-purple-600 dark:text-purple-400" />
-        <StatCard title="Expected Contributions" value={`$${stats.totalContributions.toLocaleString()}`} icon={DollarSign} colorClass="bg-yellow-100 dark:bg-yellow-900/20" iconBgClass="bg-white/50 text-yellow-600 dark:text-yellow-400" />
+        <StatCard title="Expected Contributions" value={`₦${stats.totalContributions.toLocaleString()}`} icon={DollarSign} colorClass="bg-yellow-100 dark:bg-yellow-900/20" iconBgClass="bg-white/50 text-yellow-600 dark:text-yellow-400" />
       </div>
       
       <Card>
@@ -76,7 +76,7 @@ export function Dashboard() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span>${member.contribution.toLocaleString()}</span>
+                        <span>₦{member.contribution.toLocaleString()}</span>
                         {member.useCustomContribution && (
                           <Badge variant="outline" className="bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-200">Custom</Badge>
                         )}
