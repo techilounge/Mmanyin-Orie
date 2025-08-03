@@ -21,7 +21,7 @@ DialogTrigger.displayName = DialogPrimitive.Trigger.displayName
 const DialogPortal = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Portal>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Portal>
->((props, ref) => <DialogPrimitive.Portal ref={ref} {...props} />)
+>(({ ...props }, ref) => <DialogPrimitive.Portal ref={ref} {...props} />)
 DialogPortal.displayName = DialogPrimitive.Portal.displayName
 
 const DialogClose = React.forwardRef<

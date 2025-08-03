@@ -64,10 +64,12 @@ export function AddMemberDialog() {
   const familySelection = form.watch('family');
 
   useEffect(() => {
-    if (familyToAddTo) {
-      form.setValue('family', familyToAddTo);
-    } else {
-      // form.reset(); // This was causing issues when opening the dialog without a pre-selected family
+    if (showAddMemberDialog) {
+      if (familyToAddTo) {
+        form.setValue('family', familyToAddTo);
+      } else {
+        form.reset();
+      }
     }
   }, [familyToAddTo, showAddMemberDialog, form]);
 
