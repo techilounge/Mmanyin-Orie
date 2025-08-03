@@ -10,7 +10,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Nexus Hub',
+  title: 'Mmanyin Orie',
   description: 'Community Registry Application',
 };
 

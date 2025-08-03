@@ -12,8 +12,8 @@ export function AppHeader() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center space-x-3">
-            <Image src="/logo.png" alt="Nexus Hub Logo" width={40} height={40} className="rounded-lg" />
-            <h1 className="text-2xl font-bold text-foreground font-headline">Nexus Hub</h1>
+            <Image src="/logo.png" alt="Mmanyin Orie Logo" width={40} height={40} className="rounded-lg" />
+            <h1 className="text-2xl font-bold text-foreground font-headline">Mmanyin Orie</h1>
           </div>
           <div className="flex gap-3">
             <Button
