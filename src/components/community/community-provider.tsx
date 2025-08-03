@@ -156,9 +156,6 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       .join(' ');
     
     const defaultContribution = getContribution(age);
-    const finalContribution = data.useCustomContribution && data.customContribution
-      ? data.customContribution
-      : defaultContribution;
 
     const member: Member = {
       id: Date.now(),
@@ -172,9 +169,9 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       phone: data.phone || '',
       age,
       tier: getTier(age),
-      contribution: finalContribution,
-      useCustomContribution: data.useCustomContribution,
-      customContribution: data.useCustomContribution ? data.customContribution : null,
+      contribution: defaultContribution,
+      useCustomContribution: false,
+      customContribution: null,
       payments: []
     };
 
@@ -191,17 +188,15 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       .filter(part => part && part.trim())
       .join(' ');
     const defaultContribution = getContribution(age);
-    const finalContribution = updatedData.useCustomContribution && updatedData.customContribution
-      ? updatedData.customContribution
-      : defaultContribution;
-
+    
     const updatedMember: Member = {
       ...updatedData,
       name: fullName,
       age,
       tier: getTier(age),
-      contribution: finalContribution,
-      customContribution: updatedData.useCustomContribution ? updatedData.customContribution : null,
+      contribution: defaultContribution,
+      useCustomContribution: false,
+      customContribution: null,
     };
     
     setMembers(prev => prev.map(m => m.id === updatedData.id ? updatedMember : m));
@@ -236,7 +231,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
   const recalculateTiers = () => {
     setMembers(prev => prev.map(member => {
       const tier = getTier(member.age);
-      const contribution = member.useCustomContribution ? member.contribution : getContribution(member.age);
+      const contribution = getContribution(member.age);
       return { ...member, tier, contribution };
     }));
     toast({ title: "Tiers Updated", description: "All member tiers and default contributions have been recalculated." });

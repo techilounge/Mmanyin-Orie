@@ -38,7 +38,7 @@ export function Dashboard() {
   };
 
   const getPaymentStatusColor = (balance: number, contribution: number) => {
-    if (contribution === 0) return 'bg-gray-300';
+    if (contribution === 0) return 'bg-gray-400';
     if (balance <= 0) return 'bg-green-500';
     if (balance < contribution) return 'bg-yellow-500';
     return 'bg-secondary';
@@ -92,9 +92,6 @@ export function Dashboard() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <span>{settings.currency}{member.contribution.toLocaleString()}</span>
-                        {member.useCustomContribution && (
-                          <Badge variant="outline" className="bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-200">Custom</Badge>
-                        )}
                       </div>
                     </TableCell>
                     <TableCell>

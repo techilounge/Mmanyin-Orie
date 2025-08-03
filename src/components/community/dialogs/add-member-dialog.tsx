@@ -8,8 +8,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -26,8 +24,6 @@ const formSchema = z.object({
   newFamilyName: z.string().optional(),
   email: z.string().email('Invalid email address.').optional().or(z.literal('')),
   phone: z.string().optional(),
-  useCustomContribution: z.boolean(),
-  customContribution: z.coerce.number().optional(),
 }).refine(
   (data) => data.family !== 'new' || (!!data.newFamilyName && data.newFamilyName.trim().length > 0),
   { message: 'New family name is required.', path: ['newFamilyName'] }
@@ -35,7 +31,7 @@ const formSchema = z.object({
 
 export function AddMemberDialog() {
   const {
-    dialogState, closeDialog, addMember, families, customContributions,
+    dialogState, closeDialog, addMember, families,
     getContribution, calculateAge, settings
   } = useCommunity();
 
@@ -47,11 +43,10 @@ export function AddMemberDialog() {
     defaultValues: {
       firstName: '', lastName: '', middleName: '',
       yearOfBirth: undefined, family: '', newFamilyName: '',
-      email: '', phone: '', useCustomContribution: false, customContribution: 0,
+      email: '', phone: '',
     },
   });
 
-  const useCustom = form.watch('useCustomContribution');
   const yob = form.watch('yearOfBirth');
   const familySelection = form.watch('family');
 
@@ -67,7 +62,14 @@ export function AddMemberDialog() {
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     const familyName = values.family === 'new' ? values.newFamilyName! : values.family;
-    addMember({ ...values, family: familyName, customContribution: values.customContribution || 0 });
+    // We now ignore custom contributions and always use the default.
+    const memberData = {
+        ...values,
+        family: familyName,
+        useCustomContribution: false,
+        customContribution: 0,
+    };
+    addMember(memberData);
     handleClose();
   };
 
@@ -131,47 +133,14 @@ export function AddMemberDialog() {
                   <FormItem><FormLabel>Phone <span className="text-muted-foreground">(optional)</span></FormLabel><FormControl><Input type="tel" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
 
-                <div className="border-t pt-4 space-y-4">
-                  <FormField name="useCustomContribution" control={form.control} render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                      <div className="space-y-1 leading-none"><FormLabel>Set custom contribution amount</FormLabel></div>
-                    </FormItem>
-                  )} />
-
-                  {useCustom && (
-                    <div className="space-y-3">
-                      <FormField name="customContribution" control={form.control} render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Custom Amount</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{settings.currency}</span>
-                              <Input type="number" step="0.01" placeholder="0.00" className="pl-7" {...field} />
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )} />
-
-                      {customContributions.length > 0 && (
-                        <div>
-                          <Label className="text-sm text-muted-foreground mb-2 block">Or select a template:</Label>
-                          <div className="flex flex-wrap gap-2">
-                            {customContributions.map((c) => (
-                              <Button key={c.id} type="button" variant="secondary" onClick={() => form.setValue('customContribution', c.amount)} title={c.description}>
-                                {c.name} ({settings.currency}{String(c.amount)})
-                              </Button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {yob && !useCustom && (
+                <div className="border-t pt-4">
+                  {yob ? (
                     <p className="text-sm text-muted-foreground pt-2">
-                      Default contribution: {settings.currency}{String(getContribution(calculateAge(yob)))}
+                      Default contribution based on year of birth: {settings.currency}{String(getContribution(calculateAge(yob)))}
+                    </p>
+                  ) : (
+                     <p className="text-sm text-muted-foreground pt-2">
+                      Enter a year of birth to see the default contribution.
                     </p>
                   )}
                 </div>

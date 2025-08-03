@@ -12,8 +12,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -31,11 +29,9 @@ const formSchema = z.object({
   family: z.string().min(1, 'Family is required.'),
   email: z.string().email('Invalid email address.').optional().or(z.literal('')),
   phone: z.string().optional(),
-  useCustomContribution: z.boolean(),
-  customContribution: z.coerce.number().nullable(),
 });
 
-type EditMemberForm = z.infer<typeof formSchema>;
+type EditMemberForm = Omit<z.infer<typeof formSchema>, 'id'> & { id: number; useCustomContribution: boolean, customContribution: number | null };
 
 interface EditMemberDialogProps {
   member: Member;
@@ -43,15 +39,14 @@ interface EditMemberDialogProps {
 
 export function EditMemberDialog({ member }: EditMemberDialogProps) {
   const { 
-    dialogState, closeDialog, updateMember, families, customContributions, 
+    dialogState, closeDialog, updateMember, families,
     getContribution, calculateAge, settings
   } = useCommunity();
 
-  const form = useForm<EditMemberForm>({
+  const form = useForm<Omit<EditMemberForm, 'useCustomContribution' | 'customContribution'>>({
     resolver: zodResolver(formSchema),
   });
   
-  const useCustomContribution = form.watch('useCustomContribution');
   const yearOfBirth = form.watch('yearOfBirth');
 
   useEffect(() => {
@@ -65,16 +60,19 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
         family: member.family,
         email: member.email,
         phone: member.phone,
-        useCustomContribution: member.useCustomContribution,
-        customContribution: member.customContribution,
       });
     }
   }, [member, form]);
   
   if (!member) return null;
 
-  const onSubmit = (values: EditMemberForm) => {
-    const memberData = { ...member, ...values };
+  const onSubmit = (values: Omit<EditMemberForm, 'useCustomContribution' | 'customContribution' | 'id'>) => {
+    const memberData: Member = { 
+        ...member, 
+        ...values,
+        useCustomContribution: false,
+        customContribution: null,
+    };
     updateMember(memberData);
     handleClose();
   };
@@ -139,46 +137,13 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
                 )} />
                 
                 <div className="border-t pt-4 space-y-4">
-                  <FormField control={form.control} name="useCustomContribution" render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Set custom contribution amount</FormLabel>
-                      </div>
-                    </FormItem>
-                  )} />
-
-                  {useCustomContribution && (
-                    <div className="space-y-3">
-                      <FormField control={form.control} name="customContribution" render={({ field }) => (
-                         <FormItem>
-                          <FormLabel>Custom Amount</FormLabel>
-                           <FormControl>
-                            <div className="relative">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{settings.currency}</span>
-                              <Input type="number" step="0.01" placeholder="0.00" className="pl-7" {...field} value={field.value ?? ''} />
-                            </div>
-                           </FormControl>
-                           <FormMessage />
-                         </FormItem>
-                      )}/>
-                      {customContributions.length > 0 && (
-                        <div>
-                          <Label className="text-sm text-muted-foreground mb-2 block">Or select a template:</Label>
-                          <div className="flex flex-wrap gap-2">
-                            {customContributions.map(c => (
-                              <Button key={c.id} type="button" variant="secondary" size="sm" onClick={() => form.setValue('customContribution', c.amount)} title={c.description}>
-                                {c.name} ({settings.currency}{c.amount})
-                              </Button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {yearOfBirth && !useCustomContribution && (
+                  {yearOfBirth ? (
                     <p className="text-sm text-muted-foreground pt-2">
                       Default contribution: {settings.currency}{getContribution(calculateAge(yearOfBirth))}
+                    </p>
+                  ) : (
+                     <p className="text-sm text-muted-foreground pt-2">
+                      Enter a year of birth to see the default contribution.
                     </p>
                   )}
                 </div>
