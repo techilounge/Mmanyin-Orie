@@ -67,9 +67,9 @@ export function AddMemberDialog() {
     if (familyToAddTo) {
       form.setValue('family', familyToAddTo);
     } else {
-      form.reset();
+      // form.reset(); // This was causing issues when opening the dialog without a pre-selected family
     }
-  }, [familyToAddTo, showAddMemberDialog]);
+  }, [familyToAddTo, showAddMemberDialog, form]);
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     const familyName = values.family === 'new' ? values.newFamilyName! : values.family;
