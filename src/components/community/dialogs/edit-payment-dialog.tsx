@@ -74,7 +74,7 @@ export function EditPaymentDialog({ member, contribution, payment }: EditPayment
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Edit Payment for {member.name}</DialogTitle>
-          <DialogDescription>
+          <DialogDescription asChild>
             <div>
               <span className="font-medium text-foreground">Contribution: {contribution.name}</span>
               <br />
