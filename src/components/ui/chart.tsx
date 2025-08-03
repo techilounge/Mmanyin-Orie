@@ -100,7 +100,12 @@ ${colorConfig
   )
 }
 
-const ChartTooltip = RechartsPrimitive.Tooltip
+const ChartTooltip = React.forwardRef<
+  React.ElementRef<typeof RechartsPrimitive.Tooltip>,
+  React.ComponentProps<typeof RechartsPrimitive.Tooltip>
+>((props, ref) => <RechartsPrimitive.Tooltip ref={ref} {...props} />)
+ChartTooltip.displayName = RechartsPrimitive.Tooltip.displayName
+
 
 const ChartTooltipContent = React.forwardRef<
   HTMLDivElement,
