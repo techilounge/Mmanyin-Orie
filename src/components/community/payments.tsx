@@ -9,7 +9,7 @@ import { DollarSign, User, Users, ChevronDown, Edit, Trash2 } from 'lucide-react
 import type { Member, CustomContribution, Payment } from '@/lib/types';
 import { Progress } from '../ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
-import { format } from 'date-fns';
+import { format, getMonth, getYear } from 'date-fns';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 
 
@@ -32,6 +32,41 @@ export function Payments() {
         deletePayment(paymentToDelete.memberId, paymentToDelete.paymentId);
         setPaymentToDelete(null);
     }
+  }
+
+  const renderMonthlyBreakdown = (member: Member, contribution: CustomContribution) => {
+    const joinDate = new Date(member.joinDate);
+    const now = new Date();
+    const startMonth = getYear(now) === getYear(joinDate) ? getMonth(joinDate) : 0;
+    const endMonth = getMonth(now);
+
+    const months = Array.from({length: endMonth - startMonth + 1}, (_, i) => startMonth + i);
+
+    return (
+        <div className="space-y-2">
+            {months.map(month => {
+                const monthName = format(new Date(getYear(now), month), 'MMMM');
+                const balance = getBalanceForContribution(member, contribution, month);
+                const paid = getPaidAmountForContribution(member, contribution.id, month);
+
+                return (
+                    <div key={month} className="flex justify-between items-center bg-background p-2 rounded-md">
+                        <div className="text-sm">
+                            <span className="font-medium">{monthName}</span>
+                            <p className="text-xs text-muted-foreground">
+                                Due: {settings.currency}{contribution.amount} | Paid: {settings.currency}{paid} | Balance: {settings.currency}{balance}
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <Button size="sm" variant="outline" onClick={() => openDialog({ type: 'record-payment', member, contribution, month })} disabled={balance <= 0}>
+                                Pay
+                            </Button>
+                        </div>
+                    </div>
+                )
+            })}
+        </div>
+    )
   }
 
   const renderMemberPayments = (member: Member) => {
@@ -76,11 +111,18 @@ export function Payments() {
                 </TableHeader>
                 
                 {applicableContributions.length > 0 ? applicableContributions.map((contrib: CustomContribution) => {
+                    const totalForContribution = contrib.frequency === 'monthly'
+                        ? getBalanceForContribution(member, contrib) * -1 // This is a trick to get total paid for monthly
+                        : contrib.amount;
+
                     const balance = getBalanceForContribution(member, contrib);
                     const paid = getPaidAmountForContribution(member, contrib.id);
                     const paymentsForContribution = member.payments.filter(p => p.contributionId === contrib.id);
+                    
+                    const isMonthly = contrib.frequency === 'monthly';
+
                     return (
-                      <Collapsible asChild key={contrib.id} >
+                      <Collapsible asChild key={contrib.id}>
                         <TableBody className="data-[state=open]:bg-muted/30">
                           <TableRow>
                               <TableCell>
@@ -95,20 +137,23 @@ export function Payments() {
                               </TableCell>
                               <TableCell className="font-medium">
                               {contrib.name}
+                              {isMonthly && <span className="text-xs text-muted-foreground ml-2">(Monthly)</span>}
                               {contrib.description && <p className="text-xs text-muted-foreground max-w-xs">{contrib.description}</p>}
                               </TableCell>
                               <TableCell className="text-right">{settings.currency}{contrib.amount.toLocaleString()}</TableCell>
                               <TableCell className="text-right text-green-600 dark:text-green-400">{settings.currency}{paid.toLocaleString()}</TableCell>
-                              <TableCell className="text-right font-medium">{settings.currency}{balance.toLocaleString()}</TableCell>
+                              <TableCell className="text-right font-medium">{settings.currency}{isMonthly ? balance : (contrib.amount - paid).toLocaleString()}</TableCell>
                               <TableCell className="text-center">
-                              <Button 
-                                  onClick={() => openDialog({type: 'record-payment', member, contribution: contrib})}
-                                  disabled={balance <= 0}
-                                  size="sm"
-                                  variant="outline"
-                              >
-                                  Record Payment
-                              </Button>
+                                {!isMonthly && (
+                                  <Button 
+                                      onClick={() => openDialog({type: 'record-payment', member, contribution: contrib})}
+                                      disabled={balance <= 0}
+                                      size="sm"
+                                      variant="outline"
+                                  >
+                                      Record Payment
+                                  </Button>
+                                )}
                               </TableCell>
                           </TableRow>
                           <CollapsibleContent asChild>
@@ -116,7 +161,8 @@ export function Payments() {
                               <TableCell colSpan={6} className="p-0">
                                   <div className="p-4 bg-muted/50">
                                   <h4 className="font-semibold mb-2 text-sm">Payment History for {contrib.name}</h4>
-                                  {paymentsForContribution.length > 0 ? (
+                                  {isMonthly ? renderMonthlyBreakdown(member, contrib) : 
+                                    (paymentsForContribution.length > 0 ? (
                                       <div className="space-y-2">
                                       {paymentsForContribution.map((payment: Payment) => (
                                           <div key={payment.id} className="flex justify-between items-center bg-background p-2 rounded-md">
@@ -136,7 +182,7 @@ export function Payments() {
                                       </div>
                                   ) : (
                                       <p className="text-sm text-muted-foreground">No payments recorded yet.</p>
-                                  )}
+                                  ))}
                                   </div>
                               </TableCell>
                               </TableRow>

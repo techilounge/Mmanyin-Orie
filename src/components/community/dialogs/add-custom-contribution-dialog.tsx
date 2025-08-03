@@ -16,6 +16,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const TIERS = ['Under 18', 'Tier 1 (18-24)', 'Tier 2 (25+)'];
 
@@ -26,6 +27,9 @@ const formSchema = z.object({
   tiers: z.array(z.string()).refine((value) => value.some((item) => item), {
     message: "You have to select at least one tier.",
   }),
+  frequency: z.enum(['one-time', 'monthly'], {
+    required_error: "You need to select a frequency.",
+  }),
 });
 
 export function AddCustomContributionDialog() {
@@ -33,7 +37,7 @@ export function AddCustomContributionDialog() {
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: '', amount: 0, description: '', tiers: [] },
+    defaultValues: { name: '', amount: 0, description: '', tiers: [], frequency: 'one-time' },
   });
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
@@ -86,6 +90,38 @@ export function AddCustomContributionDialog() {
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="frequency"
+              render={({ field }) => (
+                <FormItem className="space-y-3">
+                  <FormLabel>Frequency</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      className="flex space-x-4"
+                    >
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="one-time" />
+                        </FormControl>
+                        <FormLabel className="font-normal">One-time</FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="monthly" />
+                        </FormControl>
+                        <FormLabel className="font-normal">Monthly</FormLabel>
+                      </FormItem>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
              <FormField
               control={form.control}
               name="tiers"
@@ -110,7 +146,7 @@ export function AddCustomContributionDialog() {
                                 checked={field.value?.includes(item)}
                                 onCheckedChange={(checked) => {
                                   return checked
-                                    ? field.onChange([...field.value, item])
+                                    ? field.onChange([...(field.value || []), item])
                                     : field.onChange(
                                         field.value?.filter(
                                           (value) => value !== item

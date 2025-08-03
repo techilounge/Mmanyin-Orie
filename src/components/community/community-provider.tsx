@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import React, { createContext, useState, useEffect, useMemo } from 'react';
 import type { Member, Family, Settings, CustomContribution, NewMemberData, NewCustomContributionData, DialogState, NewPaymentData, Payment } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { getMonth, getYear, startOfYear } from 'date-fns';
 
 interface CommunityContextType {
   members: Member[];
@@ -38,8 +39,8 @@ interface CommunityContextType {
   calculateAge: (yearOfBirth: number) => number;
   getPaidAmount: (member: Member) => number;
   getBalance: (member: Member) => number;
-  getPaidAmountForContribution: (member: Member, contributionId: number) => number;
-  getBalanceForContribution: (member: Member, contribution: CustomContribution) => number;
+  getPaidAmountForContribution: (member: Member, contributionId: number, month?: number) => number;
+  getBalanceForContribution: (member: Member, contribution: CustomContribution, month?: number) => number;
 }
 
 export const CommunityContext = createContext<CommunityContextType | undefined>(undefined);
@@ -54,9 +55,9 @@ const DEFAULT_SETTINGS: Settings = {
 
 const DEFAULT_FAMILIES = ['Smith', 'Johnson', 'Williams'];
 const DEFAULT_CUSTOM_CONTRIBUTIONS: CustomContribution[] = [
-    { id: 1, name: 'Annual Dues', amount: 100, description: 'Yearly community dues', tiers: ['Tier 2 (25+)'] },
-    { id: 2, name: 'Youth Dues', amount: 50, description: 'Discounted yearly dues', tiers: ['Tier 1 (18-24)'] },
-    { id: 3, name: 'Building Fund', amount: 200, description: 'Contribution for the new community hall', tiers: ['Tier 1 (18-24)', 'Tier 2 (25+)'] }
+    { id: 1, name: 'Annual Dues', amount: 100, description: 'Yearly community dues', tiers: ['Tier 2 (25+)'], frequency: 'one-time' },
+    { id: 2, name: 'Youth Dues', amount: 50, description: 'Discounted yearly dues', tiers: ['Tier 1 (18-24)'], frequency: 'one-time' },
+    { id: 3, name: 'Building Fund', amount: 200, description: 'Contribution for the new community hall', tiers: ['Tier 1 (18-24)', 'Tier 2 (25+)'], frequency: 'one-time' }
 ];
 
 export function CommunityProvider({ children }: { children: ReactNode }) {
@@ -83,20 +84,18 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       // Quick migration for members who don't have a payments array or payments with contributionId
       const migratedMembers = initialMembers.map((m: any) => ({
         ...m,
+        joinDate: m.joinDate || new Date().toISOString(),
         payments: (m.payments || []).map(p => ({
           ...p,
-          // If contributionId is missing, we can't really know, so we might assign it to a default or leave it null
-          // For this migration, we assume old payments can't be assigned. New payments will have it.
-          // A better migration would be to find the first applicable contribution for the member's tier.
-          contributionId: p.contributionId || -1, // -1 indicates unassigned
+          contributionId: p.contributionId || -1,
         }))
       }));
 
       setMembers(migratedMembers);
       setFamilies(savedFamilies ? JSON.parse(savedFamilies) : DEFAULT_FAMILIES);
       setSettings(savedSettings ? JSON.parse(savedSettings) : DEFAULT_SETTINGS);
-      const initialContributions = savedCustomContributions ? JSON.parse(savedCustomContributions) : DEFAULT_CUSTOM_CONTRIBUTIONS;
-      const migratedContributions = initialContributions.map(c => ({...c, tiers: c.tiers || [] }));
+      const initialContributions: CustomContribution[] = savedCustomContributions ? JSON.parse(savedCustomContributions) : DEFAULT_CUSTOM_CONTRIBUTIONS;
+      const migratedContributions = initialContributions.map(c => ({...c, tiers: c.tiers || [], frequency: c.frequency || 'one-time' }));
       setCustomContributions(migratedContributions);
     } catch (error) {
       console.error("Failed to load data from localStorage", error);
@@ -132,7 +131,22 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
   const getContribution = (member: Member) => {
     return customContributions
       .filter(c => c.tiers.includes(member.tier))
-      .reduce((sum, c) => sum + c.amount, 0);
+      .reduce((sum, c) => {
+        if (c.frequency === 'monthly') {
+          const joinDate = new Date(member.joinDate);
+          const now = new Date();
+          let months = 0;
+          if (getYear(now) > getYear(joinDate)) {
+             // Full months for previous years + months for current year
+             months = (getYear(now) - getYear(joinDate) - 1) * 12 + (12 - getMonth(joinDate)) + (getMonth(now) + 1);
+          } else {
+             // Months for the current year
+             months = getMonth(now) - getMonth(joinDate) + 1;
+          }
+          return sum + (c.amount * Math.max(0, months));
+        }
+        return sum + c.amount;
+      }, 0);
   };
 
   const getPaidAmount = (member: Member) => {
@@ -143,15 +157,23 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     return member.contribution - getPaidAmount(member);
   }
 
-  const getPaidAmountForContribution = (member: Member, contributionId: number) => {
+  const getPaidAmountForContribution = (member: Member, contributionId: number, month?: number) => {
     return member.payments
-      .filter(p => p.contributionId === contributionId)
+      .filter(p => {
+        const matchesContribution = p.contributionId === contributionId;
+        const matchesMonth = month === undefined || p.month === month;
+        return matchesContribution && matchesMonth;
+      })
       .reduce((sum, p) => sum + p.amount, 0);
   }
 
-  const getBalanceForContribution = (member: Member, contribution: CustomContribution) => {
-    const paid = getPaidAmountForContribution(member, contribution.id);
-    return contribution.amount - paid;
+  const getBalanceForContribution = (member: Member, contribution: CustomContribution, month?: number) => {
+    const paid = getPaidAmountForContribution(member, contribution.id, month);
+    if (contribution.frequency === 'monthly') {
+      return contribution.amount - paid;
+    }
+    const totalOwedForOneTime = contribution.amount;
+    return totalOwedForOneTime - paid;
   }
   
   const addFamily = (familyName: string) => {
@@ -195,7 +217,8 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       contribution: 0, // Will be calculated
       useCustomContribution: false,
       customContribution: null,
-      payments: []
+      payments: [],
+      joinDate: new Date().toISOString(),
     };
     member.contribution = getContribution(member);
 

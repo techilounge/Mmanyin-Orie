@@ -21,6 +21,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 interface RecordPaymentDialogProps {
   member: Member;
   contribution: CustomContribution;
+  month?: number;
 }
 
 const formSchema = z.object({
@@ -28,10 +29,10 @@ const formSchema = z.object({
   date: z.date({ required_error: 'Payment date is required.' }),
 });
 
-export function RecordPaymentDialog({ member, contribution }: RecordPaymentDialogProps) {
+export function RecordPaymentDialog({ member, contribution, month }: RecordPaymentDialogProps) {
   const { dialogState, closeDialog, recordPayment, settings, getBalanceForContribution, getPaidAmountForContribution } = useCommunity();
-  const balance = getBalanceForContribution(member, contribution);
-  const paidAmount = getPaidAmountForContribution(member, contribution.id);
+  const balance = getBalanceForContribution(member, contribution, month);
+  const paidAmount = getPaidAmountForContribution(member, contribution.id, month);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema.refine(data => data.amount <= balance, {
@@ -46,10 +47,10 @@ export function RecordPaymentDialog({ member, contribution }: RecordPaymentDialo
 
   useEffect(() => {
     if (member && contribution) {
-      const newBalance = getBalanceForContribution(member, contribution);
+      const newBalance = getBalanceForContribution(member, contribution, month);
       form.reset({ amount: newBalance > 0 ? newBalance : 0, date: new Date() });
     }
-  }, [member, contribution, form, getBalanceForContribution]);
+  }, [member, contribution, month, form, getBalanceForContribution]);
 
   if (!member || !contribution) return null;
 
@@ -57,6 +58,7 @@ export function RecordPaymentDialog({ member, contribution }: RecordPaymentDialo
     recordPayment(member.id, contribution.id, {
       amount: values.amount,
       date: values.date.toISOString(),
+      month: month,
     });
     handleClose();
   };
@@ -66,7 +68,9 @@ export function RecordPaymentDialog({ member, contribution }: RecordPaymentDialo
     closeDialog();
   };
   
-  const paymentsForThisContribution = member.payments.filter(p => p.contributionId === contribution.id);
+  const paymentsForThisContribution = member.payments.filter(p => p.contributionId === contribution.id && (month === undefined || p.month === month));
+  const monthName = month !== undefined ? format(new Date(2024, month), 'MMMM') : '';
+
 
   return (
     <Dialog open={dialogState?.type === 'record-payment'} onOpenChange={handleClose}>
@@ -75,7 +79,7 @@ export function RecordPaymentDialog({ member, contribution }: RecordPaymentDialo
           <DialogTitle>Record Payment for {member.name}</DialogTitle>
           <DialogDescription asChild>
             <div>
-              <span className="font-medium text-foreground">Contribution: {contribution.name}</span>
+              <span className="font-medium text-foreground">Contribution: {contribution.name} {monthName}</span>
               <br />
               Total Due: {settings.currency}{contribution.amount} |
               Paid: {settings.currency}{paidAmount} |
@@ -140,7 +144,7 @@ export function RecordPaymentDialog({ member, contribution }: RecordPaymentDialo
 
             {paymentsForThisContribution.length > 0 && (
                 <div className="space-y-2 pt-4 border-t">
-                    <h4 className="text-sm font-medium">Payment History for {contribution.name}</h4>
+                    <h4 className="text-sm font-medium">Payment History for {contribution.name} {monthName}</h4>
                     <ScrollArea className="h-24 pr-4">
                         <div className="space-y-2 text-sm">
                             {paymentsForThisContribution.map((p: Payment) => (
