@@ -70,9 +70,9 @@ export function AddMemberDialog() {
     if (isOpen) {
       if (familyToAddTo) {
         form.setValue('family', familyToAddTo);
-      } else {
-        form.reset();
       }
+    } else {
+      form.reset();
     }
   }, [isOpen, familyToAddTo, form]);
 
