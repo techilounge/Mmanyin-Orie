@@ -36,7 +36,7 @@ const formSchema = z.object({
 export function AddMemberDialog() {
   const {
     dialogState, closeDialog, addMember, families, customContributions,
-    getContribution, calculateAge,
+    getContribution, calculateAge, settings
   } = useCommunity();
 
   const isOpen = dialogState?.type === 'add-member';
@@ -146,7 +146,7 @@ export function AddMemberDialog() {
                           <FormLabel>Custom Amount</FormLabel>
                           <FormControl>
                             <div className="relative">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₦</span>
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{settings.currency}</span>
                               <Input type="number" step="0.01" placeholder="0.00" className="pl-7" {...field} />
                             </div>
                           </FormControl>
@@ -160,7 +160,7 @@ export function AddMemberDialog() {
                           <div className="flex flex-wrap gap-2">
                             {customContributions.map((c) => (
                               <Button key={c.id} type="button" variant="secondary" onClick={() => form.setValue('customContribution', c.amount)} title={c.description}>
-                                {c.name} (₦{String(c.amount)})
+                                {c.name} ({settings.currency}{String(c.amount)})
                               </Button>
                             ))}
                           </div>
@@ -171,7 +171,7 @@ export function AddMemberDialog() {
 
                   {yob && !useCustom && (
                     <p className="text-sm text-muted-foreground pt-2">
-                      Default contribution: ₦{String(getContribution(calculateAge(yob)))}
+                      Default contribution: {settings.currency}{String(getContribution(calculateAge(yob)))}
                     </p>
                   )}
                 </div>

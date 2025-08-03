@@ -23,6 +23,7 @@ export interface Settings {
   tier2Age: number;
   tier1Contribution: number;
   tier2Contribution: number;
+  currency: string;
 }
 
 export interface CustomContribution {

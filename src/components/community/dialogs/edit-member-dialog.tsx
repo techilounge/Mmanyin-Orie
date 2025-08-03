@@ -45,7 +45,7 @@ interface EditMemberDialogProps {
 export function EditMemberDialog({ member }: EditMemberDialogProps) {
   const { 
     dialogState, closeDialog, updateMember, families, customContributions, 
-    getContribution, calculateAge 
+    getContribution, calculateAge, settings
   } = useCommunity();
 
   const form = useForm<EditMemberForm>({
@@ -158,7 +158,7 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
                           <FormLabel>Custom Amount</FormLabel>
                            <FormControl>
                             <div className="relative">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₦</span>
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{settings.currency}</span>
                               <Input type="number" step="0.01" placeholder="0.00" className="pl-7" {...field} value={field.value ?? ''} />
                             </div>
                            </FormControl>
@@ -171,7 +171,7 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
                           <div className="flex flex-wrap gap-2">
                             {customContributions.map(c => (
                               <Button key={c.id} type="button" variant="secondary" size="sm" onClick={() => form.setValue('customContribution', c.amount)} title={c.description}>
-                                {c.name} (₦{c.amount})
+                                {c.name} ({settings.currency}{c.amount})
                               </Button>
                             ))}
                           </div>
@@ -181,7 +181,7 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
                   )}
                   {yearOfBirth && !useCustomContribution && (
                     <p className="text-sm text-muted-foreground pt-2">
-                      Default contribution: ₦{getContribution(calculateAge(yearOfBirth))}
+                      Default contribution: {settings.currency}{getContribution(calculateAge(yearOfBirth))}
                     </p>
                   )}
                 </div>

@@ -40,6 +40,7 @@ const DEFAULT_SETTINGS: Settings = {
   tier2Age: 25,
   tier1Contribution: 50,
   tier2Contribution: 100,
+  currency: '₦',
 };
 
 const DEFAULT_FAMILIES = ['Smith', 'Johnson', 'Williams'];
