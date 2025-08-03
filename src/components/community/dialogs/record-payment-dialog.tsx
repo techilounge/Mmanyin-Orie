@@ -73,11 +73,14 @@ export function RecordPaymentDialog({ member, contribution }: RecordPaymentDialo
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Record Payment for {member.name}</DialogTitle>
-          <DialogDescription>
-            <p className="font-medium text-foreground">Contribution: {contribution.name}</p>
-            Total Due: {settings.currency}{contribution.amount} |
-            Paid: {settings.currency}{paidAmount} |
-            Balance: {settings.currency}{balance}
+          <DialogDescription asChild>
+            <div>
+              <span className="font-medium text-foreground">Contribution: {contribution.name}</span>
+              <br />
+              Total Due: {settings.currency}{contribution.amount} |
+              Paid: {settings.currency}{paidAmount} |
+              Balance: {settings.currency}{balance}
+            </div>
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
