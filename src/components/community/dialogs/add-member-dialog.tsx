@@ -32,7 +32,6 @@ const formSchema = z.object({
 export function AddMemberDialog() {
   const {
     dialogState, closeDialog, addMember, families,
-    getContribution, calculateAge, settings
   } = useCommunity();
 
   const isOpen = dialogState?.type === 'add-member';
@@ -47,7 +46,6 @@ export function AddMemberDialog() {
     },
   });
 
-  const yob = form.watch('yearOfBirth');
   const familySelection = form.watch('family');
 
   useEffect(() => {
@@ -62,12 +60,9 @@ export function AddMemberDialog() {
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     const familyName = values.family === 'new' ? values.newFamilyName! : values.family;
-    // We now ignore custom contributions and always use the default.
     const memberData = {
         ...values,
         family: familyName,
-        useCustomContribution: false,
-        customContribution: 0,
     };
     addMember(memberData);
     handleClose();
@@ -86,7 +81,7 @@ export function AddMemberDialog() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <ScrollArea className="h-[60vh] pr-6">
-              <div className="space-y-4">
+              <div className="space-y-4 py-4">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField name="firstName" control={form.control} render={({ field }) => (
                     <FormItem><FormLabel>First Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
@@ -133,17 +128,6 @@ export function AddMemberDialog() {
                   <FormItem><FormLabel>Phone <span className="text-muted-foreground">(optional)</span></FormLabel><FormControl><Input type="tel" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
 
-                <div className="border-t pt-4">
-                  {yob ? (
-                    <p className="text-sm text-muted-foreground pt-2">
-                      Default contribution based on year of birth: {settings.currency}{String(getContribution(calculateAge(yob)))}
-                    </p>
-                  ) : (
-                     <p className="text-sm text-muted-foreground pt-2">
-                      Enter a year of birth to see the default contribution.
-                    </p>
-                  )}
-                </div>
               </div>
             </ScrollArea>
 

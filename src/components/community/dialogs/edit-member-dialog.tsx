@@ -31,7 +31,7 @@ const formSchema = z.object({
   phone: z.string().optional(),
 });
 
-type EditMemberForm = Omit<z.infer<typeof formSchema>, 'id'> & { id: number; useCustomContribution: boolean, customContribution: number | null };
+type EditMemberForm = z.infer<typeof formSchema>;
 
 interface EditMemberDialogProps {
   member: Member;
@@ -40,15 +40,12 @@ interface EditMemberDialogProps {
 export function EditMemberDialog({ member }: EditMemberDialogProps) {
   const { 
     dialogState, closeDialog, updateMember, families,
-    getContribution, calculateAge, settings
   } = useCommunity();
 
-  const form = useForm<Omit<EditMemberForm, 'useCustomContribution' | 'customContribution'>>({
+  const form = useForm<EditMemberForm>({
     resolver: zodResolver(formSchema),
   });
   
-  const yearOfBirth = form.watch('yearOfBirth');
-
   useEffect(() => {
     if (member) {
       form.reset({
@@ -66,12 +63,10 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
   
   if (!member) return null;
 
-  const onSubmit = (values: Omit<EditMemberForm, 'useCustomContribution' | 'customContribution' | 'id'>) => {
+  const onSubmit = (values: EditMemberForm) => {
     const memberData: Member = { 
         ...member, 
         ...values,
-        useCustomContribution: false,
-        customContribution: null,
     };
     updateMember(memberData);
     handleClose();
@@ -94,7 +89,7 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <ScrollArea className="h-[60vh] pr-6">
-              <div className="space-y-4">
+              <div className="space-y-4 py-4">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField control={form.control} name="firstName" render={({ field }) => (
                     <FormItem><FormLabel>First Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
@@ -136,17 +131,6 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
                   <FormItem><FormLabel>Phone <span className="text-muted-foreground">(optional)</span></FormLabel><FormControl><Input type="tel" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
                 
-                <div className="border-t pt-4 space-y-4">
-                  {yearOfBirth ? (
-                    <p className="text-sm text-muted-foreground pt-2">
-                      Default contribution: {settings.currency}{getContribution(calculateAge(yearOfBirth))}
-                    </p>
-                  ) : (
-                     <p className="text-sm text-muted-foreground pt-2">
-                      Enter a year of birth to see the default contribution.
-                    </p>
-                  )}
-                </div>
               </div>
             </ScrollArea>
             <DialogFooter className="pt-4">

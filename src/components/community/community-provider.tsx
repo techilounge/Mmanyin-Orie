@@ -11,7 +11,7 @@ interface CommunityContextType {
   customContributions: CustomContribution[];
   isLoading: boolean;
   
-  addMember: (newMemberData: NewMemberData) => void;
+  addMember: (newMemberData: Omit<NewMemberData, 'useCustomContribution' | 'customContribution'>) => void;
   updateMember: (updatedMemberData: Member) => void;
   deleteMember: (id: number) => void;
   
@@ -149,7 +149,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const addMember = (data: NewMemberData) => {
+  const addMember = (data: Omit<NewMemberData, 'useCustomContribution' | 'customContribution'>) => {
     const age = calculateAge(data.yearOfBirth);
     const fullName = [data.firstName, data.middleName, data.lastName]
       .filter(part => part && part.trim())
@@ -195,8 +195,6 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       age,
       tier: getTier(age),
       contribution: defaultContribution,
-      useCustomContribution: false,
-      customContribution: null,
     };
     
     setMembers(prev => prev.map(m => m.id === updatedData.id ? updatedMember : m));
