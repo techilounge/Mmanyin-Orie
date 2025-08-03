@@ -189,15 +189,6 @@ export function Members() {
                       <TableCell>
                         <div className="flex gap-1">
                           <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => openDialog({ type: 'record-payment', member: m })}
-                              aria-label="Record Payment"
-                              disabled={m.contribution <= 0}
-                            >
-                              <Receipt size={16} className="text-blue-500" />
-                            </Button>
-                          <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => openDialog({ type: 'edit-member', member: m })}

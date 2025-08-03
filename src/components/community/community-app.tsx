@@ -6,6 +6,7 @@ import {
   Users,
   Home,
   Settings,
+  DollarSign,
 } from 'lucide-react';
 import { useCommunity } from '@/hooks/use-community';
 import { AppHeader } from './app-header';
@@ -19,11 +20,13 @@ import { EditMemberDialog } from './dialogs/edit-member-dialog';
 import { AddCustomContributionDialog } from './dialogs/add-custom-contribution-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RecordPaymentDialog } from './dialogs/record-payment-dialog';
+import { Payments } from './payments';
 
 const TABS = [
   { id: 'dashboard', label: 'Dashboard', icon: BarChart2 },
   { id: 'members', label: 'Members', icon: Users },
   { id: 'families', label: 'Families', icon: Home },
+  { id: 'payments', label: 'Payments', icon: DollarSign },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
@@ -39,6 +42,8 @@ export function CommunityApp() {
         return <Members />;
       case 'families':
         return <Families />;
+      case 'payments':
+        return <Payments />;
       case 'settings':
         return <AppSettings />;
       default:
