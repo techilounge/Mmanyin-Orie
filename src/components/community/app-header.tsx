@@ -5,10 +5,6 @@ import { Home, Plus, Users } from 'lucide-react';
 
 export function AppHeader() {
   const { openDialog } = useCommunity();
-
-  const handleAddMember = () => {
-    openDialog({ type: 'add-member' });
-  };
   
   return (
     <header className="bg-card shadow-sm">
@@ -29,7 +25,7 @@ export function AppHeader() {
               <span className="hidden sm:inline">Create Family</span>
             </Button>
             <Button
-              onClick={handleAddMember}
+              onClick={() => openDialog({ type: 'add-member' })}
               className="bg-gradient-to-r from-primary to-indigo-600 text-white shadow-md hover:opacity-90 transition-opacity"
             >
               <Plus />

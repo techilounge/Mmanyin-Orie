@@ -8,10 +8,6 @@ import { Badge } from '../ui/badge';
 export function Families() {
   const { families, members, deleteFamily, openDialog } = useCommunity();
 
-  const handleAddMember = (familyName: string) => {
-    openDialog({ type: 'add-member', family: familyName });
-  };
-  
   if (families.length === 0) {
     return (
        <div className="text-center py-12 bg-card rounded-xl shadow-md">
@@ -74,7 +70,7 @@ export function Families() {
                   <p className="text-sm text-muted-foreground italic py-2">No members yet</p>
                 )}
               </div>
-              <Button onClick={() => handleAddMember(family)} className="w-full mt-auto">
+              <Button onClick={() => openDialog({ type: 'add-member', family })} className="w-full mt-auto">
                 <Plus /> Add Member
               </Button>
             </CardContent>

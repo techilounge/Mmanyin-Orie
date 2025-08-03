@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useCommunity } from '@/hooks/use-community';
 import { Button } from '@/components/ui/button';
 import {
@@ -44,7 +44,7 @@ export function AddMemberDialog() {
   } = useCommunity();
   
   const isOpen = dialogState?.type === 'add-member';
-  const familyToAddTo = isOpen ? dialogState.family : undefined;
+  const familyToAddTo = isOpen && dialogState.family ? dialogState.family : undefined;
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),

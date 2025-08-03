@@ -242,6 +242,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     getContribution,
     getTier,
     calculateAge
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [members, families, settings, customContributions, isLoading, dialogState]);
 
   return (
