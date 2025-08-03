@@ -114,7 +114,7 @@ export function Payments() {
                           <CollapsibleContent asChild>
                               <TableRow>
                               <TableCell colSpan={6} className="p-0">
-                                  <div className="p-4">
+                                  <div className="p-4 bg-muted/50">
                                   <h4 className="font-semibold mb-2 text-sm">Payment History for {contrib.name}</h4>
                                   {paymentsForContribution.length > 0 ? (
                                       <div className="space-y-2">
