@@ -6,13 +6,6 @@ import {
   Users,
   Home,
   Settings,
-  Plus,
-  Edit2,
-  Trash2,
-  X,
-  Check,
-  DollarSign,
-  Search,
 } from 'lucide-react';
 import { useCommunity } from '@/hooks/use-community';
 import { AppHeader } from './app-header';
@@ -35,7 +28,7 @@ const TABS = [
 
 export function CommunityApp() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const { isLoading, editingMember } = useCommunity();
+  const { isLoading, dialogState } = useCommunity();
 
   const renderContent = () => {
     switch (activeTab) {
@@ -108,7 +101,7 @@ export function CommunityApp() {
 
       <AddFamilyDialog />
       <AddMemberDialog />
-      {editingMember && <EditMemberDialog />}
+      {dialogState?.type === 'edit-member' && <EditMemberDialog member={dialogState.member} />}
       <AddCustomContributionDialog />
     </div>
   );

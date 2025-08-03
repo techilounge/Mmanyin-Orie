@@ -39,9 +39,12 @@ const formSchema = z.object({
 
 export function AddMemberDialog() {
   const { 
-    showAddMemberDialog, setShowAddMemberDialog, addMember, families, customContributions, 
-    familyToAddTo, setFamilyToAddTo, getContribution, calculateAge,
+    dialogState, closeDialog, addMember, families, customContributions, 
+    getContribution, calculateAge,
   } = useCommunity();
+  
+  const isOpen = dialogState?.type === 'add-member';
+  const familyToAddTo = isOpen ? dialogState.family : undefined;
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -64,14 +67,14 @@ export function AddMemberDialog() {
   const familySelection = form.watch('family');
 
   useEffect(() => {
-    if (showAddMemberDialog) {
+    if (isOpen) {
       if (familyToAddTo) {
         form.setValue('family', familyToAddTo);
       } else {
         form.reset();
       }
     }
-  }, [familyToAddTo, showAddMemberDialog, form]);
+  }, [isOpen, familyToAddTo, form]);
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     const familyName = values.family === 'new' ? values.newFamilyName! : values.family;
@@ -81,12 +84,11 @@ export function AddMemberDialog() {
 
   const handleClose = () => {
     form.reset();
-    setShowAddMemberDialog(false);
-    setFamilyToAddTo(null);
+    closeDialog();
   };
   
   return (
-    <Dialog open={showAddMemberDialog} onOpenChange={handleClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Add New Member</DialogTitle>

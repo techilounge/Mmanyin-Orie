@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Settings, DollarSign, Plus, Trash2 } from 'lucide-react';
 
 export function AppSettings() {
-  const { settings, updateSettings, recalculateTiers, customContributions, setShowAddCustomContributionDialog, deleteCustomContribution } = useCommunity();
+  const { settings, updateSettings, recalculateTiers, customContributions, openDialog, deleteCustomContribution } = useCommunity();
 
   const handleSettingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -66,7 +66,7 @@ export function AppSettings() {
                 Create templates for common discounts or special contribution amounts.
               </CardDescription>
             </div>
-            <Button onClick={() => setShowAddCustomContributionDialog(true)} variant="outline">
+            <Button onClick={() => openDialog({ type: 'add-custom-contribution' })} variant="outline">
               <Plus /> Add Template
             </Button>
           </div>

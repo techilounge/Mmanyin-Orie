@@ -4,11 +4,10 @@ import { useCommunity } from '@/hooks/use-community';
 import { Home, Plus, Users } from 'lucide-react';
 
 export function AppHeader() {
-  const { setShowAddFamilyDialog, setShowAddMemberDialog, setFamilyToAddTo } = useCommunity();
+  const { openDialog } = useCommunity();
 
   const handleAddMember = () => {
-    setFamilyToAddTo(null);
-    setShowAddMemberDialog(true);
+    openDialog({ type: 'add-member' });
   };
   
   return (
@@ -23,7 +22,7 @@ export function AppHeader() {
           </div>
           <div className="flex gap-3">
             <Button
-              onClick={() => setShowAddFamilyDialog(true)}
+              onClick={() => openDialog({ type: 'add-family' })}
               className="bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-md hover:opacity-90 transition-opacity"
             >
               <Home />

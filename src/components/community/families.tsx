@@ -6,11 +6,10 @@ import { Home, Trash2, Users, DollarSign, Plus } from 'lucide-react';
 import { Badge } from '../ui/badge';
 
 export function Families() {
-  const { families, members, deleteFamily, setShowAddMemberDialog, setFamilyToAddTo, setShowAddFamilyDialog } = useCommunity();
+  const { families, members, deleteFamily, openDialog } = useCommunity();
 
   const handleAddMember = (familyName: string) => {
-    setFamilyToAddTo(familyName);
-    setShowAddMemberDialog(true);
+    openDialog({ type: 'add-member', family: familyName });
   };
   
   if (families.length === 0) {
@@ -21,7 +20,7 @@ export function Families() {
         <p className="mt-1 text-sm text-muted-foreground">Get started by creating your first family.</p>
         <div className="mt-6">
           <Button
-            onClick={() => setShowAddFamilyDialog(true)}
+            onClick={() => openDialog({ type: 'add-family' })}
             className="bg-gradient-to-r from-green-500 to-emerald-600 text-white"
           >
             <Home />

@@ -35,3 +35,10 @@ export interface CustomContribution {
 export type NewMemberData = Omit<Member, 'id' | 'name' | 'age' | 'tier' | 'contribution' | 'paidAmount'>;
 
 export type NewCustomContributionData = Omit<CustomContribution, 'id'>;
+
+export type DialogState = 
+  | { type: 'add-family' }
+  | { type: 'add-member', family?: string }
+  | { type: 'edit-member', member: Member }
+  | { type: 'add-custom-contribution' }
+  | null;

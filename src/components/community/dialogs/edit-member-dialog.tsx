@@ -19,6 +19,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Member } from '@/lib/types';
 
 const currentYear = new Date().getFullYear();
 const formSchema = z.object({
@@ -37,9 +38,13 @@ const formSchema = z.object({
 
 type EditMemberForm = z.infer<typeof formSchema>;
 
-export function EditMemberDialog() {
+interface EditMemberDialogProps {
+  member: Member;
+}
+
+export function EditMemberDialog({ member }: EditMemberDialogProps) {
   const { 
-    editingMember, setEditingMember, updateMember, families, customContributions, 
+    dialogState, closeDialog, updateMember, families, customContributions, 
     getContribution, calculateAge 
   } = useCommunity();
 
@@ -51,44 +56,44 @@ export function EditMemberDialog() {
   const yearOfBirth = form.watch('yearOfBirth');
 
   useEffect(() => {
-    if (editingMember) {
+    if (member) {
       form.reset({
-        id: editingMember.id,
-        firstName: editingMember.firstName,
-        lastName: editingMember.lastName,
-        middleName: editingMember.middleName,
-        yearOfBirth: editingMember.yearOfBirth,
-        family: editingMember.family,
-        email: editingMember.email,
-        phone: editingMember.phone,
-        useCustomContribution: editingMember.useCustomContribution,
-        customContribution: editingMember.customContribution,
-        paidAmount: editingMember.paidAmount,
+        id: member.id,
+        firstName: member.firstName,
+        lastName: member.lastName,
+        middleName: member.middleName,
+        yearOfBirth: member.yearOfBirth,
+        family: member.family,
+        email: member.email,
+        phone: member.phone,
+        useCustomContribution: member.useCustomContribution,
+        customContribution: member.customContribution,
+        paidAmount: member.paidAmount,
       });
     }
-  }, [editingMember, form]);
+  }, [member, form]);
   
-  if (!editingMember) return null;
+  if (!member) return null;
 
   const onSubmit = (values: EditMemberForm) => {
     // This is a bit of a hack to satisfy the type. The form values are correct.
-    const memberData = { ...editingMember, ...values };
+    const memberData = { ...member, ...values };
     updateMember(memberData);
     handleClose();
   };
 
   const handleClose = () => {
     form.reset();
-    setEditingMember(null);
+    closeDialog();
   };
   
   return (
-    <Dialog open={!!editingMember} onOpenChange={handleClose}>
+    <Dialog open={dialogState?.type === 'edit-member'} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Edit Member</DialogTitle>
           <DialogDescription>
-            Update the details for {editingMember.name}.
+            Update the details for {member.name}.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>

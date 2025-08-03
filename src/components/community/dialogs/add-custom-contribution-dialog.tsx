@@ -24,7 +24,7 @@ const formSchema = z.object({
 });
 
 export function AddCustomContributionDialog() {
-  const { showAddCustomContributionDialog, setShowAddCustomContributionDialog, addCustomContribution } = useCommunity();
+  const { dialogState, closeDialog, addCustomContribution } = useCommunity();
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -33,17 +33,16 @@ export function AddCustomContributionDialog() {
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     addCustomContribution(values);
-    form.reset();
-    setShowAddCustomContributionDialog(false);
+    handleClose();
   };
   
   const handleClose = () => {
     form.reset();
-    setShowAddCustomContributionDialog(false);
+    closeDialog();
   }
 
   return (
-    <Dialog open={showAddCustomContributionDialog} onOpenChange={handleClose}>
+    <Dialog open={dialogState?.type === 'add-custom-contribution'} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Add Custom Contribution Template</DialogTitle>

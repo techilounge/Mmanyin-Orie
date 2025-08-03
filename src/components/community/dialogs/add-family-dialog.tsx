@@ -16,7 +16,7 @@ import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
 export function AddFamilyDialog() {
-  const { showAddFamilyDialog, setShowAddFamilyDialog, addFamily, families } = useCommunity();
+  const { dialogState, closeDialog, addFamily, families } = useCommunity();
 
   const formSchema = z.object({
     familyName: z.string()
@@ -33,17 +33,16 @@ export function AddFamilyDialog() {
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     addFamily(values.familyName.trim());
-    form.reset();
-    setShowAddFamilyDialog(false);
+    handleClose();
   };
   
   const handleClose = () => {
     form.reset();
-    setShowAddFamilyDialog(false);
+    closeDialog();
   };
 
   return (
-    <Dialog open={showAddFamilyDialog} onOpenChange={handleClose}>
+    <Dialog open={dialogState?.type === 'add-family'} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Create New Family</DialogTitle>

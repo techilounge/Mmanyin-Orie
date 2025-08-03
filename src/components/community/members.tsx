@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/alert-dialog"
 
 export function Members() {
-  const { members, families, deleteMember, setEditingMember, getTier } = useCommunity();
+  const { members, families, deleteMember, openDialog, getTier } = useCommunity();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterFamily, setFilterFamily] = useState('');
   const [filterTier, setFilterTier] = useState('');
@@ -150,7 +150,7 @@ export function Members() {
                   </TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
-                      <Button variant="ghost" size="icon" onClick={() => setEditingMember(member)} aria-label="Edit member">
+                      <Button variant="ghost" size="icon" onClick={() => openDialog({ type: 'edit-member', member })} aria-label="Edit member">
                         <Edit2 size={16} className="text-primary" />
                       </Button>
                       <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(member.id)} aria-label="Delete member">

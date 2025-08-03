@@ -1,7 +1,7 @@
 'use client';
 import type { ReactNode } from 'react';
 import React, { createContext, useState, useEffect, useMemo } from 'react';
-import type { Member, Family, Settings, CustomContribution, NewMemberData, NewCustomContributionData } from '@/lib/types';
+import type { Member, Family, Settings, CustomContribution, NewMemberData, NewCustomContributionData, DialogState } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
 interface CommunityContextType {
@@ -24,18 +24,9 @@ interface CommunityContextType {
   addCustomContribution: (contributionData: NewCustomContributionData) => void;
   deleteCustomContribution: (id: number) => void;
 
-  showAddMemberDialog: boolean;
-  setShowAddMemberDialog: (show: boolean) => void;
-  showAddFamilyDialog: boolean;
-  setShowAddFamilyDialog: (show: boolean) => void;
-  showAddCustomContributionDialog: boolean;
-  setShowAddCustomContributionDialog: (show: boolean) => void;
-
-  editingMember: Member | null;
-  setEditingMember: (member: Member | null) => void;
-
-  familyToAddTo: string | null;
-  setFamilyToAddTo: (familyName: string | null) => void;
+  dialogState: DialogState;
+  openDialog: (state: DialogState) => void;
+  closeDialog: () => void;
 
   getContribution: (age: number) => number;
   getTier: (age: number) => string;
@@ -66,11 +57,10 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  const [showAddMemberDialog, setShowAddMemberDialog] = useState(false);
-  const [showAddFamilyDialog, setShowAddFamilyDialog] = useState(false);
-  const [showAddCustomContributionDialog, setShowAddCustomContributionDialog] = useState(false);
-  const [editingMember, setEditingMember] = useState<Member | null>(null);
-  const [familyToAddTo, setFamilyToAddTo] = useState<string | null>(null);
+  const [dialogState, setDialogState] = useState<DialogState>(null);
+
+  const openDialog = (state: DialogState) => setDialogState(state);
+  const closeDialog = () => setDialogState(null);
 
   useEffect(() => {
     try {
@@ -195,7 +185,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     };
     
     setMembers(prev => prev.map(m => m.id === updatedData.id ? updatedMember : m));
-    setEditingMember(null);
+    closeDialog();
     toast({ title: "Member Updated", description: `${fullName}'s details have been updated.` });
   };
 
@@ -246,20 +236,13 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     recalculateTiers,
     addCustomContribution,
     deleteCustomContribution,
-    showAddMemberDialog,
-    setShowAddMemberDialog,
-    showAddFamilyDialog,
-    setShowAddFamilyDialog,
-    showAddCustomContributionDialog,
-    setShowAddCustomContributionDialog,
-    editingMember,
-    setEditingMember,
-    familyToAddTo,
-    setFamilyToAddTo,
+    dialogState,
+    openDialog,
+    closeDialog,
     getContribution,
     getTier,
     calculateAge
-  }), [members, families, settings, customContributions, isLoading, showAddMemberDialog, showAddFamilyDialog, showAddCustomContributionDialog, editingMember, familyToAddTo]);
+  }), [members, families, settings, customContributions, isLoading, dialogState]);
 
   return (
     <CommunityContext.Provider value={contextValue}>
