@@ -13,8 +13,9 @@ const AlertDialogTrigger = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Trigger>
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Trigger ref={ref} className={cn(className)} {...props} />
-))
+));
 AlertDialogTrigger.displayName = AlertDialogPrimitive.Trigger.displayName
+
 
 const AlertDialogPortal = AlertDialogPrimitive.Portal
 

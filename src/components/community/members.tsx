@@ -76,7 +76,6 @@ export function Members() {
                   <SelectValue placeholder="All Families" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Families</SelectItem>
                   {families.sort().map(family => (
                     <SelectItem key={family} value={family}>{family}</SelectItem>
                   ))}
@@ -87,7 +86,6 @@ export function Members() {
                   <SelectValue placeholder="All Tiers" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Tiers</SelectItem>
                   <SelectItem value="Under 18">Under 18</SelectItem>
                   <SelectItem value="Tier 1 (18-24)">Tier 1 (18-24)</SelectItem>
                   <SelectItem value="Tier 2 (25+)">Tier 2 (25+)</SelectItem>
@@ -179,7 +177,7 @@ export function Members() {
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the member
               "{members.find(m => m.id === memberToDelete)?.name}" from the registry.
-            </AlertDialogDescription>
+            </AlexDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
