@@ -2,11 +2,11 @@
 import { useCommunity } from '@/hooks/use-community';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Home, Trash2, Users, DollarSign, Plus } from 'lucide-react';
+import { Home, Trash2, Users, DollarSign, Plus, TrendingUp } from 'lucide-react';
 import { Badge } from '../ui/badge';
 
 export function Families() {
-  const { families, members, deleteFamily, openDialog, settings } = useCommunity();
+  const { families, members, deleteFamily, openDialog, settings, getPaidAmount } = useCommunity();
 
   if (families.length === 0) {
     return (
@@ -32,6 +32,7 @@ export function Families() {
       {families.sort().map(family => {
         const familyMembers = members.filter(m => m.family === family);
         const familyContribution = familyMembers.reduce((sum, m) => sum + m.contribution, 0);
+        const familyPaid = familyMembers.reduce((sum, m) => sum + getPaidAmount(m), 0);
         
         return (
           <Card key={family} className="flex flex-col">
@@ -42,14 +43,18 @@ export function Families() {
               </Button>
             </CardHeader>
             <CardContent className="flex flex-col flex-grow">
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
-                  <p className="text-sm text-muted-foreground flex items-center gap-1"><Users size={14} /> Members</p>
-                  <p className="text-xl font-bold text-blue-700 dark:text-blue-300">{familyMembers.length}</p>
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-2 text-center">
+                  <p className="text-xs text-muted-foreground flex items-center justify-center gap-1"><Users size={12} /> Members</p>
+                  <p className="text-lg font-bold text-blue-700 dark:text-blue-300">{familyMembers.length}</p>
                 </div>
-                <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
-                  <p className="text-sm text-muted-foreground flex items-center gap-1"><DollarSign size={14} /> Contributions</p>
-                  <p className="text-xl font-bold text-green-700 dark:text-green-300">{settings.currency}{familyContribution.toLocaleString()}</p>
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-2 text-center">
+                  <p className="text-xs text-muted-foreground flex items-center justify-center gap-1"><DollarSign size={12} /> Total Due</p>
+                  <p className="text-lg font-bold text-yellow-700 dark:text-yellow-300">{settings.currency}{familyContribution.toLocaleString()}</p>
+                </div>
+                <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-2 text-center">
+                  <p className="text-xs text-muted-foreground flex items-center justify-center gap-1"><TrendingUp size={12} /> Total Paid</p>
+                  <p className="text-lg font-bold text-green-700 dark:text-green-300">{settings.currency}{familyPaid.toLocaleString()}</p>
                 </div>
               </div>
               <div className="space-y-2 mb-4 flex-grow max-h-40 overflow-y-auto pr-2">

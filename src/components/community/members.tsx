@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Search, Edit2, Trash2, Users, AlertCircle, X } from 'lucide-react';
+import { Search, Edit2, Trash2, Users, AlertCircle, X, Receipt } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,9 +19,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Progress } from '../ui/progress';
 
 export function Members() {
-  const { members, families, deleteMember, openDialog, getTier, settings } = useCommunity();
+  const { members, families, deleteMember, openDialog, getTier, settings, getPaidAmount, getBalance } = useCommunity();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterFamily, setFilterFamily] = useState('');
@@ -65,6 +66,12 @@ export function Members() {
     members.forEach((m) => set.add(getTier(m.age)));
     return Array.from(set).sort();
   }, [members, getTier]);
+
+  const getPaymentStatusColor = (balance: number, contribution: number) => {
+    if (balance <= 0) return 'bg-green-500';
+    if (balance < contribution) return 'bg-yellow-500';
+    return 'bg-secondary';
+  }
 
   return (
     <div className="space-y-6">
@@ -127,10 +134,10 @@ export function Members() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Family</TableHead>
-                  <TableHead>Birth Year</TableHead>
                   <TableHead>Age</TableHead>
                   <TableHead>Tier</TableHead>
                   <TableHead>Contribution</TableHead>
+                  <TableHead>Payment Status</TableHead>
                   <TableHead>Contact</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -139,11 +146,14 @@ export function Members() {
               <TableBody>
                 {filteredMembers.map((m) => {
                   const tier = getTier(m.age);
+                  const paidAmount = getPaidAmount(m);
+                  const balance = getBalance(m);
+                  const progress = m.contribution > 0 ? (paidAmount / m.contribution) * 100 : 0;
+
                   return (
                     <TableRow key={m.id}>
                       <TableCell className="font-medium">{m.name}</TableCell>
                       <TableCell>{m.family}</TableCell>
-                      <TableCell>{m.yearOfBirth}</TableCell>
                       <TableCell>{m.age}</TableCell>
                       <TableCell>
                         <Badge variant={tier.includes('Tier 1') ? 'secondary' : tier.includes('Tier 2') ? 'outline' : 'default'}  className={`text-xs ${
@@ -163,13 +173,30 @@ export function Members() {
                         </div>
                       </TableCell>
                       <TableCell>
+                        <div className='w-40'>
+                            <div className='text-xs text-muted-foreground'>
+                                Paid: {settings.currency}{paidAmount.toLocaleString()} / Balance: {settings.currency}{balance.toLocaleString()}
+                            </div>
+                            <Progress value={progress} className='h-2 mt-1' indicatorClassName={getPaymentStatusColor(balance, m.contribution)} />
+                        </div>
+                      </TableCell>
+                      <TableCell>
                         <div className="flex flex-col text-sm text-muted-foreground">
                           {m.email && <span className="truncate max-w-[150px]">{m.email}</span>}
                           {m.phone && <span>{m.phone}</span>}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-2">
+                        <div className="flex gap-1">
+                          <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openDialog({ type: 'record-payment', member: m })}
+                              aria-label="Record Payment"
+                              disabled={m.contribution <= 0}
+                            >
+                              <Receipt size={16} className="text-blue-500" />
+                            </Button>
                           <Button
                             variant="ghost"
                             size="icon"

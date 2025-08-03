@@ -33,7 +33,6 @@ const formSchema = z.object({
   phone: z.string().optional(),
   useCustomContribution: z.boolean(),
   customContribution: z.coerce.number().nullable(),
-  paidAmount: z.number(),
 });
 
 type EditMemberForm = z.infer<typeof formSchema>;
@@ -68,7 +67,6 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
         phone: member.phone,
         useCustomContribution: member.useCustomContribution,
         customContribution: member.customContribution,
-        paidAmount: member.paidAmount,
       });
     }
   }, [member, form]);
@@ -76,7 +74,6 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
   if (!member) return null;
 
   const onSubmit = (values: EditMemberForm) => {
-    // This is a bit of a hack to satisfy the type. The form values are correct.
     const memberData = { ...member, ...values };
     updateMember(memberData);
     handleClose();

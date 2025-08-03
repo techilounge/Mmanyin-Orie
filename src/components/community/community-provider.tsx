@@ -1,7 +1,7 @@
 'use client';
 import type { ReactNode } from 'react';
 import React, { createContext, useState, useEffect, useMemo } from 'react';
-import type { Member, Family, Settings, CustomContribution, NewMemberData, NewCustomContributionData, DialogState } from '@/lib/types';
+import type { Member, Family, Settings, CustomContribution, NewMemberData, NewCustomContributionData, DialogState, NewPaymentData, Payment } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
 interface CommunityContextType {
@@ -24,6 +24,8 @@ interface CommunityContextType {
   addCustomContribution: (contributionData: NewCustomContributionData) => void;
   deleteCustomContribution: (id: number) => void;
 
+  recordPayment: (memberId: number, paymentData: NewPaymentData) => void;
+
   dialogState: DialogState;
   openDialog: (state: DialogState) => void;
   closeDialog: () => void;
@@ -31,6 +33,8 @@ interface CommunityContextType {
   getContribution: (age: number) => number;
   getTier: (age: number) => string;
   calculateAge: (yearOfBirth: number) => number;
+  getPaidAmount: (member: Member) => number;
+  getBalance: (member: Member) => number;
 }
 
 export const CommunityContext = createContext<CommunityContextType | undefined>(undefined);
@@ -70,7 +74,14 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       const savedSettings = localStorage.getItem('communitySettings');
       const savedCustomContributions = localStorage.getItem('customContributions');
 
-      setMembers(savedMembers ? JSON.parse(savedMembers) : []);
+      const initialMembers = savedMembers ? JSON.parse(savedMembers) : [];
+      // Quick migration for members who don't have a payments array
+      const migratedMembers = initialMembers.map((m: any) => ({
+        ...m,
+        payments: m.payments || (m.paidAmount ? [{id: Date.now(), amount: m.paidAmount, date: new Date().toISOString()}] : [])
+      }));
+
+      setMembers(migratedMembers);
       setFamilies(savedFamilies ? JSON.parse(savedFamilies) : DEFAULT_FAMILIES);
       setSettings(savedSettings ? JSON.parse(savedSettings) : DEFAULT_SETTINGS);
       setCustomContributions(savedCustomContributions ? JSON.parse(savedCustomContributions) : DEFAULT_CUSTOM_CONTRIBUTIONS);
@@ -110,6 +121,14 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     if (age >= settings.tier1Age && age < settings.tier2Age) return settings.tier1Contribution;
     return settings.tier2Contribution;
   };
+
+  const getPaidAmount = (member: Member) => {
+    return member.payments.reduce((sum, p) => sum + p.amount, 0);
+  }
+
+  const getBalance = (member: Member) => {
+    return member.contribution - getPaidAmount(member);
+  }
   
   const addFamily = (familyName: string) => {
     if (familyName.trim() && !families.includes(familyName.trim())) {
@@ -156,7 +175,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       contribution: finalContribution,
       useCustomContribution: data.useCustomContribution,
       customContribution: data.useCustomContribution ? data.customContribution : null,
-      paidAmount: 0
+      payments: []
     };
 
     setMembers(prev => [...prev, member]);
@@ -194,6 +213,19 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     const memberName = members.find(m => m.id === id)?.name || 'Member';
     setMembers(prev => prev.filter(m => m.id !== id));
     toast({ title: "Member Deleted", description: `${memberName} has been removed.` });
+  };
+
+  const recordPayment = (memberId: number, paymentData: NewPaymentData) => {
+    const newPayment: Payment = { id: Date.now(), ...paymentData };
+    setMembers(prev => prev.map(m => {
+      if (m.id === memberId) {
+        return { ...m, payments: [...m.payments, newPayment] };
+      }
+      return m;
+    }));
+    const memberName = members.find(m => m.id === memberId)?.name || 'Member';
+    toast({ title: "Payment Recorded", description: `Payment of ${settings.currency}${paymentData.amount} for ${memberName} has been recorded.` });
+    closeDialog();
   };
   
   const updateSettings = (newSettings: Settings) => {
@@ -237,12 +269,15 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     recalculateTiers,
     addCustomContribution,
     deleteCustomContribution,
+    recordPayment,
     dialogState,
     openDialog,
     closeDialog,
     getContribution,
     getTier,
-    calculateAge
+    calculateAge,
+    getPaidAmount,
+    getBalance,
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [members, families, settings, customContributions, isLoading, dialogState]);
 

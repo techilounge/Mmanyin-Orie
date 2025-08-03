@@ -18,6 +18,7 @@ import { AddMemberDialog } from './dialogs/add-member-dialog';
 import { EditMemberDialog } from './dialogs/edit-member-dialog';
 import { AddCustomContributionDialog } from './dialogs/add-custom-contribution-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { RecordPaymentDialog } from './dialogs/record-payment-dialog';
 
 const TABS = [
   { id: 'dashboard', label: 'Dashboard', icon: BarChart2 },
@@ -102,6 +103,7 @@ export function CommunityApp() {
       <AddFamilyDialog />
       <AddMemberDialog />
       {dialogState?.type === 'edit-member' && <EditMemberDialog member={dialogState.member} />}
+      {dialogState?.type === 'record-payment' && <RecordPaymentDialog member={dialogState.member} />}
       <AddCustomContributionDialog />
     </div>
   );

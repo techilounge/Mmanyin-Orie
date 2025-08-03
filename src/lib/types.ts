@@ -1,3 +1,9 @@
+export interface Payment {
+  id: number;
+  amount: number;
+  date: string;
+}
+
 export interface Member {
   id: number;
   name: string;
@@ -13,7 +19,7 @@ export interface Member {
   contribution: number;
   useCustomContribution: boolean;
   customContribution: number | null;
-  paidAmount: number;
+  payments: Payment[];
 }
 
 export type Family = string;
@@ -33,7 +39,9 @@ export interface CustomContribution {
   description?: string;
 }
 
-export type NewMemberData = Omit<Member, 'id' | 'name' | 'age' | 'tier' | 'contribution' | 'paidAmount'>;
+export type NewMemberData = Omit<Member, 'id' | 'name' | 'age' | 'tier' | 'contribution' | 'payments'>;
+
+export type NewPaymentData = Omit<Payment, 'id'>;
 
 export type NewCustomContributionData = Omit<CustomContribution, 'id'>;
 
@@ -41,5 +49,6 @@ export type DialogState =
   | { type: 'add-family' }
   | { type: 'add-member', family?: string }
   | { type: 'edit-member', member: Member }
+  | { type: 'record-payment', member: Member }
   | { type: 'add-custom-contribution' }
   | null;

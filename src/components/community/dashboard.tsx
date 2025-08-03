@@ -3,7 +3,8 @@ import { useCommunity } from '@/hooks/use-community';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Users, Home, DollarSign } from 'lucide-react';
+import { Users, Home, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
+import { Progress } from '../ui/progress';
 
 const StatCard = ({ title, value, icon: Icon, colorClass, iconBgClass }) => (
   <Card className={`${colorClass} border-0`}>
@@ -22,24 +23,35 @@ const StatCard = ({ title, value, icon: Icon, colorClass, iconBgClass }) => (
 );
 
 export function Dashboard() {
-  const { members, families, getTier, settings } = useCommunity();
+  const { members, families, getTier, settings, getPaidAmount, getBalance } = useCommunity();
+
+  const totalContributions = members.reduce((sum, m) => sum + m.contribution, 0);
+  const totalPaid = members.reduce((sum, m) => sum + getPaidAmount(m), 0);
+  const totalBalance = totalContributions - totalPaid;
 
   const stats = {
     totalMembers: members.length,
     totalFamilies: families.length,
-    tier1Members: members.filter(m => getTier(m.age) === 'Tier 1 (18-24)').length,
-    tier2Members: members.filter(m => getTier(m.age) === 'Tier 2 (25+)').length,
-    totalContributions: members.reduce((sum, m) => sum + m.contribution, 0),
+    totalContributions: totalContributions,
+    totalPaid: totalPaid,
+    totalBalance: totalBalance,
   };
+
+  const getPaymentStatusColor = (balance: number, contribution: number) => {
+    if (contribution === 0) return 'bg-gray-300';
+    if (balance <= 0) return 'bg-green-500';
+    if (balance < contribution) return 'bg-yellow-500';
+    return 'bg-secondary';
+  }
   
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <StatCard title="Total Members" value={stats.totalMembers} icon={Users} colorClass="bg-blue-100 dark:bg-blue-900/20" iconBgClass="bg-white/50 text-blue-600 dark:text-blue-400" />
         <StatCard title="Total Families" value={stats.totalFamilies} icon={Home} colorClass="bg-indigo-100 dark:bg-indigo-900/20" iconBgClass="bg-white/50 text-indigo-600 dark:text-indigo-400" />
-        <StatCard title="Tier 1 (18-24)" value={stats.tier1Members} icon={Users} colorClass="bg-green-100 dark:bg-green-900/20" iconBgClass="bg-white/50 text-green-600 dark:text-green-400" />
-        <StatCard title="Tier 2 (25+)" value={stats.tier2Members} icon={Users} colorClass="bg-purple-100 dark:bg-purple-900/20" iconBgClass="bg-white/50 text-purple-600 dark:text-purple-400" />
         <StatCard title="Expected Contributions" value={`${settings.currency}${stats.totalContributions.toLocaleString()}`} icon={DollarSign} colorClass="bg-yellow-100 dark:bg-yellow-900/20" iconBgClass="bg-white/50 text-yellow-600 dark:text-yellow-400" />
+        <StatCard title="Total Paid" value={`${settings.currency}${stats.totalPaid.toLocaleString()}`} icon={TrendingUp} colorClass="bg-green-100 dark:bg-green-900/20" iconBgClass="bg-white/50 text-green-600 dark:text-green-400" />
+        <StatCard title="Total Outstanding" value={`${settings.currency}${stats.totalBalance.toLocaleString()}`} icon={TrendingDown} colorClass="bg-red-100 dark:bg-red-900/20" iconBgClass="bg-white/50 text-red-600 dark:text-red-400" />
       </div>
       
       <Card>
@@ -53,17 +65,20 @@ export function Dashboard() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Family</TableHead>
-                  <TableHead>Age</TableHead>
                   <TableHead>Tier</TableHead>
                   <TableHead>Contribution</TableHead>
+                  <TableHead>Payment Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {members.slice(-5).reverse().map(member => (
+                {members.slice(-5).reverse().map(member => {
+                  const paidAmount = getPaidAmount(member);
+                  const balance = getBalance(member);
+                  const progress = member.contribution > 0 ? (paidAmount / member.contribution) * 100 : 0;
+                  return (
                   <TableRow key={member.id}>
                     <TableCell className="font-medium">{member.name}</TableCell>
                     <TableCell>{member.family}</TableCell>
-                    <TableCell>{member.age}</TableCell>
                     <TableCell>
                       <Badge variant={
                         member.tier.includes('Tier 1') ? 'secondary' :
@@ -82,8 +97,16 @@ export function Dashboard() {
                         )}
                       </div>
                     </TableCell>
+                    <TableCell>
+                        <div className='w-40'>
+                            <div className='text-xs text-muted-foreground'>
+                                {settings.currency}{paidAmount.toLocaleString()} / {settings.currency}{balance.toLocaleString()}
+                            </div>
+                            <Progress value={progress} className='h-2 mt-1' indicatorClassName={getPaymentStatusColor(balance, member.contribution)} />
+                        </div>
+                      </TableCell>
                   </TableRow>
-                ))}
+                )})}
               </TableBody>
             </Table>
             {members.length === 0 && <p className="p-6 text-center text-muted-foreground">No members have been added yet.</p>}
