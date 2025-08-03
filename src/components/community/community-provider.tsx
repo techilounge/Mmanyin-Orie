@@ -25,7 +25,7 @@ interface CommunityContextType {
   updateCustomContribution: (updatedContribution: CustomContribution) => void;
   deleteCustomContribution: (id: number) => void;
 
-  recordPayment: (memberId: number, paymentData: NewPaymentData) => void;
+  recordPayment: (memberId: number, contributionId: number, paymentData: Omit<NewPaymentData, 'contributionId'>) => void;
 
   dialogState: DialogState;
   openDialog: (state: DialogState) => void;
@@ -36,6 +36,8 @@ interface CommunityContextType {
   calculateAge: (yearOfBirth: number) => number;
   getPaidAmount: (member: Member) => number;
   getBalance: (member: Member) => number;
+  getPaidAmountForContribution: (member: Member, contributionId: number) => number;
+  getBalanceForContribution: (member: Member, contribution: CustomContribution) => number;
 }
 
 export const CommunityContext = createContext<CommunityContextType | undefined>(undefined);
@@ -75,11 +77,17 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       const savedSettings = localStorage.getItem('communitySettings');
       const savedCustomContributions = localStorage.getItem('customContributions');
 
-      const initialMembers = savedMembers ? JSON.parse(savedMembers) : [];
-      // Quick migration for members who don't have a payments array
+      const initialMembers: Member[] = savedMembers ? JSON.parse(savedMembers) : [];
+      // Quick migration for members who don't have a payments array or payments with contributionId
       const migratedMembers = initialMembers.map((m: any) => ({
         ...m,
-        payments: m.payments || (m.paidAmount ? [{id: Date.now(), amount: m.paidAmount, date: new Date().toISOString()}] : [])
+        payments: (m.payments || []).map(p => ({
+          ...p,
+          // If contributionId is missing, we can't really know, so we might assign it to a default or leave it null
+          // For this migration, we assume old payments can't be assigned. New payments will have it.
+          // A better migration would be to find the first applicable contribution for the member's tier.
+          contributionId: p.contributionId || -1, // -1 indicates unassigned
+        }))
       }));
 
       setMembers(migratedMembers);
@@ -131,6 +139,17 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
 
   const getBalance = (member: Member) => {
     return member.contribution - getPaidAmount(member);
+  }
+
+  const getPaidAmountForContribution = (member: Member, contributionId: number) => {
+    return member.payments
+      .filter(p => p.contributionId === contributionId)
+      .reduce((sum, p) => sum + p.amount, 0);
+  }
+
+  const getBalanceForContribution = (member: Member, contribution: CustomContribution) => {
+    const paid = getPaidAmountForContribution(member, contribution.id);
+    return contribution.amount - paid;
   }
   
   const addFamily = (familyName: string) => {
@@ -212,8 +231,8 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     toast({ title: "Member Deleted", description: `${memberName} has been removed.` });
   };
 
-  const recordPayment = (memberId: number, paymentData: NewPaymentData) => {
-    const newPayment: Payment = { id: Date.now(), ...paymentData };
+  const recordPayment = (memberId: number, contributionId: number, paymentData: Omit<NewPaymentData, 'contributionId'>) => {
+    const newPayment: Payment = { id: Date.now(), contributionId, ...paymentData };
     setMembers(prev => prev.map(m => {
       if (m.id === memberId) {
         return { ...m, payments: [...m.payments, newPayment] };
@@ -221,7 +240,8 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       return m;
     }));
     const memberName = members.find(m => m.id === memberId)?.name || 'Member';
-    toast({ title: "Payment Recorded", description: `Payment of ${settings.currency}${paymentData.amount} for ${memberName} has been recorded.` });
+    const contributionName = customContributions.find(c => c.id === contributionId)?.name || 'Contribution';
+    toast({ title: "Payment Recorded", description: `Payment of ${settings.currency}${paymentData.amount} for ${memberName} towards ${contributionName} has been recorded.` });
     closeDialog();
   };
   
@@ -285,6 +305,8 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     calculateAge,
     getPaidAmount,
     getBalance,
+    getPaidAmountForContribution,
+    getBalanceForContribution,
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [members, families, settings, customContributions, isLoading, dialogState]);
 

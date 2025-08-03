@@ -109,7 +109,7 @@ export function CommunityApp() {
       <AddFamilyDialog />
       <AddMemberDialog />
       {dialogState?.type === 'edit-member' && <EditMemberDialog member={dialogState.member} />}
-      {dialogState?.type === 'record-payment' && <RecordPaymentDialog member={dialogState.member} />}
+      {dialogState?.type === 'record-payment' && <RecordPaymentDialog member={dialogState.member} contribution={dialogState.contribution} />}
       <AddCustomContributionDialog />
       {dialogState?.type === 'edit-custom-contribution' && <EditCustomContributionDialog contribution={dialogState.contribution} />}
     </div>

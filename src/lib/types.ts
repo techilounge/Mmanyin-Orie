@@ -1,5 +1,6 @@
 export interface Payment {
   id: number;
+  contributionId: number; // Links payment to a specific CustomContribution
   amount: number;
   date: string;
 }
@@ -50,7 +51,7 @@ export type DialogState =
   | { type: 'add-family' }
   | { type: 'add-member', family?: string }
   | { type: 'edit-member', member: Member }
-  | { type: 'record-payment', member: Member }
+  | { type: 'record-payment', member: Member, contribution: CustomContribution }
   | { type: 'add-custom-contribution' }
   | { type: 'edit-custom-contribution', contribution: CustomContribution }
   | null;

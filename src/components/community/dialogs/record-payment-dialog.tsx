@@ -10,7 +10,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import type { Member, Payment } from '@/lib/types';
+import type { Member, Payment, CustomContribution } from '@/lib/types';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon } from 'lucide-react';
@@ -20,6 +20,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface RecordPaymentDialogProps {
   member: Member;
+  contribution: CustomContribution;
 }
 
 const formSchema = z.object({
@@ -27,9 +28,10 @@ const formSchema = z.object({
   date: z.date({ required_error: 'Payment date is required.' }),
 });
 
-export function RecordPaymentDialog({ member }: RecordPaymentDialogProps) {
-  const { dialogState, closeDialog, recordPayment, settings, getBalance, getPaidAmount } = useCommunity();
-  const balance = getBalance(member);
+export function RecordPaymentDialog({ member, contribution }: RecordPaymentDialogProps) {
+  const { dialogState, closeDialog, recordPayment, settings, getBalanceForContribution, getPaidAmountForContribution } = useCommunity();
+  const balance = getBalanceForContribution(member, contribution);
+  const paidAmount = getPaidAmountForContribution(member, contribution.id);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema.refine(data => data.amount <= balance, {
@@ -37,19 +39,22 @@ export function RecordPaymentDialog({ member }: RecordPaymentDialogProps) {
         path: ['amount'],
     })),
     defaultValues: {
-      amount: balance,
+      amount: balance > 0 ? balance : 0,
       date: new Date(),
     },
   });
 
   useEffect(() => {
-    form.reset({ amount: getBalance(member), date: new Date() });
-  }, [member, form]);
+    if (member && contribution) {
+      const newBalance = getBalanceForContribution(member, contribution);
+      form.reset({ amount: newBalance > 0 ? newBalance : 0, date: new Date() });
+    }
+  }, [member, contribution, form, getBalanceForContribution]);
 
-  if (!member) return null;
+  if (!member || !contribution) return null;
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    recordPayment(member.id, {
+    recordPayment(member.id, contribution.id, {
       amount: values.amount,
       date: values.date.toISOString(),
     });
@@ -61,7 +66,7 @@ export function RecordPaymentDialog({ member }: RecordPaymentDialogProps) {
     closeDialog();
   };
   
-  const paidAmount = getPaidAmount(member);
+  const paymentsForThisContribution = member.payments.filter(p => p.contributionId === contribution.id);
 
   return (
     <Dialog open={dialogState?.type === 'record-payment'} onOpenChange={handleClose}>
@@ -69,7 +74,8 @@ export function RecordPaymentDialog({ member }: RecordPaymentDialogProps) {
         <DialogHeader>
           <DialogTitle>Record Payment for {member.name}</DialogTitle>
           <DialogDescription>
-            Total Contribution: {settings.currency}{member.contribution} |
+            <p className="font-medium text-foreground">Contribution: {contribution.name}</p>
+            Total Due: {settings.currency}{contribution.amount} |
             Paid: {settings.currency}{paidAmount} |
             Balance: {settings.currency}{balance}
           </DialogDescription>
@@ -129,12 +135,12 @@ export function RecordPaymentDialog({ member }: RecordPaymentDialogProps) {
               )}
             />
 
-            {member.payments.length > 0 && (
+            {paymentsForThisContribution.length > 0 && (
                 <div className="space-y-2 pt-4 border-t">
-                    <h4 className="text-sm font-medium">Payment History</h4>
+                    <h4 className="text-sm font-medium">Payment History for {contribution.name}</h4>
                     <ScrollArea className="h-24 pr-4">
                         <div className="space-y-2 text-sm">
-                            {member.payments.map((p: Payment) => (
+                            {paymentsForThisContribution.map((p: Payment) => (
                                 <div key={p.id} className="flex justify-between items-center text-muted-foreground">
                                     <span>{settings.currency}{p.amount.toLocaleString()}</span>
                                     <span>{format(new Date(p.date), "PPP")}</span>

@@ -10,22 +10,23 @@ import type { Member, CustomContribution } from '@/lib/types';
 import { Progress } from '../ui/progress';
 
 export function Payments() {
-  const { members, settings, getPaidAmount, getBalance, openDialog, customContributions } = useCommunity();
+  const { members, settings, getPaidAmount, getBalance, openDialog, customContributions, getPaidAmountForContribution, getBalanceForContribution } = useCommunity();
   const [selectedMemberId, setSelectedMemberId] = useState<string>('');
 
   const selectedMember = members.find(m => m.id.toString() === selectedMemberId);
 
   const getPaymentStatusColor = (balance: number, contribution: number) => {
-    if (contribution === 0) return 'bg-gray-300';
+    if (contribution <= 0) return 'bg-gray-300';
     if (balance <= 0) return 'bg-green-500';
     if (balance < contribution) return 'bg-yellow-500';
     return 'bg-secondary';
   }
 
   const renderMemberPayments = (member: Member) => {
-    const paidAmount = getPaidAmount(member);
-    const balance = getBalance(member);
-    const progress = member.contribution > 0 ? (paidAmount / member.contribution) * 100 : 100;
+    const totalPaid = getPaidAmount(member);
+    const totalOwed = member.contribution;
+    const totalBalance = getBalance(member);
+    const progress = totalOwed > 0 ? (totalPaid / totalOwed) * 100 : 100;
 
     const applicableContributions = customContributions.filter(c => c.tiers.includes(member.tier));
 
@@ -39,42 +40,54 @@ export function Payments() {
                 Family: {member.family} | Tier: {member.tier}
               </CardDescription>
             </div>
-            <Button 
-              onClick={() => openDialog({type: 'record-payment', member})}
-              disabled={balance <= 0}
-              size="sm"
-            >
-              Record Payment
-            </Button>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="mb-4">
+          <div className="mb-6">
               <div className='text-sm text-muted-foreground'>
-                  Total Paid: {settings.currency}{paidAmount.toLocaleString()} / Total Owed: {settings.currency}{member.contribution.toLocaleString()}
+                  Total Paid: {settings.currency}{totalPaid.toLocaleString()} / Total Owed: {settings.currency}{totalOwed.toLocaleString()}
               </div>
-              <Progress value={progress} className='h-2 mt-1' indicatorClassName={getPaymentStatusColor(balance, member.contribution)} />
+              <Progress value={progress} className='h-2 mt-1' indicatorClassName={getPaymentStatusColor(totalBalance, totalOwed)} />
           </div>
 
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Contribution Type</TableHead>
-                <TableHead>Amount</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+                <TableHead className="text-right">Paid</TableHead>
+                <TableHead className="text-right">Balance</TableHead>
+                <TableHead className="text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {applicableContributions.length > 0 ? applicableContributions.map((contrib: CustomContribution) => (
-                <TableRow key={contrib.id}>
-                  <TableCell className="font-medium">
-                    {contrib.name}
-                    {contrib.description && <p className="text-xs text-muted-foreground">{contrib.description}</p>}
-                  </TableCell>
-                  <TableCell>{settings.currency}{contrib.amount.toLocaleString()}</TableCell>
-                </TableRow>
-              )) : (
+              {applicableContributions.length > 0 ? applicableContributions.map((contrib: CustomContribution) => {
+                const balance = getBalanceForContribution(member, contrib);
+                const paid = getPaidAmountForContribution(member, contrib.id);
+                return (
+                  <TableRow key={contrib.id}>
+                    <TableCell className="font-medium">
+                      {contrib.name}
+                      {contrib.description && <p className="text-xs text-muted-foreground max-w-xs">{contrib.description}</p>}
+                    </TableCell>
+                    <TableCell className="text-right">{settings.currency}{contrib.amount.toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-green-600 dark:text-green-400">{settings.currency}{paid.toLocaleString()}</TableCell>
+                    <TableCell className="text-right font-medium">{settings.currency}{balance.toLocaleString()}</TableCell>
+                    <TableCell className="text-center">
+                       <Button 
+                        onClick={() => openDialog({type: 'record-payment', member, contribution: contrib})}
+                        disabled={balance <= 0}
+                        size="sm"
+                        variant="outline"
+                      >
+                        Record Payment
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                )
+              }) : (
                 <TableRow>
-                  <TableCell colSpan={2} className="text-center text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground">
                     No contributions assigned to this member's tier.
                   </TableCell>
                 </TableRow>
