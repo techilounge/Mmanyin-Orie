@@ -82,64 +82,64 @@ export function Payments() {
                     return (
                     <Collapsible asChild key={contrib.id}>
                         <>
-                        <TableRow>
-                            <TableCell>
-                            {paymentsForContribution.length > 0 && (
-                                <CollapsibleTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                    <ChevronDown className="h-4 w-4 transition-transform data-[state=open]:rotate-180" />
-                                </Button>
-                                </CollapsibleTrigger>
-                            )}
-                            </TableCell>
-                            <TableCell className="font-medium">
-                            {contrib.name}
-                            {contrib.description && <p className="text-xs text-muted-foreground max-w-xs">{contrib.description}</p>}
-                            </TableCell>
-                            <TableCell className="text-right">{settings.currency}{contrib.amount.toLocaleString()}</TableCell>
-                            <TableCell className="text-right text-green-600 dark:text-green-400">{settings.currency}{paid.toLocaleString()}</TableCell>
-                            <TableCell className="text-right font-medium">{settings.currency}{balance.toLocaleString()}</TableCell>
-                            <TableCell className="text-center">
-                            <Button 
-                                onClick={() => openDialog({type: 'record-payment', member, contribution: contrib})}
-                                disabled={balance <= 0}
-                                size="sm"
-                                variant="outline"
-                            >
-                                Record Payment
-                            </Button>
-                            </TableCell>
-                        </TableRow>
-                        <CollapsibleContent asChild>
-                            <tr>
-                            <td colSpan={6} className="p-0">
-                                <div className="bg-muted/50 p-4">
-                                <h4 className="font-semibold mb-2 text-sm">Payment History for {contrib.name}</h4>
-                                {paymentsForContribution.length > 0 ? (
-                                    <div className="space-y-2">
-                                    {paymentsForContribution.map((payment: Payment) => (
-                                        <div key={payment.id} className="flex justify-between items-center bg-background p-2 rounded-md">
-                                        <div className="text-sm">
-                                            <span className="font-medium">{settings.currency}{payment.amount.toLocaleString()}</span> on <span>{format(new Date(payment.date), "PPP")}</span>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDialog({ type: 'edit-payment', member, contribution: contrib, payment })}>
-                                            <Edit className="h-4 w-4" />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setPaymentToDelete({memberId: member.id, paymentId: payment.id})}>
-                                            <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                        </div>
-                                    ))}
-                                    </div>
-                                ) : (
-                                    <p className="text-sm text-muted-foreground">No payments recorded yet.</p>
-                                )}
-                                </div>
-                            </td>
-                            </tr>
-                        </CollapsibleContent>
+                          <TableRow>
+                              <TableCell>
+                              {paymentsForContribution.length > 0 && (
+                                  <CollapsibleTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                      <ChevronDown className="h-4 w-4 transition-transform data-[state=open]:rotate-180" />
+                                  </Button>
+                                  </CollapsibleTrigger>
+                              )}
+                              </TableCell>
+                              <TableCell className="font-medium">
+                              {contrib.name}
+                              {contrib.description && <p className="text-xs text-muted-foreground max-w-xs">{contrib.description}</p>}
+                              </TableCell>
+                              <TableCell className="text-right">{settings.currency}{contrib.amount.toLocaleString()}</TableCell>
+                              <TableCell className="text-right text-green-600 dark:text-green-400">{settings.currency}{paid.toLocaleString()}</TableCell>
+                              <TableCell className="text-right font-medium">{settings.currency}{balance.toLocaleString()}</TableCell>
+                              <TableCell className="text-center">
+                              <Button 
+                                  onClick={() => openDialog({type: 'record-payment', member, contribution: contrib})}
+                                  disabled={balance <= 0}
+                                  size="sm"
+                                  variant="outline"
+                              >
+                                  Record Payment
+                              </Button>
+                              </TableCell>
+                          </TableRow>
+                          <CollapsibleContent asChild>
+                              <tr className="bg-muted/50 hover:bg-muted/50">
+                              <td colSpan={6} className="p-0">
+                                  <div className="p-4">
+                                  <h4 className="font-semibold mb-2 text-sm">Payment History for {contrib.name}</h4>
+                                  {paymentsForContribution.length > 0 ? (
+                                      <div className="space-y-2">
+                                      {paymentsForContribution.map((payment: Payment) => (
+                                          <div key={payment.id} className="flex justify-between items-center bg-background p-2 rounded-md">
+                                          <div className="text-sm">
+                                              <span className="font-medium">{settings.currency}{payment.amount.toLocaleString()}</span> on <span>{format(new Date(payment.date), "PPP")}</span>
+                                          </div>
+                                          <div className="flex items-center gap-1">
+                                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDialog({ type: 'edit-payment', member, contribution: contrib, payment })}>
+                                              <Edit className="h-4 w-4" />
+                                              </Button>
+                                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setPaymentToDelete({memberId: member.id, paymentId: payment.id})}>
+                                              <Trash2 className="h-4 w-4" />
+                                              </Button>
+                                          </div>
+                                          </div>
+                                      ))}
+                                      </div>
+                                  ) : (
+                                      <p className="text-sm text-muted-foreground">No payments recorded yet.</p>
+                                  )}
+                                  </div>
+                              </td>
+                              </tr>
+                          </CollapsibleContent>
                         </>
                     </Collapsible>
                     )
