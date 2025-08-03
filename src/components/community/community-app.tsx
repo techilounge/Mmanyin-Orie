@@ -21,6 +21,7 @@ import { AddCustomContributionDialog } from './dialogs/add-custom-contribution-d
 import { Skeleton } from '@/components/ui/skeleton';
 import { RecordPaymentDialog } from './dialogs/record-payment-dialog';
 import { Payments } from './payments';
+import { EditCustomContributionDialog } from './dialogs/edit-custom-contribution-dialog';
 
 const TABS = [
   { id: 'dashboard', label: 'Dashboard', icon: BarChart2 },
@@ -110,6 +111,7 @@ export function CommunityApp() {
       {dialogState?.type === 'edit-member' && <EditMemberDialog member={dialogState.member} />}
       {dialogState?.type === 'record-payment' && <RecordPaymentDialog member={dialogState.member} />}
       <AddCustomContributionDialog />
+      {dialogState?.type === 'edit-custom-contribution' && <EditCustomContributionDialog contribution={dialogState.contribution} />}
     </div>
   );
 }

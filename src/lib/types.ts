@@ -51,4 +51,5 @@ export type DialogState =
   | { type: 'edit-member', member: Member }
   | { type: 'record-payment', member: Member }
   | { type: 'add-custom-contribution' }
+  | { type: 'edit-custom-contribution', contribution: CustomContribution }
   | null;

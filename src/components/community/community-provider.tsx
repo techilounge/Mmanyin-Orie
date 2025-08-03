@@ -22,6 +22,7 @@ interface CommunityContextType {
   recalculateTiers: () => void;
   
   addCustomContribution: (contributionData: NewCustomContributionData) => void;
+  updateCustomContribution: (updatedContribution: CustomContribution) => void;
   deleteCustomContribution: (id: number) => void;
 
   recordPayment: (memberId: number, paymentData: NewPaymentData) => void;
@@ -241,6 +242,12 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     toast({ title: "Template Added", description: `"${data.name}" has been added.` });
   };
 
+  const updateCustomContribution = (updatedContribution: CustomContribution) => {
+    setCustomContributions(prev => prev.map(c => c.id === updatedContribution.id ? updatedContribution : c));
+    toast({ title: "Template Updated", description: `"${updatedContribution.name}" has been updated.` });
+    closeDialog();
+  };
+
   const deleteCustomContribution = (id: number) => {
     const contribName = customContributions.find(c => c.id === id)?.name || 'Template';
     setCustomContributions(prev => prev.filter(c => c.id !== id));
@@ -261,6 +268,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     updateSettings,
     recalculateTiers,
     addCustomContribution,
+    updateCustomContribution,
     deleteCustomContribution,
     recordPayment,
     dialogState,

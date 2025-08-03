@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Settings, Plus, Trash2 } from 'lucide-react';
+import { Settings, Plus, Trash2, Edit } from 'lucide-react';
 import { DollarSign, Globe } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -127,9 +127,14 @@ export function AppSettings() {
                     <p className="text-sm text-muted-foreground mt-2">{contrib.description}</p>
                   )}
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => deleteCustomContribution(contrib.id)} aria-label="Delete Template">
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
+                <div className="flex items-center">
+                  <Button variant="ghost" size="icon" onClick={() => openDialog({ type: 'edit-custom-contribution', contribution: contrib })} aria-label="Edit Template">
+                    <Edit className="h-4 w-4 text-primary" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => deleteCustomContribution(contrib.id)} aria-label="Delete Template">
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
               </div>
             ))}
             {customContributions.length === 0 && (
