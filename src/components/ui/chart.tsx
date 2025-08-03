@@ -261,7 +261,11 @@ const ChartTooltipContent = React.forwardRef<
 )
 ChartTooltipContent.displayName = "ChartTooltip"
 
-const ChartLegend = RechartsPrimitive.Legend
+const ChartLegend = React.forwardRef<
+  React.ElementRef<typeof RechartsPrimitive.Legend>,
+  React.ComponentProps<typeof RechartsPrimitive.Legend>
+>((props, ref) => <RechartsPrimitive.Legend ref={ref} {...props} />)
+ChartLegend.displayName = RechartsPrimitive.Legend.displayName
 
 const ChartLegendContent = React.forwardRef<
   HTMLDivElement,
