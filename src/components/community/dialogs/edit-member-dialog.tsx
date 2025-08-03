@@ -1,0 +1,194 @@
+'use client';
+import { useEffect } from 'react';
+import { useCommunity } from '@/hooks/use-community';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
+const currentYear = new Date().getFullYear();
+const formSchema = z.object({
+  id: z.number(),
+  firstName: z.string().min(1, 'First name is required.'),
+  lastName: z.string().min(1, 'Last name is required.'),
+  middleName: z.string().optional(),
+  yearOfBirth: z.coerce.number().int().min(1900, 'Invalid year.').max(currentYear, `Year cannot be in the future.`),
+  family: z.string().min(1, 'Family is required.'),
+  email: z.string().email('Invalid email address.').optional().or(z.literal('')),
+  phone: z.string().optional(),
+  useCustomContribution: z.boolean(),
+  customContribution: z.coerce.number().nullable(),
+  paidAmount: z.number(),
+});
+
+type EditMemberForm = z.infer<typeof formSchema>;
+
+export function EditMemberDialog() {
+  const { 
+    editingMember, setEditingMember, updateMember, families, customContributions, 
+    getContribution, calculateAge 
+  } = useCommunity();
+
+  const form = useForm<EditMemberForm>({
+    resolver: zodResolver(formSchema),
+  });
+  
+  const useCustomContribution = form.watch('useCustomContribution');
+  const yearOfBirth = form.watch('yearOfBirth');
+
+  useEffect(() => {
+    if (editingMember) {
+      form.reset({
+        id: editingMember.id,
+        firstName: editingMember.firstName,
+        lastName: editingMember.lastName,
+        middleName: editingMember.middleName,
+        yearOfBirth: editingMember.yearOfBirth,
+        family: editingMember.family,
+        email: editingMember.email,
+        phone: editingMember.phone,
+        useCustomContribution: editingMember.useCustomContribution,
+        customContribution: editingMember.customContribution,
+        paidAmount: editingMember.paidAmount
+      });
+    }
+  }, [editingMember, form.reset]);
+  
+  if (!editingMember) return null;
+
+  const onSubmit = (values: EditMemberForm) => {
+    // This is a bit of a hack to satisfy the type. The form values are correct.
+    const memberData = { ...editingMember, ...values };
+    updateMember(memberData);
+    handleClose();
+  };
+
+  const handleClose = () => {
+    form.reset();
+    setEditingMember(null);
+  };
+  
+  return (
+    <Dialog open={!!editingMember} onOpenChange={handleClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Edit Member</DialogTitle>
+          <DialogDescription>
+            Update the details for {editingMember.name}.
+          </DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <ScrollArea className="h-[60vh] pr-6">
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField control={form.control} name="firstName" render={({ field }) => (
+                    <FormItem><FormLabel>First Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="lastName" render={({ field }) => (
+                    <FormItem><FormLabel>Last Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                </div>
+                <FormField control={form.control} name="middleName" render={({ field }) => (
+                  <FormItem><FormLabel>Middle Name <span className="text-muted-foreground">(optional)</span></FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="yearOfBirth" render={({ field }) => (
+                  <FormItem><FormLabel>Year of Birth</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                
+                <Controller
+                  control={form.control}
+                  name="family"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Family</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger><SelectValue placeholder="Select a family" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {families.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField control={form.control} name="email" render={({ field }) => (
+                  <FormItem><FormLabel>Email <span className="text-muted-foreground">(optional)</span></FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="phone" render={({ field }) => (
+                  <FormItem><FormLabel>Phone <span className="text-muted-foreground">(optional)</span></FormLabel><FormControl><Input type="tel" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                
+                <div className="border-t pt-4 space-y-4">
+                  <FormField control={form.control} name="useCustomContribution" render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Set custom contribution amount</FormLabel>
+                      </div>
+                    </FormItem>
+                  )} />
+
+                  {useCustomContribution && (
+                    <div className="space-y-3">
+                      <FormField control={form.control} name="customContribution" render={({ field }) => (
+                         <FormItem>
+                          <FormLabel>Custom Amount</FormLabel>
+                           <FormControl>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                              <Input type="number" step="0.01" placeholder="0.00" className="pl-7" {...field} value={field.value ?? ''} />
+                            </div>
+                           </FormControl>
+                           <FormMessage />
+                         </FormItem>
+                      )}/>
+                      {customContributions.length > 0 && (
+                        <div>
+                          <Label className="text-sm text-muted-foreground mb-2 block">Or select a template:</Label>
+                          <div className="flex flex-wrap gap-2">
+                            {customContributions.map(c => (
+                              <Button key={c.id} type="button" variant="secondary" size="sm" onClick={() => form.setValue('customContribution', c.amount)} title={c.description}>
+                                {c.name} (${c.amount})
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {yearOfBirth && !useCustomContribution && (
+                    <p className="text-sm text-muted-foreground pt-2">
+                      Default contribution: ${getContribution(calculateAge(yearOfBirth))}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </ScrollArea>
+            <DialogFooter className="pt-4">
+              <Button type="button" variant="outline" onClick={handleClose}>Cancel</Button>
+              <Button type="submit">Update Member</Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
