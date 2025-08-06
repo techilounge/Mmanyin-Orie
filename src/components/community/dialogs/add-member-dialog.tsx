@@ -139,7 +139,7 @@ export function AddMemberDialog() {
                               <SelectTrigger><SelectValue placeholder="Code" /></SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {COUNTRIES.map((c) => <SelectItem key={c.code} value={c.code}>{c.code}</SelectItem>)}
+                              {COUNTRIES.map((c) => <SelectItem key={c.name} value={c.code}>{c.code}</SelectItem>)}
                             </SelectContent>
                           </Select>
                           <FormMessage />
