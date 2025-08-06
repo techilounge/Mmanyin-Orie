@@ -39,12 +39,13 @@ export function Members() {
     const q = searchTerm.trim().toLowerCase();
     return members.filter((m) => {
       const tier = getTier(m.age);
+      const fullPhone = `${m.phoneCountryCode || ''}${m.phone || ''}`.toLowerCase();
       const matchesSearch =
         !q ||
         m.name.toLowerCase().includes(q) ||
         m.family.toLowerCase().includes(q) ||
         (m.email ?? '').toLowerCase().includes(q) ||
-        (m.phone ?? '').toLowerCase().includes(q);
+        fullPhone.includes(q);
 
       const matchesFamily = !filterFamily || m.family === filterFamily;
       const matchesTier = !filterTier || tier === filterTier;
@@ -150,6 +151,7 @@ export function Members() {
                   const paidAmount = getPaidAmount(m);
                   const balance = getBalance(m);
                   const progress = m.contribution > 0 ? (paidAmount / m.contribution) * 100 : 0;
+                  const fullPhone = m.phone ? `${m.phoneCountryCode} ${m.phone}` : '';
 
                   return (
                     <TableRow key={m.id}>
@@ -181,7 +183,7 @@ export function Members() {
                       <TableCell>
                         <div className="flex flex-col text-sm text-muted-foreground">
                           {m.email && <span className="truncate max-w-[150px]">{m.email}</span>}
-                          {m.phone && <span>{m.phone}</span>}
+                          {fullPhone && <span>{fullPhone}</span>}
                         </div>
                       </TableCell>
                       <TableCell>

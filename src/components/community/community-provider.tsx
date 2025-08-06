@@ -85,6 +85,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       const migratedMembers = initialMembers.map((m: any) => ({
         ...m,
         joinDate: m.joinDate || new Date().toISOString(),
+        phoneCountryCode: m.phoneCountryCode || '+234',
         payments: (m.payments || []).map(p => ({
           ...p,
           contributionId: p.contributionId || -1,
@@ -212,6 +213,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       family: data.family,
       email: data.email || '',
       phone: data.phone || '',
+      phoneCountryCode: data.phoneCountryCode || '',
       age,
       tier,
       contribution: 0, // Will be calculated

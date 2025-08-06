@@ -16,6 +16,7 @@ export interface Member {
   family: string;
   email: string;
   phone: string;
+  phoneCountryCode: string; // e.g. '+1'
   age: number;
   tier: string;
   contribution: number;

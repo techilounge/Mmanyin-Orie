@@ -18,6 +18,7 @@ import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Member } from '@/lib/types';
+import { COUNTRIES } from '@/lib/countries';
 
 const currentYear = new Date().getFullYear();
 const formSchema = z.object({
@@ -29,6 +30,7 @@ const formSchema = z.object({
   family: z.string().min(1, 'Family is required.'),
   email: z.string().email('Invalid email address.').optional().or(z.literal('')),
   phone: z.string().optional(),
+  phoneCountryCode: z.string().optional(),
 });
 
 type EditMemberForm = z.infer<typeof formSchema>;
@@ -57,6 +59,7 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
         family: member.family,
         email: member.email,
         phone: member.phone,
+        phoneCountryCode: member.phoneCountryCode || '+234',
       });
     }
   }, [member, form]);
@@ -67,6 +70,7 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
     const memberData: Member = { 
         ...member, 
         ...values,
+        phoneCountryCode: values.phoneCountryCode || '',
     };
     updateMember(memberData);
     handleClose();
@@ -127,9 +131,30 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
                 <FormField control={form.control} name="email" render={({ field }) => (
                   <FormItem><FormLabel>Email <span className="text-muted-foreground">(optional)</span></FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
-                <FormField control={form.control} name="phone" render={({ field }) => (
-                  <FormItem><FormLabel>Phone <span className="text-muted-foreground">(optional)</span></FormLabel><FormControl><Input type="tel" {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
+                <FormItem>
+                  <FormLabel>Phone <span className="text-muted-foreground">(optional)</span></FormLabel>
+                  <div className="flex gap-2">
+                     <FormField name="phoneCountryCode" control={form.control} render={({ field }) => (
+                        <FormItem className="w-1/3">
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <FormControl>
+                              <SelectTrigger><SelectValue placeholder="Code" /></SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {COUNTRIES.map((c) => <SelectItem key={c.code} value={c.code}>{c.code}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                     )} />
+                    <FormField name="phone" control={form.control} render={({ field }) => (
+                      <FormItem className="flex-1">
+                        <FormControl><Input type="tel" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  </div>
+                </FormItem>
                 
               </div>
             </ScrollArea>
