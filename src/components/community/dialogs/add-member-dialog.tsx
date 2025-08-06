@@ -41,7 +41,8 @@ export function AddMemberDialog() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       firstName: '', lastName: '', middleName: '',
-      yearOfBirth: undefined, family: '', newFamilyName: '',
+      yearOfBirth: '' as any, // Initialize with empty string to avoid uncontrolled component error
+      family: '', newFamilyName: '',
       email: '', phone: '',
     },
   });
