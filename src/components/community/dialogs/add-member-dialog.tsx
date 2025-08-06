@@ -55,7 +55,12 @@ export function AddMemberDialog() {
     if (isOpen) {
       if (familyToAddTo) form.setValue('family', familyToAddTo);
     } else {
-      form.reset();
+      form.reset({
+        firstName: '', lastName: '', middleName: '',
+        yearOfBirth: '' as any,
+        family: '', newFamilyName: '',
+        email: '', phone: '', phoneCountryCode: '+234',
+      });
     }
   }, [isOpen, familyToAddTo, form]);
 
