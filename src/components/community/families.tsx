@@ -2,9 +2,9 @@
 import { useCommunity } from '@/hooks/use-community';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Home, Trash2, Users, DollarSign, Plus, TrendingUp, Edit } from 'lucide-react';
+import { Home, Trash2, Users, DollarSign, Plus, TrendingUp, Edit, ChevronDown } from 'lucide-react';
 import { Badge } from '../ui/badge';
-import { Separator } from '../ui/separator';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 const FamilyStat = ({ icon: Icon, label, value, colorClass, iconColorClass }) => (
   <div className="flex items-center gap-3">
@@ -50,81 +50,91 @@ export function Families() {
         const familyPaid = familyMembers.reduce((sum, m) => sum + getPaidAmount(m), 0);
         
         return (
-          <Card key={family} className="flex flex-col h-full hover:shadow-lg transition-shadow duration-300">
-            <CardHeader>
-                <div className="flex justify-between items-start">
-                    <div>
-                        <CardTitle className="text-2xl font-bold">{family} Family</CardTitle>
-                        <CardDescription>Manage family members and track contributions.</CardDescription>
-                    </div>
-                    <div className='flex'>
-                        <Button variant="ghost" size="icon" onClick={() => openDialog({ type: 'edit-family', family })} aria-label="Edit Family">
-                        <Edit className="h-4 w-4 text-primary" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => deleteFamily(family)} aria-label="Delete Family">
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                    </div>
-                </div>
-            </CardHeader>
-            <CardContent className="flex flex-col flex-grow">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 p-4 bg-muted/50 rounded-lg">
-                    <FamilyStat
-                        icon={Users}
-                        label="Members"
-                        value={familyMembers.length}
-                        colorClass="bg-blue-100 dark:bg-blue-900/40"
-                        iconColorClass="text-blue-600 dark:text-blue-300"
-                    />
-                    <FamilyStat
-                        icon={DollarSign}
-                        label="Total Due"
-                        value={`${settings.currency}${familyContribution.toLocaleString()}`}
-                        colorClass="bg-yellow-100 dark:bg-yellow-900/40"
-                        iconColorClass="text-yellow-600 dark:text-yellow-300"
-                    />
-                    <FamilyStat
-                        icon={TrendingUp}
-                        label="Total Paid"
-                        value={`${settings.currency}${familyPaid.toLocaleString()}`}
-                        colorClass="bg-green-100 dark:bg-green-900/40"
-                        iconColorClass="text-green-600 dark:text-green-300"
-                    />
-                </div>
-
-              <div className="space-y-2 flex-grow max-h-56 overflow-y-auto pr-2 hide-scrollbar">
-                {familyMembers.length > 0 ? familyMembers.map(member => (
-                  <div key={member.id} className="flex justify-between items-center text-sm p-2 rounded-md hover:bg-muted/50">
-                    <span className="font-medium truncate max-w-[120px]">{member.name}</span>
-                    <div className="flex items-center gap-2">
-                        <Badge variant={
-                            member.tier.includes('Group 1') ? 'secondary' :
-                            member.tier.includes('Group 2') ? 'outline' : 'default'
-                        } className={`text-xs ${
-                            member.tier.includes('Group 1') ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200' :
-                            member.tier.includes('Group 2') ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200' :
-                            ''
-                        }`}>{member.tier}</Badge>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDialog({ type: 'edit-member', member })} aria-label={`Edit ${member.name}`}>
+          <Collapsible key={family} defaultOpen={true} asChild>
+            <Card className="flex flex-col h-full hover:shadow-lg transition-shadow duration-300">
+              <CardHeader>
+                  <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                          <CardTitle className="text-2xl font-bold">{family} Family</CardTitle>
+                          <CardDescription>Manage family members and track contributions.</CardDescription>
+                      </div>
+                      <div className='flex items-center'>
+                          <Button variant="ghost" size="icon" onClick={() => openDialog({ type: 'edit-family', family })} aria-label="Edit Family">
                             <Edit className="h-4 w-4 text-primary" />
-                        </Button>
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => deleteFamily(family)} aria-label="Delete Family">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                           <CollapsibleTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <ChevronDown className="h-5 w-5 transition-transform duration-200 data-[state=open]:rotate-180" />
+                                <span className="sr-only">Toggle members view</span>
+                              </Button>
+                          </CollapsibleTrigger>
+                      </div>
+                  </div>
+              </CardHeader>
+              <CollapsibleContent>
+                <CardContent className="flex flex-col flex-grow">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 p-4 bg-muted/50 rounded-lg">
+                        <FamilyStat
+                            icon={Users}
+                            label="Members"
+                            value={familyMembers.length}
+                            colorClass="bg-blue-100 dark:bg-blue-900/40"
+                            iconColorClass="text-blue-600 dark:text-blue-300"
+                        />
+                        <FamilyStat
+                            icon={DollarSign}
+                            label="Total Due"
+                            value={`${settings.currency}${familyContribution.toLocaleString()}`}
+                            colorClass="bg-yellow-100 dark:bg-yellow-900/40"
+                            iconColorClass="text-yellow-600 dark:text-yellow-300"
+                        />
+                        <FamilyStat
+                            icon={TrendingUp}
+                            label="Total Paid"
+                            value={`${settings.currency}${familyPaid.toLocaleString()}`}
+                            colorClass="bg-green-100 dark:bg-green-900/40"
+                            iconColorClass="text-green-600 dark:text-green-300"
+                        />
                     </div>
+
+                  <div className="space-y-2 flex-grow max-h-56 overflow-y-auto pr-2 hide-scrollbar">
+                    {familyMembers.length > 0 ? familyMembers.map(member => (
+                      <div key={member.id} className="flex justify-between items-center text-sm p-2 rounded-md hover:bg-muted/50">
+                        <span className="font-medium truncate max-w-[120px]">{member.name}</span>
+                        <div className="flex items-center gap-2">
+                            <Badge variant={
+                                member.tier.includes('Group 1') ? 'secondary' :
+                                member.tier.includes('Group 2') ? 'outline' : 'default'
+                            } className={`text-xs ${
+                                member.tier.includes('Group 1') ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200' :
+                                member.tier.includes('Group 2') ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200' :
+                                ''
+                            }`}>{member.tier}</Badge>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDialog({ type: 'edit-member', member })} aria-label={`Edit ${member.name}`}>
+                                <Edit className="h-4 w-4 text-primary" />
+                            </Button>
+                        </div>
+                      </div>
+                    )) : (
+                      <div className="flex flex-col items-center justify-center h-full text-center py-8">
+                         <Users className="h-10 w-10 text-muted-foreground/60 mb-2"/>
+                         <p className="text-sm font-medium text-muted-foreground">No members in this family yet.</p>
+                         <p className="text-xs text-muted-foreground">Click "Add Member" to get started.</p>
+                      </div>
+                    )}
                   </div>
-                )) : (
-                  <div className="flex flex-col items-center justify-center h-full text-center py-8">
-                     <Users className="h-10 w-10 text-muted-foreground/60 mb-2"/>
-                     <p className="text-sm font-medium text-muted-foreground">No members in this family yet.</p>
-                     <p className="text-xs text-muted-foreground">Click "Add Member" to get started.</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-            <CardFooter className="mt-auto border-t pt-4">
-              <Button onClick={() => openDialog({ type: 'add-member', family })} className="w-full">
-                <Plus className="mr-2 h-4 w-4" /> Add Member
-              </Button>
-            </CardFooter>
-          </Card>
+                </CardContent>
+                <CardFooter className="mt-auto border-t pt-4">
+                  <Button onClick={() => openDialog({ type: 'add-member', family })} className="w-full">
+                    <Plus className="mr-2 h-4 w-4" /> Add Member
+                  </Button>
+                </CardFooter>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
         );
       })}
     </div>
