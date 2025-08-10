@@ -30,123 +30,127 @@ export function AppSettings() {
   };
   
   return (
-    <div className="space-y-8">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Globe className="text-primary" />
-            General Settings
-          </CardTitle>
-          <CardDescription>
-            Manage global settings for the application.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-           <div className="space-y-2 max-w-xs">
-              <Label htmlFor="currency">Currency</Label>
-              <Select value={settings.currency} onValueChange={handleCurrencyChange}>
-                <SelectTrigger id="currency">
-                  <SelectValue placeholder="Select a currency" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CURRENCIES.map(c => (
-                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+      <div className="lg:col-span-2 space-y-8">
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign className="text-accent" />
+                  Contribution Types
+                </CardTitle>
+                <CardDescription>
+                  Create and manage different types of contributions for members.
+                </CardDescription>
+              </div>
+              <Button onClick={() => openDialog({ type: 'add-custom-contribution' })} variant="outline">
+                <Plus /> Add Contribution
+              </Button>
             </div>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="text-primary" />
-            Age Groups
-          </CardTitle>
-          <CardDescription>
-            Define age ranges for contribution groups.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="tier1Age">Group 1 Starting Age</Label>
-              <Input id="tier1Age" name="tier1Age" type="number" value={settings.tier1Age} onChange={handleSettingChange} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="tier2Age">Group 2 Starting Age</Label>
-              <Input id="tier2Age" name="tier2Age" type="number" value={settings.tier2Age} onChange={handleSettingChange} />
-            </div>
-          </div>
-          <Button onClick={recalculateTiers} className="mt-6">
-            Update All Member Groups & Contributions
-          </Button>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign className="text-accent" />
-                Contribution Types
-              </CardTitle>
-              <CardDescription>
-                Create and manage different types of contributions for members.
-              </CardDescription>
-            </div>
-            <Button onClick={() => openDialog({ type: 'add-custom-contribution' })} variant="outline">
-              <Plus /> Add Contribution
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {customContributions.map(contrib => (
-              <div key={contrib.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50">
-                <div className="flex-1">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <h4 className="font-medium text-foreground">{contrib.name}</h4>
-                    <span className="px-3 py-1 bg-accent text-accent-foreground rounded-full text-sm font-medium">
-                      {settings.currency}{contrib.amount}
-                    </span>
-                    {contrib.tiers.map(tier => (
-                       <Badge key={tier} variant={
-                        tier.includes('Group 1') ? 'secondary' :
-                        tier.includes('Group 2') ? 'outline' : 'default'
-                      } className={`text-xs ${
-                        tier.includes('Group 1') ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200' :
-                        tier.includes('Group 2') ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200' :
-                        ''
-                      }`}>{tier}</Badge>
-                    ))}
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {customContributions.map(contrib => (
+                <div key={contrib.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50">
+                  <div className="flex-1">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <h4 className="font-medium text-foreground">{contrib.name}</h4>
+                      <span className="px-3 py-1 bg-accent text-accent-foreground rounded-full text-sm font-medium">
+                        {settings.currency}{contrib.amount}
+                      </span>
+                      {contrib.tiers.map(tier => (
+                         <Badge key={tier} variant={
+                          tier.includes('Group 1') ? 'secondary' :
+                          tier.includes('Group 2') ? 'outline' : 'default'
+                        } className={`text-xs ${
+                          tier.includes('Group 1') ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200' :
+                          tier.includes('Group 2') ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200' :
+                          ''
+                        }`}>{tier}</Badge>
+                      ))}
+                    </div>
+                    {contrib.description && (
+                      <p className="text-sm text-muted-foreground mt-2">{contrib.description}</p>
+                    )}
                   </div>
-                  {contrib.description && (
-                    <p className="text-sm text-muted-foreground mt-2">{contrib.description}</p>
-                  )}
+                  <div className="flex items-center">
+                    <Button variant="ghost" size="icon" onClick={() => openDialog({ type: 'edit-custom-contribution', contribution: contrib })} aria-label="Edit Template">
+                      <Edit className="h-4 w-4 text-primary" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => deleteCustomContribution(contrib.id)} aria-label="Delete Template">
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center">
-                  <Button variant="ghost" size="icon" onClick={() => openDialog({ type: 'edit-custom-contribution', contribution: contrib })} aria-label="Edit Template">
-                    <Edit className="h-4 w-4 text-primary" />
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => deleteCustomContribution(contrib.id)} aria-label="Delete Template">
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+              ))}
+              {customContributions.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground rounded-lg border border-dashed">
+                  <DollarSign className="mx-auto h-12 w-12 text-muted-foreground/50 mb-3" />
+                  <p>No custom contributions yet.</p>
+                  <p className="text-sm">Click "Add Contribution" to create one.</p>
                 </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="space-y-8">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Globe className="text-primary" />
+              General Settings
+            </CardTitle>
+            <CardDescription>
+              Manage global settings for the application.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+             <div className="space-y-2">
+                <Label htmlFor="currency">Currency</Label>
+                <Select value={settings.currency} onValueChange={handleCurrencyChange}>
+                  <SelectTrigger id="currency">
+                    <SelectValue placeholder="Select a currency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CURRENCIES.map(c => (
+                      <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            ))}
-            {customContributions.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground rounded-lg border border-dashed">
-                <DollarSign className="mx-auto h-12 w-12 text-muted-foreground/50 mb-3" />
-                <p>No custom contributions yet.</p>
-                <p className="text-sm">Click "Add Contribution" to create one.</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Settings className="text-primary" />
+              Age Groups
+            </CardTitle>
+            <CardDescription>
+              Define age ranges for contribution groups.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="tier1Age">Group 1 Starting Age</Label>
+                <Input id="tier1Age" name="tier1Age" type="number" value={settings.tier1Age} onChange={handleSettingChange} />
               </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              <div className="space-y-2">
+                <Label htmlFor="tier2Age">Group 2 Starting Age</Label>
+                <Input id="tier2Age" name="tier2Age" type="number" value={settings.tier2Age} onChange={handleSettingChange} />
+              </div>
+            </div>
+            <Button onClick={recalculateTiers} className="mt-6 w-full">
+              Update All Member Groups & Contributions
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
