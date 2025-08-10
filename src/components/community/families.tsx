@@ -68,11 +68,11 @@ export function Families() {
                     <span className="font-medium truncate max-w-[120px]">{member.name}</span>
                     <div className="flex items-center gap-2">
                         <Badge variant={
-                            member.tier.includes('Tier 1') ? 'secondary' :
-                            member.tier.includes('Tier 2') ? 'outline' : 'default'
+                            member.tier.includes('Group 1') ? 'secondary' :
+                            member.tier.includes('Group 2') ? 'outline' : 'default'
                         } className={`text-xs ${
-                            member.tier.includes('Tier 1') ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200' :
-                            member.tier.includes('Tier 2') ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200' :
+                            member.tier.includes('Group 1') ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200' :
+                            member.tier.includes('Group 2') ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200' :
                             ''
                         }`}>{member.tier}</Badge>
                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openDialog({ type: 'edit-member', member })} aria-label={`Edit ${member.name}`}>

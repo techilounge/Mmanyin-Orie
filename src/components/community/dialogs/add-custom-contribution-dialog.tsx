@@ -18,14 +18,14 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
-const TIERS = ['Under 18', 'Tier 1 (18-24)', 'Tier 2 (25+)'];
+const TIERS = ['Under 18', 'Group 1 (18-24)', 'Group 2 (25+)'];
 
 const formSchema = z.object({
   name: z.string().min(1, 'Template name is required.'),
   amount: z.coerce.number().min(0, 'Amount must be a positive number.'),
   description: z.string().optional(),
   tiers: z.array(z.string()).refine((value) => value.some((item) => item), {
-    message: "You have to select at least one tier.",
+    message: "You have to select at least one age group.",
   }),
   frequency: z.enum(['one-time', 'monthly'], {
     required_error: "You need to select a frequency.",
@@ -128,7 +128,7 @@ export function AddCustomContributionDialog() {
               render={() => (
                 <FormItem>
                   <div className="mb-4">
-                    <FormLabel className="text-base">Applicable Tiers</FormLabel>
+                    <FormLabel className="text-base">Applicable Age Groups</FormLabel>
                   </div>
                   {TIERS.map((item) => (
                     <FormField

@@ -109,7 +109,7 @@ export function Members() {
 
               <Select value={filterTier} onValueChange={setFilterTier}>
                 <SelectTrigger className="w-full sm:w-[180px]">
-                  <SelectValue placeholder="All Tiers" />
+                  <SelectValue placeholder="All Age Groups" />
                 </SelectTrigger>
                 <SelectContent>
                   {tierOptions.map((t) => (
@@ -137,7 +137,7 @@ export function Members() {
                   <TableHead>Name</TableHead>
                   <TableHead>Family</TableHead>
                   <TableHead>Age</TableHead>
-                  <TableHead>Tier</TableHead>
+                  <TableHead>Age Group</TableHead>
                   <TableHead>Contribution</TableHead>
                   <TableHead>Payment Status</TableHead>
                   <TableHead>Contact</TableHead>
@@ -159,9 +159,9 @@ export function Members() {
                       <TableCell>{m.family}</TableCell>
                       <TableCell>{m.age}</TableCell>
                       <TableCell>
-                        <Badge variant={tier.includes('Tier 1') ? 'secondary' : tier.includes('Tier 2') ? 'outline' : 'default'}  className={`text-xs ${
-                        tier.includes('Tier 1') ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200' :
-                        tier.includes('Tier 2') ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200' :
+                        <Badge variant={tier.includes('Group 1') ? 'secondary' : tier.includes('Group 2') ? 'outline' : 'default'}  className={`text-xs ${
+                        tier.includes('Group 1') ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200' :
+                        tier.includes('Group 2') ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200' :
                         ''
                       }`}>
                           {tier}

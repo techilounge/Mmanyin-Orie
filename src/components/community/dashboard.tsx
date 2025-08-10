@@ -65,7 +65,7 @@ export function Dashboard() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Family</TableHead>
-                  <TableHead>Tier</TableHead>
+                  <TableHead>Age Group</TableHead>
                   <TableHead>Contribution</TableHead>
                   <TableHead>Payment Status</TableHead>
                 </TableRow>
@@ -81,11 +81,11 @@ export function Dashboard() {
                     <TableCell>{member.family}</TableCell>
                     <TableCell>
                       <Badge variant={
-                        member.tier.includes('Tier 1') ? 'secondary' :
-                        member.tier.includes('Tier 2') ? 'outline' : 'default'
+                        member.tier.includes('Group 1') ? 'secondary' :
+                        member.tier.includes('Group 2') ? 'outline' : 'default'
                       } className={
-                        member.tier.includes('Tier 1') ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200' :
-                        member.tier.includes('Tier 2') ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200' :
+                        member.tier.includes('Group 1') ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200' :
+                        member.tier.includes('Group 2') ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200' :
                         ''
                       }>{member.tier}</Badge>
                     </TableCell>

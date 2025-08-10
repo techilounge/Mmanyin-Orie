@@ -56,9 +56,9 @@ const DEFAULT_SETTINGS: Settings = {
 
 const DEFAULT_FAMILIES = ['Smith', 'Johnson', 'Williams'];
 const DEFAULT_CUSTOM_CONTRIBUTIONS: CustomContribution[] = [
-    { id: 1, name: 'Annual Dues', amount: 100, description: 'Yearly community dues', tiers: ['Tier 2 (25+)'], frequency: 'one-time' },
-    { id: 2, name: 'Youth Dues', amount: 50, description: 'Discounted yearly dues', tiers: ['Tier 1 (18-24)'], frequency: 'one-time' },
-    { id: 3, name: 'Building Fund', amount: 200, description: 'Contribution for the new community hall', tiers: ['Tier 1 (18-24)', 'Tier 2 (25+)'], frequency: 'one-time' }
+    { id: 1, name: 'Annual Dues', amount: 100, description: 'Yearly community dues', tiers: ['Group 2 (25+)'], frequency: 'one-time' },
+    { id: 2, name: 'Youth Dues', amount: 50, description: 'Discounted yearly dues', tiers: ['Group 1 (18-24)'], frequency: 'one-time' },
+    { id: 3, name: 'Building Fund', amount: 200, description: 'Contribution for the new community hall', tiers: ['Group 1 (18-24)', 'Group 2 (25+)'], frequency: 'one-time' }
 ];
 
 export function CommunityProvider({ children }: { children: ReactNode }) {
@@ -126,8 +126,8 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
 
   const getTier = (age: number) => {
     if (age < settings.tier1Age) return 'Under 18';
-    if (age >= settings.tier1Age && age < settings.tier2Age) return 'Tier 1 (18-24)';
-    return 'Tier 2 (25+)';
+    if (age >= settings.tier1Age && age < settings.tier2Age) return 'Group 1 (18-24)';
+    return 'Group 2 (25+)';
   };
 
   const getContribution = (member: Member) => {
@@ -324,7 +324,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       const contribution = getContribution({ ...member, tier });
       return { ...member, tier, contribution };
     }));
-    toast({ title: "Tiers Updated", description: "All member tiers and default contributions have been recalculated." });
+    toast({ title: "Groups Updated", description: "All member groups and default contributions have been recalculated." });
   };
 
   const addCustomContribution = (data: NewCustomContributionData) => {

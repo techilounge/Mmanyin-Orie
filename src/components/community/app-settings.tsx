@@ -62,25 +62,25 @@ export function AppSettings() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Settings className="text-primary" />
-            Age Tiers
+            Age Groups
           </CardTitle>
           <CardDescription>
-            Define age ranges for contribution tiers.
+            Define age ranges for contribution groups.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="tier1Age">Tier 1 Starting Age</Label>
+              <Label htmlFor="tier1Age">Group 1 Starting Age</Label>
               <Input id="tier1Age" name="tier1Age" type="number" value={settings.tier1Age} onChange={handleSettingChange} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="tier2Age">Tier 2 Starting Age</Label>
+              <Label htmlFor="tier2Age">Group 2 Starting Age</Label>
               <Input id="tier2Age" name="tier2Age" type="number" value={settings.tier2Age} onChange={handleSettingChange} />
             </div>
           </div>
           <Button onClick={recalculateTiers} className="mt-6">
-            Update All Member Tiers & Contributions
+            Update All Member Groups & Contributions
           </Button>
         </CardContent>
       </Card>
@@ -114,11 +114,11 @@ export function AppSettings() {
                     </span>
                     {contrib.tiers.map(tier => (
                        <Badge key={tier} variant={
-                        tier.includes('Tier 1') ? 'secondary' :
-                        tier.includes('Tier 2') ? 'outline' : 'default'
+                        tier.includes('Group 1') ? 'secondary' :
+                        tier.includes('Group 2') ? 'outline' : 'default'
                       } className={`text-xs ${
-                        tier.includes('Tier 1') ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200' :
-                        tier.includes('Tier 2') ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200' :
+                        tier.includes('Group 1') ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200' :
+                        tier.includes('Group 2') ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200' :
                         ''
                       }`}>{tier}</Badge>
                     ))}

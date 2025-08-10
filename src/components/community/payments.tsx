@@ -84,7 +84,7 @@ export function Payments() {
             <div>
               <CardTitle>Payment Details for {member.name}</CardTitle>
               <CardDescription>
-                Family: {member.family} | Tier: {member.tier}
+                Family: {member.family} | Age Group: {member.tier}
               </CardDescription>
             </div>
           </div>
@@ -194,7 +194,7 @@ export function Payments() {
                   <TableBody>
                     <TableRow>
                       <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                          No contributions assigned to this member's tier.
+                          No contributions assigned to this member's age group.
                       </TableCell>
                     </TableRow>
                   </TableBody>
