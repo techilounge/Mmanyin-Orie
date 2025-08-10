@@ -1,11 +1,6 @@
 'use client';
-import { CommunityProvider } from '@/components/community/community-provider';
-import { CommunityApp } from '@/components/community/community-app';
+import { LandingPage } from '@/components/landing/landing-page';
 
 export default function Home() {
-  return (
-    <CommunityProvider>
-      <CommunityApp />
-    </CommunityProvider>
-  );
+  return <LandingPage />;
 }
