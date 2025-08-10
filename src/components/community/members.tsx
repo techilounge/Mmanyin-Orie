@@ -85,7 +85,7 @@ export function Members() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="text"
-                  placeholder="Search members..."
+                  placeholder="Search members by name, family, or contact..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10"
@@ -134,14 +134,14 @@ export function Members() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
+                  <TableHead className="w-[200px]">Name</TableHead>
                   <TableHead>Family</TableHead>
                   <TableHead>Age</TableHead>
                   <TableHead>Age Group</TableHead>
-                  <TableHead>Contribution</TableHead>
-                  <TableHead>Payment Status</TableHead>
+                  <TableHead className="text-right">Contribution</TableHead>
+                  <TableHead className="w-[200px]">Payment Status</TableHead>
                   <TableHead>Contact</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
 
@@ -167,15 +167,13 @@ export function Members() {
                           {tier}
                         </Badge>
                       </TableCell>
-                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span>{settings.currency}{m.contribution.toLocaleString()}</span>
-                        </div>
+                       <TableCell className="text-right">
+                        <span>{settings.currency}{m.contribution.toLocaleString()}</span>
                       </TableCell>
                       <TableCell>
-                        <div className='w-40'>
-                            <div className='text-xs text-muted-foreground'>
-                                Paid: {settings.currency}{paidAmount.toLocaleString()} / Balance: {settings.currency}{balance.toLocaleString()}
+                        <div className='w-full'>
+                            <div className='text-xs text-muted-foreground whitespace-nowrap'>
+                                Paid: {settings.currency}{paidAmount.toLocaleString()}
                             </div>
                             <Progress value={progress} className='h-2 mt-1' indicatorClassName={getPaymentStatusColor(balance, m.contribution)} />
                         </div>
@@ -183,11 +181,11 @@ export function Members() {
                       <TableCell>
                         <div className="flex flex-col text-sm text-muted-foreground">
                           {m.email && <span className="truncate max-w-[150px]">{m.email}</span>}
-                          {fullPhone && <span>{fullPhone}</span>}
+                          {fullPhone && <span className="whitespace-nowrap">{fullPhone}</span>}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 justify-end">
                           <Button
                             variant="ghost"
                             size="icon"
