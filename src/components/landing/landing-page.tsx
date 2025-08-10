@@ -2,11 +2,77 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, BarChart2, Users, Home, Settings, ChevronDown } from 'lucide-react';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
+
+const features = [
+  {
+    icon: <BarChart2 className="w-8 h-8 text-primary" />,
+    title: 'Dashboard Overview',
+    description: 'Get a clear overview of community stats like total members, families, and expected contributions.',
+  },
+  {
+    icon: <Users className="w-8 h-8 text-primary" />,
+    title: 'Member Management',
+    description: 'Easily manage community members with powerful filtering and search functionality.',
+  },
+  {
+    icon: <Home className="w-8 h-8 text-primary" />,
+    title: 'Family Management',
+    description: 'View a summary of each family, and easily add or manage members within their respective families.',
+  },
+  {
+    icon: <Settings className="w-8 h-8 text-primary" />,
+    title: 'Custom Contributions',
+    description: 'Configure membership tiers and create custom contribution templates for discounts or sponsorships.',
+  },
+];
+
+const howItWorks = [
+  {
+    step: 1,
+    title: 'Create Families',
+    description: 'Start by setting up the families that make up your community. This forms the core of your registry.',
+  },
+  {
+    step: 2,
+    title: 'Add Members',
+    description: 'Add individual members to their respective families, capturing essential details like age and contact information.',
+  },
+  {
+    step: 3,
+    title: 'Manage Contributions',
+    description: 'Define contribution types, assign them to age groups, and easily track payments from members.',
+  },
+];
+
+const faqs = [
+    {
+        question: "Is my community's data secure?",
+        answer: "Yes, your data is stored locally in your browser, ensuring you have full control and privacy. No data is sent to external servers."
+    },
+    {
+        question: "Can I customize the contribution amounts?",
+        answer: "Absolutely. The settings page allows you to define different age groups and create custom, reusable contribution templates for various needs."
+    },
+    {
+        question: "Is the application accessible on mobile devices?",
+        answer: "Yes, the application is fully responsive and designed to work seamlessly across desktops, tablets, and mobile phones."
+    },
+     {
+        question: "How do I get started?",
+        answer: "Simply click the 'Access the Dashboard' button. You can start creating families and adding members immediately with no sign-up required."
+    }
+]
 
 export function LandingPage() {
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-background">
+    <div className="relative min-h-screen w-full overflow-x-hidden bg-background text-foreground">
       <div 
         className="absolute inset-0 z-0 opacity-20"
         style={{
@@ -16,8 +82,8 @@ export function LandingPage() {
         }}
       ></div>
 
-      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center p-4 text-center">
-        <header className="absolute top-0 flex w-full items-center justify-between p-4 sm:p-6">
+      <div className="relative z-10 flex flex-col">
+        <header className="sticky top-0 z-50 flex w-full items-center justify-between p-4 sm:p-6 bg-background/80 backdrop-blur-sm">
             <div className="flex items-center space-x-3">
                 <Image src="/logo.png" alt="Mmanyin Orie Logo" width={40} height={40} className="rounded-lg" />
                 <h1 className="text-2xl font-bold text-foreground">Mmanyin Orie</h1>
@@ -29,34 +95,108 @@ export function LandingPage() {
             </Link>
         </header>
 
-        <main className="flex flex-1 flex-col items-center justify-center">
-            <div className="flex flex-col items-center space-y-6">
-                <div className="flex flex-col items-center space-y-4">
-                    <Image 
-                        src="/logo.png" 
-                        alt="Mmanyin Orie Logo" 
-                        width={120} 
-                        height={120} 
-                        className="rounded-2xl shadow-lg"
-                        priority
-                    />
-                    <h1 className="text-5xl font-extrabold tracking-tight text-foreground sm:text-6xl md:text-7xl">
-                        Mmanyin Orie
-                    </h1>
+        <main className="flex flex-1 flex-col items-center">
+            {/* Hero Section */}
+            <section className="flex flex-col items-center justify-center text-center py-20 sm:py-32">
+                <div className="flex flex-col items-center space-y-6">
+                    <div className="flex flex-col items-center space-y-4">
+                        <Image 
+                            src="/logo.png" 
+                            alt="Mmanyin Orie Logo" 
+                            width={120} 
+                            height={120} 
+                            className="rounded-2xl shadow-lg"
+                            priority
+                            data-ai-hint="logo"
+                        />
+                        <h1 className="text-5xl font-extrabold tracking-tight text-foreground sm:text-6xl md:text-7xl">
+                            Mmanyin Orie
+                        </h1>
+                    </div>
+                    <p className="max-w-2xl text-lg text-muted-foreground sm:text-xl">
+                        A modern, streamlined solution for community management. Track members, manage contributions, and organize families with ease and clarity.
+                    </p>
+                    <Link href="/dashboard">
+                        <Button size="lg" className="group bg-primary text-primary-foreground hover:bg-primary/90">
+                            Access the Dashboard
+                            <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+                        </Button>
+                    </Link>
                 </div>
-                <p className="max-w-xl text-lg text-muted-foreground sm:text-xl">
-                    A modern, streamlined solution for community management. Track members, manage contributions, and organize families with ease and clarity.
-                </p>
-                <Link href="/dashboard">
-                    <Button size="lg" className="group bg-primary text-primary-foreground hover:bg-primary/90">
-                        Access the Dashboard
-                        <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
-                    </Button>
-                </Link>
-            </div>
+            </section>
+            
+            {/* Features Section */}
+            <section id="features" className="w-full py-20 sm:py-32 bg-muted/50">
+              <div className="container mx-auto px-4">
+                <div className="text-center mb-12">
+                  <h2 className="text-4xl font-bold tracking-tight">Powerful Features, Simple Interface</h2>
+                  <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">Everything you need to manage your community efficiently.</p>
+                </div>
+                <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+                  {features.map((feature, index) => (
+                    <div key={index} className="p-6 bg-card rounded-xl shadow-md hover:shadow-lg transition-shadow">
+                      <div className="mb-4">{feature.icon}</div>
+                      <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
+                      <p className="text-muted-foreground">{feature.description}</p>
+                    </div>
+                  ))}
+                </div>
+                 <div className="mt-16">
+                  <Image src="https://placehold.co/1200x600.png" alt="Dashboard Screenshot" width={1200} height={600} className="rounded-xl shadow-2xl mx-auto" data-ai-hint="dashboard screenshot" />
+                </div>
+              </div>
+            </section>
+
+            {/* How it Works Section */}
+            <section id="how-it-works" className="w-full py-20 sm:py-32">
+                <div className="container mx-auto px-4">
+                    <div className="text-center mb-12">
+                        <h2 className="text-4xl font-bold tracking-tight">Get Started in 3 Simple Steps</h2>
+                        <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">Managing your community has never been this straightforward.</p>
+                    </div>
+                    <div className="relative flex flex-col lg:flex-row items-center justify-between gap-12">
+                       <div className="lg:w-1/2 relative">
+                         <Image src="https://placehold.co/800x600.png" alt="App screenshot showing member management" width={800} height={600} className="rounded-xl shadow-2xl" data-ai-hint="member management"/>
+                       </div>
+                       <div className="lg:w-1/2 space-y-8">
+                        {howItWorks.map((step) => (
+                           <div key={step.step} className="flex items-start gap-6">
+                             <div className="flex items-center justify-center h-12 w-12 rounded-full bg-primary text-primary-foreground font-bold text-xl shrink-0">
+                               {step.step}
+                             </div>
+                             <div>
+                               <h3 className="text-xl font-bold mb-2">{step.title}</h3>
+                               <p className="text-muted-foreground">{step.description}</p>
+                             </div>
+                           </div>
+                         ))}
+                       </div>
+                    </div>
+                </div>
+            </section>
+            
+            {/* FAQs Section */}
+            <section id="faq" className="w-full py-20 sm:py-32 bg-muted/50">
+              <div className="container mx-auto px-4 max-w-4xl">
+                 <div className="text-center mb-12">
+                    <h2 className="text-4xl font-bold tracking-tight">Frequently Asked Questions</h2>
+                    <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">Have questions? We've got answers.</p>
+                </div>
+                <Accordion type="single" collapsible className="w-full">
+                  {faqs.map((faq, index) => (
+                    <AccordionItem key={index} value={`item-${index}`}>
+                      <AccordionTrigger className="text-lg text-left font-semibold">{faq.question}</AccordionTrigger>
+                      <AccordionContent className="text-base text-muted-foreground">
+                        {faq.answer}
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              </div>
+            </section>
         </main>
         
-        <footer className="w-full p-4 text-center text-sm text-muted-foreground sm:p-6">
+        <footer className="w-full p-6 text-center text-sm text-muted-foreground bg-background border-t">
             © {new Date().getFullYear()} Mmanyin Orie. All rights reserved.
         </footer>
       </div>
