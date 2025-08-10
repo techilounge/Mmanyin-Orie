@@ -80,7 +80,7 @@ export function CommunityApp() {
 
   return (
     <div className="min-h-screen bg-background">
-      <AppHeader />
+      <AppHeader setActiveTab={setActiveTab} />
 
       <nav className="bg-card shadow-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
