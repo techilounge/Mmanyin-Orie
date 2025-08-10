@@ -50,7 +50,7 @@ export function Families() {
         const familyPaid = familyMembers.reduce((sum, m) => sum + getPaidAmount(m), 0);
         
         return (
-          <Collapsible key={family} defaultOpen={true} asChild>
+          <Collapsible key={family} defaultOpen={false} asChild>
             <Card className="flex flex-col h-full hover:shadow-lg transition-shadow duration-300">
               <CardHeader>
                   <div className="flex justify-between items-start">
