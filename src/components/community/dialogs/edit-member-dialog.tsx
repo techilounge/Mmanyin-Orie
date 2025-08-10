@@ -20,6 +20,21 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Member } from '@/lib/types';
 import { COUNTRIES } from '@/lib/countries';
 
+const COUNTRY_OPTIONS = (() => {
+  const byCode = new Map<string, string[]>();
+  for (const c of COUNTRIES) {
+    const code = String(c.code).trim();
+    const name = (c.name ?? '').trim();
+    if (!byCode.has(code)) byCode.set(code, []);
+    const list = byCode.get(code)!;
+    if (name && !list.includes(name)) list.push(name);
+  }
+  return Array.from(byCode.entries()).map(([code, names]) => ({
+    code,
+    label: `${names.join(' / ')} (${code})`,
+  }));
+})();
+
 const currentYear = new Date().getFullYear();
 const formSchema = z.object({
   id: z.number(),
@@ -141,12 +156,9 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
                               <SelectTrigger><SelectValue placeholder="Code" /></SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                               {COUNTRIES.map((c, idx) => (
-                                <SelectItem
-                                  key={`${c.name}-${c.code}-${idx}`}
-                                  value={c.code}
-                                >
-                                  {c.name} ({c.code})
+                               {COUNTRY_OPTIONS.map((opt, idx) => (
+                                <SelectItem key={`${opt.code}-${idx}`} value={opt.code}>
+                                  {opt.label}
                                 </SelectItem>
                               ))}
                             </SelectContent>
