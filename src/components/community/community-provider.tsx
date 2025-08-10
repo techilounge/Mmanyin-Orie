@@ -17,6 +17,7 @@ interface CommunityContextType {
   deleteMember: (id: number) => void;
   
   addFamily: (familyName: string) => void;
+  updateFamily: (oldFamilyName: string, newFamilyName: string) => void;
   deleteFamily: (familyName: string) => void;
   
   updateSettings: (newSettings: Settings) => void;
@@ -186,6 +187,23 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateFamily = (oldFamilyName: string, newFamilyName: string) => {
+    const trimmedNewName = newFamilyName.trim();
+    if (!trimmedNewName) {
+        toast({ variant: "destructive", title: "Error", description: "Family name cannot be empty." });
+        return;
+    }
+    if (families.includes(trimmedNewName) && trimmedNewName !== oldFamilyName) {
+        toast({ variant: "destructive", title: "Error", description: `Family "${trimmedNewName}" already exists.` });
+        return;
+    }
+
+    setFamilies(prev => prev.map(f => f === oldFamilyName ? trimmedNewName : f));
+    setMembers(prev => prev.map(m => m.family === oldFamilyName ? { ...m, family: trimmedNewName } : m));
+    toast({ title: "Family Updated", description: `Family "${oldFamilyName}" has been renamed to "${trimmedNewName}".` });
+    closeDialog();
+  };
+
   const deleteFamily = (familyName: string) => {
     const familyMembers = members.filter(m => m.family === familyName);
     if (familyMembers.length === 0) {
@@ -340,6 +358,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     updateMember,
     deleteMember,
     addFamily,
+    updateFamily,
     deleteFamily,
     updateSettings,
     recalculateTiers,

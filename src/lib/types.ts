@@ -53,6 +53,7 @@ export type NewCustomContributionData = Omit<CustomContribution, 'id'>;
 
 export type DialogState = 
   | { type: 'add-family' }
+  | { type: 'edit-family', family: Family }
   | { type: 'add-member', family?: string }
   | { type: 'edit-member', member: Member }
   | { type: 'record-payment', member: Member, contribution: CustomContribution, month?: number }

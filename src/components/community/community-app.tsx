@@ -23,6 +23,7 @@ import { RecordPaymentDialog } from './dialogs/record-payment-dialog';
 import { Payments } from './payments';
 import { EditCustomContributionDialog } from './dialogs/edit-custom-contribution-dialog';
 import { EditPaymentDialog } from './dialogs/edit-payment-dialog';
+import { EditFamilyDialog } from './dialogs/edit-family-dialog';
 
 const TABS = [
   { id: 'dashboard', label: 'Dashboard', icon: BarChart2 },
@@ -108,6 +109,7 @@ export function CommunityApp() {
       </main>
 
       <AddFamilyDialog />
+      {dialogState?.type === 'edit-family' && <EditFamilyDialog family={dialogState.family} />}
       <AddMemberDialog />
       {dialogState?.type === 'edit-member' && <EditMemberDialog member={dialogState.member} />}
       {dialogState?.type === 'record-payment' && <RecordPaymentDialog member={dialogState.member} contribution={dialogState.contribution} />}
