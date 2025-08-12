@@ -7,7 +7,7 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { usePathname, useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import type { AppUser } from '@/lib/types';
 
 interface AuthContextType {
@@ -29,23 +29,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const pathname = usePathname();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
       if (user) {
         const userDocRef = doc(db, 'users', user.uid);
-        const unsubUser = onSnapshot(userDocRef, (doc) => {
-          if (doc.exists()) {
-            setAppUser({ uid: doc.id, ...doc.data() } as AppUser);
-          } else {
+        try {
+            const docSnap = await getDoc(userDocRef);
+             if (docSnap.exists()) {
+                setAppUser({ uid: docSnap.id, ...docSnap.data() } as AppUser);
+            } else {
+                setAppUser(null);
+            }
+        } catch (error) {
+            console.error("Error fetching user document:", error);
             setAppUser(null);
-          }
-          setLoading(false);
-        });
-        return () => unsubUser();
+        }
       } else {
         setAppUser(null);
-        setLoading(false);
       }
+      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -66,7 +68,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    if (user) {
+    if (user && appUser) {
       if (isAuthPage) {
         router.push('/app');
         return;
@@ -74,27 +76,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       const isAppEntryPoint = pathname === '/app' || pathname === '/dashboard';
       if(isAppEntryPoint) {
-        if (appUser) {
-          const memberships = appUser.memberships || [];
-          if (memberships.length === 0) {
-            router.push('/subscribe');
-            return;
-          }
-          const communityId = appUser.primaryCommunityId || memberships[0];
-          if (!communityId) {
-            router.push('/subscribe');
-            return;
-          }
-          router.push(`/app/${communityId}`);
+        const memberships = appUser.memberships || [];
+        if (memberships.length === 0) {
+          router.push('/subscribe');
+          return;
         }
+        const communityId = appUser.primaryCommunityId || memberships[0];
+        if (!communityId) {
+          router.push('/subscribe');
+          return;
+        }
+        // This is a temporary redirect. In the future we will check subscription status.
+        router.push(`/app/${communityId}`);
       }
+    } else if (user && !appUser && !isAuthPage) {
+        // User exists in auth but not in DB, maybe midway through signup.
+        // Or user deleted from DB. Let's send to sign-in to be safe.
+        router.push('/auth/sign-in');
     }
 
   }, [user, appUser, loading, router, pathname, mounted]);
   
+  if (!mounted) {
+    return null;
+  }
+  
   const pathIsPublic = publicPaths.some(p => pathname === p || (p !== '/' && pathname.startsWith(p)));
 
-  if (!mounted || (loading && !pathIsPublic)) {
+  if (loading && !pathIsPublic) {
      return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="p-8 space-y-4 w-full max-w-md">
