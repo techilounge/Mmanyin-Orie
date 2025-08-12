@@ -29,23 +29,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const pathname = usePathname();
 
   useEffect(() => {
-    setMounted(true);
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       if (user) {
         const userDocRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-          setAppUser({ uid: userDoc.id, ...userDoc.data() } as AppUser);
-        } else {
-          setAppUser(null);
-        }
+        const unsubUser = onSnapshot(userDocRef, (doc) => {
+          if (doc.exists()) {
+            setAppUser({ uid: doc.id, ...doc.data() } as AppUser);
+          } else {
+            setAppUser(null);
+          }
+          setLoading(false);
+        });
+        return () => unsubUser();
       } else {
         setAppUser(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
+
     return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    setMounted(true);
   }, []);
 
   useEffect(() => {
@@ -54,14 +61,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const pathIsPublic = publicPaths.some(p => pathname === p || (p !== '/' && pathname.startsWith(p)));
     const isAuthPage = pathname.startsWith('/auth');
 
-    // If user is not logged in and trying to access a protected page
     if (!user && !pathIsPublic) {
       router.push('/auth/sign-in');
       return;
     }
 
     if (user && appUser) {
-      // If user is logged in and on an auth page, redirect them
       if (isAuthPage) {
         router.push('/app');
         return;
@@ -84,11 +89,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
   }, [user, appUser, loading, router, pathname, mounted]);
-
+  
   const pathIsPublic = publicPaths.some(p => pathname === p || (p !== '/' && pathname.startsWith(p)));
 
-  if (loading && !pathIsPublic) {
-    return (
+  if (!mounted || (loading && !pathIsPublic)) {
+     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="p-8 space-y-4 w-full max-w-md">
           <div className="flex justify-center mb-4">
@@ -100,6 +105,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       </div>
     );
   }
+
 
   return <AuthContext.Provider value={{ user, appUser, loading }}>{children}</AuthContext.Provider>;
 };
