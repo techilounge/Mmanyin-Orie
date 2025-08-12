@@ -37,6 +37,7 @@ export function Payments() {
   const renderMonthlyBreakdown = (member: Member, contribution: CustomContribution) => {
     const joinDate = new Date(member.joinDate);
     const now = new Date();
+    // Start from the beginning of the year unless the member joined this year
     const startMonth = getYear(now) === getYear(joinDate) ? getMonth(joinDate) : 0;
     const endMonth = getMonth(now);
 
@@ -54,7 +55,7 @@ export function Payments() {
                         <div className="text-sm">
                             <span className="font-medium">{monthName}</span>
                             <p className="text-xs text-muted-foreground">
-                                Due: {settings.currency}{contribution.amount} | Paid: {settings.currency}{paid} | Balance: {settings.currency}{balance}
+                                Due: {settings.currency}{contribution.amount} | Paid: {settings.currency}{paid} | Balance: {settings.currency}{balance.toFixed(2)}
                             </p>
                         </div>
                         <div className="flex items-center gap-1">
@@ -111,18 +112,34 @@ export function Payments() {
                 </TableHeader>
                 
                 {applicableContributions.length > 0 ? applicableContributions.map((contrib: CustomContribution) => {
-                    const balance = getBalanceForContribution(member, contrib);
-                    const paid = getPaidAmountForContribution(member, contrib.id);
-                    const paymentsForContribution = member.payments.filter(p => p.contributionId === contrib.id);
-                    
+                    const paymentsForContribution = member.payments?.filter(p => p.contributionId === contrib.id) || [];
                     const isMonthly = contrib.frequency === 'monthly';
 
+                    let balance, paid, amount;
+                    if (isMonthly) {
+                      const joinDate = new Date(member.joinDate);
+                      const now = new Date();
+                      let months = 0;
+                       if (getYear(now) > getYear(joinDate)) {
+                          months = (getYear(now) - getYear(joinDate) - 1) * 12 + (12 - getMonth(joinDate)) + (getMonth(now) + 1);
+                       } else {
+                          months = getMonth(now) - getMonth(joinDate) + 1;
+                       }
+                      amount = contrib.amount * Math.max(0, months);
+                      paid = paymentsForContribution.reduce((sum, p) => sum + p.amount, 0);
+                      balance = amount - paid;
+                    } else {
+                       amount = contrib.amount;
+                       paid = getPaidAmountForContribution(member, contrib.id);
+                       balance = getBalanceForContribution(member, contrib);
+                    }
+                    
                     return (
                       <Collapsible asChild key={contrib.id}>
                         <TableBody className="data-[state=open]:bg-muted/30">
                           <TableRow>
                               <TableCell>
-                              {paymentsForContribution.length > 0 && (
+                              {(isMonthly || paymentsForContribution.length > 0) && (
                                   <CollapsibleTrigger asChild>
                                   <Button variant="ghost" size="icon" className="h-8 w-8">
                                       <ChevronDown className="h-4 w-4 transition-transform data-[state=open]:rotate-180" />
@@ -136,9 +153,9 @@ export function Payments() {
                               {isMonthly && <span className="text-xs text-muted-foreground ml-2">(Monthly)</span>}
                               {contrib.description && <p className="text-xs text-muted-foreground max-w-xs">{contrib.description}</p>}
                               </TableCell>
-                              <TableCell className="text-right">{settings.currency}{contrib.amount.toLocaleString()}</TableCell>
+                              <TableCell className="text-right">{settings.currency}{amount.toLocaleString()}</TableCell>
                               <TableCell className="text-right text-green-600 dark:text-green-400">{settings.currency}{paid.toLocaleString()}</TableCell>
-                              <TableCell className="text-right font-medium">{settings.currency}{isMonthly ? balance : (contrib.amount - paid).toLocaleString()}</TableCell>
+                              <TableCell className="text-right font-medium">{settings.currency}{balance.toLocaleString()}</TableCell>
                               <TableCell className="text-center">
                                 {!isMonthly && (
                                   <Button 

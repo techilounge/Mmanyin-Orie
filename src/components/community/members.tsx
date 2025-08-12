@@ -63,11 +63,15 @@ export function Members() {
   };
 
   const tierOptions = useMemo(() => {
-    // Build from current settings via getTier over existing ages
-    const set = new Set<string>();
-    members.forEach((m) => set.add(getTier(m.age)));
-    return Array.from(set).sort();
+    const dynamicTiers = new Set<string>();
+    members.forEach((m) => dynamicTiers.add(getTier(m.age)));
+    return Array.from(dynamicTiers).sort((a,b) => {
+      if (a.includes('Under')) return -1;
+      if (b.includes('Under')) return 1;
+      return a.localeCompare(b);
+    });
   }, [members, getTier]);
+
 
   const getPaymentStatusColor = (balance: number, contribution: number) => {
     if (contribution === 0) return 'bg-gray-400'
@@ -100,6 +104,7 @@ export function Members() {
                   <SelectValue placeholder="All Families" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="">All Families</SelectItem>
                   {families.sort((a, b) => a.name.localeCompare(b.name)).map((f) => (
                     <SelectItem key={f.id} value={f.name}>
                       {f.name}
@@ -113,6 +118,7 @@ export function Members() {
                   <SelectValue placeholder="All Age Groups" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="">All Age Groups</SelectItem>
                   {tierOptions.map((t) => (
                     <SelectItem key={t} value={t}>
                       {t}

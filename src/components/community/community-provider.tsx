@@ -1,9 +1,26 @@
 'use client';
 import type { ReactNode } from 'react';
-import React, { createContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useState, useEffect, useMemo, useCallback } from 'react';
 import type { Member, Family, Settings, CustomContribution, NewMemberData, NewCustomContributionData, DialogState, NewPaymentData, Payment } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { getMonth, getYear, startOfYear } from 'date-fns';
+import { getMonth, getYear } from 'date-fns';
+import { useAuth } from '@/lib/auth';
+import { db } from '@/lib/firebase';
+import {
+  collection,
+  doc,
+  onSnapshot,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  writeBatch,
+  query,
+  where,
+  getDocs,
+  getDoc,
+  setDoc,
+  Timestamp,
+} from 'firebase/firestore';
 
 interface CommunityContextType {
   members: Member[];
@@ -11,25 +28,26 @@ interface CommunityContextType {
   settings: Settings;
   customContributions: CustomContribution[];
   isLoading: boolean;
+  communityId: string | null;
   
-  addMember: (newMemberData: NewMemberData) => void;
-  updateMember: (updatedMemberData: Member) => void;
-  deleteMember: (id: string) => void;
+  addMember: (newMemberData: NewMemberData) => Promise<void>;
+  updateMember: (updatedMemberData: Member) => Promise<void>;
+  deleteMember: (id: string) => Promise<void>;
   
-  addFamily: (familyName: string) => void;
-  updateFamily: (family: Family, newFamilyName: string) => void;
-  deleteFamily: (family: Family) => void;
+  addFamily: (familyName: string) => Promise<void>;
+  updateFamily: (family: Family, newFamilyName: string) => Promise<void>;
+  deleteFamily: (family: Family) => Promise<void>;
   
-  updateSettings: (newSettings: Settings) => void;
-  recalculateTiers: () => void;
+  updateSettings: (newSettings: Partial<Settings>) => Promise<void>;
+  recalculateTiers: () => Promise<void>;
   
-  addCustomContribution: (contributionData: NewCustomContributionData) => void;
-  updateCustomContribution: (updatedContribution: CustomContribution) => void;
-  deleteCustomContribution: (id: string) => void;
+  addCustomContribution: (contributionData: NewCustomContributionData) => Promise<void>;
+  updateCustomContribution: (updatedContribution: CustomContribution) => Promise<void>;
+  deleteCustomContribution: (id: string) => Promise<void>;
 
-  recordPayment: (memberId: string, contributionId: string, paymentData: Omit<NewPaymentData, 'contributionId'>) => void;
-  updatePayment: (memberId: string, updatedPayment: Payment) => void;
-  deletePayment: (memberId: string, paymentId: string) => void;
+  recordPayment: (memberId: string, contributionId: string, paymentData: Omit<NewPaymentData, 'contributionId'>) => Promise<void>;
+  updatePayment: (memberId: string, updatedPayment: Payment) => Promise<void>;
+  deletePayment: (memberId: string, paymentId: string) => Promise<void>;
 
   dialogState: DialogState;
   openDialog: (state: DialogState) => void;
@@ -52,88 +70,101 @@ const DEFAULT_SETTINGS: Settings = {
   currency: '₦',
 };
 
-const DEFAULT_FAMILIES: Family[] = [
-    { id: 'Smith', name: 'Smith' }, 
-    { id: 'Johnson', name: 'Johnson' }, 
-    { id: 'Williams', name: 'Williams' }
-];
-const DEFAULT_CUSTOM_CONTRIBUTIONS: CustomContribution[] = [
-    { id: '1', name: 'Annual Dues', amount: 100, description: 'Yearly community dues', tiers: ['Group 2 (25+)'], frequency: 'one-time' },
-    { id: '2', name: 'Youth Dues', amount: 50, description: 'Discounted yearly dues', tiers: ['Group 1 (18-24)'], frequency: 'one-time' },
-    { id: '3', name: 'Building Fund', amount: 200, description: 'Contribution for the new community hall', tiers: ['Group 1 (18-24)', 'Group 2 (25+)'], frequency: 'one-time' }
-];
-
 export function CommunityProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [members, setMembers] = useState<Member[]>([]);
   const [families, setFamilies] = useState<Family[]>([]);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [customContributions, setCustomContributions] = useState<CustomContribution[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [communityId, setCommunityId] = useState<string | null>(null);
+  
   const { toast } = useToast();
-
   const [dialogState, setDialogState] = useState<DialogState>(null);
 
   const openDialog = (state: DialogState) => setDialogState(state);
   const closeDialog = () => setDialogState(null);
 
+  // Fetch community ID from user document
   useEffect(() => {
-    // This will be replaced with Firestore logic in Phase 3
-    try {
-      const savedMembers = localStorage.getItem('communityMembers');
-      const savedFamilies = localStorage.getItem('communityFamilies');
-      const savedSettings = localStorage.getItem('communitySettings');
-      const savedCustomContributions = localStorage.getItem('customContributions');
-
-      if (savedMembers) setMembers(JSON.parse(savedMembers));
-      if (savedFamilies) {
-          const parsedFamilies = JSON.parse(savedFamilies);
-          // migrate old string[] to Family[]
-          const migratedFamilies = parsedFamilies.map(f => (typeof f === 'string' ? { id: f, name: f } : f));
-          setFamilies(migratedFamilies);
-      } else {
-          setFamilies(DEFAULT_FAMILIES);
-      }
-      if (savedSettings) setSettings(JSON.parse(savedSettings));
-      if (savedCustomContributions) {
-        const initialContributions: CustomContribution[] = JSON.parse(savedCustomContributions);
-        const migratedContributions = initialContributions.map(c => ({...c, id: String(c.id), tiers: c.tiers || [], frequency: c.frequency || 'one-time' }));
-        setCustomContributions(migratedContributions);
-      } else {
-         setCustomContributions(DEFAULT_CUSTOM_CONTRIBUTIONS);
-      }
-
-    } catch (error) {
-      console.error("Failed to load data from localStorage", error);
-    } finally {
+    if (user) {
+      const userDocRef = doc(db, 'users', user.uid);
+      const unsubscribe = onSnapshot(userDocRef, (doc) => {
+        if (doc.exists()) {
+          const userData = doc.data();
+          if (userData.communityId) {
+            setCommunityId(userData.communityId);
+          } else {
+             // This case might happen if user doc is created but community linkage fails
+            setIsLoading(false);
+          }
+        } else {
+            setIsLoading(false);
+        }
+      });
+      return () => unsubscribe();
+    } else {
       setIsLoading(false);
+      setCommunityId(null);
     }
-  }, []);
+  }, [user]);
 
+  // Set up Firestore listeners
   useEffect(() => {
-    if (!isLoading) localStorage.setItem('communityMembers', JSON.stringify(members));
-  }, [members, isLoading]);
+    if (!communityId) {
+        setIsLoading(!user); // still loading if user exists but communityId not yet fetched
+        return;
+    }
+    
+    setIsLoading(true);
 
-  useEffect(() => {
-    if (!isLoading) localStorage.setItem('communityFamilies', JSON.stringify(families));
-  }, [families, isLoading]);
+    const communityDocRef = doc(db, 'communities', communityId);
+    
+    const unsubscribes = [
+      onSnapshot(collection(communityDocRef, 'members'), (snapshot) => {
+        const fetchedMembers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
+        setMembers(fetchedMembers);
+      }),
+      onSnapshot(collection(communityDocRef, 'families'), (snapshot) => {
+        const fetchedFamilies = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Family));
+        setFamilies(fetchedFamilies);
+      }),
+      onSnapshot(collection(communityDocRef, 'contributions'), (snapshot) => {
+        const fetchedContributions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CustomContribution));
+        setCustomContributions(fetchedContributions);
+      }),
+      onSnapshot(communityDocRef, (snapshot) => {
+        if (snapshot.exists()) {
+            const communityData = snapshot.data();
+            setSettings({
+                tier1Age: communityData.tier1Age || DEFAULT_SETTINGS.tier1Age,
+                tier2Age: communityData.tier2Age || DEFAULT_SETTINGS.tier2Age,
+                currency: communityData.currency || DEFAULT_SETTINGS.currency
+            });
+        }
+      })
+    ];
+    
+    // Using a timeout to prevent flicker on fast loads
+    const timer = setTimeout(() => setIsLoading(false), 300);
 
-  useEffect(() => {
-    if (!isLoading) localStorage.setItem('communitySettings', JSON.stringify(settings));
-  }, [settings, isLoading]);
+    return () => {
+        unsubscribes.forEach(unsub => unsub());
+        clearTimeout(timer);
+    };
 
-  useEffect(() => {
-    if (!isLoading) localStorage.setItem('customContributions', JSON.stringify(customContributions));
-  }, [customContributions, isLoading]);
+  }, [communityId, user]);
 
-  const calculateAge = (yearOfBirth: number) => new Date().getFullYear() - yearOfBirth;
 
-  const getTier = (age: number) => {
+  const calculateAge = useCallback((yearOfBirth: number) => new Date().getFullYear() - yearOfBirth, []);
+
+  const getTier = useCallback((age: number) => {
     if (age < settings.tier1Age) return 'Under 18';
-    if (age >= settings.tier1Age && age < settings.tier2Age) return 'Group 1 (18-24)';
-    return 'Group 2 (25+)';
-  };
+    if (age >= settings.tier1Age && age < settings.tier2Age) return `Group 1 (${settings.tier1Age}-${settings.tier2Age - 1})`;
+    return `Group 2 (${settings.tier2Age}+)`;
+  }, [settings.tier1Age, settings.tier2Age]);
 
-  const getContribution = (member: Member) => {
+  const getContribution = useCallback((member: Member) => {
     return customContributions
       .filter(c => c.tiers.includes(member.tier))
       .reduce((sum, c) => {
@@ -150,9 +181,10 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
         }
         return sum + c.amount;
       }, 0);
-  };
+  }, [customContributions]);
 
   const getPaidAmount = (member: Member) => {
+    if (!member.payments) return 0;
     return member.payments.reduce((sum, p) => sum + p.amount, 0);
   }
 
@@ -161,10 +193,13 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
   }
 
   const getPaidAmountForContribution = (member: Member, contributionId: string, month?: number) => {
+    if (!member.payments) return 0;
     return member.payments
       .filter(p => {
         const matchesContribution = p.contributionId === contributionId;
-        const matchesMonth = month === undefined || p.month === month;
+        const pDate = new Date(p.date);
+        const pMonth = getMonth(pDate);
+        const matchesMonth = month === undefined || pMonth === month;
         return matchesContribution && matchesMonth;
       })
       .reduce((sum, p) => sum + p.amount, 0);
@@ -179,18 +214,24 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     return totalOwedForOneTime - paid;
   }
   
-  const addFamily = (familyName: string) => {
+  const addFamily = async (familyName: string) => {
+    if (!communityId) return;
     const trimmedName = familyName.trim();
     if (trimmedName && !families.some(f => f.name === trimmedName)) {
-      const newFamily: Family = { id: trimmedName, name: trimmedName };
-      setFamilies(prev => [...prev, newFamily]);
-      toast({ title: "Family Created", description: `The "${trimmedName}" family has been added.` });
+        try {
+            const familyDocRef = doc(collection(db, `communities/${communityId}/families`));
+            await setDoc(familyDocRef, { name: trimmedName });
+            toast({ title: "Family Created", description: `The "${trimmedName}" family has been added.` });
+        } catch (error: any) {
+            toast({ variant: "destructive", title: "Error", description: error.message });
+        }
     } else {
       toast({ variant: "destructive", title: "Error", description: `Family "${trimmedName}" already exists or is invalid.` });
     }
   };
 
-  const updateFamily = (family: Family, newFamilyName: string) => {
+  const updateFamily = async (family: Family, newFamilyName: string) => {
+    if (!communityId) return;
     const trimmedNewName = newFamilyName.trim();
     if (!trimmedNewName) {
         toast({ variant: "destructive", title: "Error", description: "Family name cannot be empty." });
@@ -201,32 +242,52 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
         return;
     }
 
-    const updatedFamily = { ...family, name: trimmedNewName };
-    setFamilies(prev => prev.map(f => f.id === family.id ? updatedFamily : f));
-    setMembers(prev => prev.map(m => m.family === family.name ? { ...m, family: trimmedNewName } : m));
-    toast({ title: "Family Updated", description: `Family "${family.name}" has been renamed to "${trimmedNewName}".` });
-    closeDialog();
-  };
+    try {
+        const batch = writeBatch(db);
+        const familyDocRef = doc(db, `communities/${communityId}/families`, family.id);
+        batch.update(familyDocRef, { name: trimmedNewName });
+        
+        // Update family name for all members of that family
+        const membersQuery = query(collection(db, `communities/${communityId}/members`), where("family", "==", family.name));
+        const membersSnapshot = await getDocs(membersQuery);
+        membersSnapshot.forEach(doc => {
+            batch.update(doc.ref, { family: trimmedNewName });
+        });
 
-  const deleteFamily = (family: Family) => {
-    const familyMembers = members.filter(m => m.family === family.name);
-    if (familyMembers.length === 0) {
-      setFamilies(prev => prev.filter(f => f.id !== family.id));
-      toast({ title: "Family Deleted", description: `The "${family.name}" family has been removed.` });
-    } else {
-      toast({ variant: "destructive", title: "Deletion Failed", description: `Cannot delete family with ${familyMembers.length} member(s).` });
+        await batch.commit();
+        toast({ title: "Family Updated", description: `Family "${family.name}" has been renamed to "${trimmedNewName}".` });
+        closeDialog();
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "Error updating family", description: error.message });
     }
   };
 
-  const addMember = (data: NewMemberData) => {
+  const deleteFamily = async (family: Family) => {
+    if (!communityId) return;
+    const familyMembersQuery = query(collection(db, `communities/${communityId}/members`), where("family", "==", family.name));
+    const familyMembersSnapshot = await getDocs(familyMembersQuery);
+
+    if (familyMembersSnapshot.empty) {
+        try {
+            await deleteDoc(doc(db, `communities/${communityId}/families`, family.id));
+            toast({ title: "Family Deleted", description: `The "${family.name}" family has been removed.` });
+        } catch (error: any) {
+            toast({ variant: "destructive", title: "Deletion Failed", description: error.message });
+        }
+    } else {
+      toast({ variant: "destructive", title: "Deletion Failed", description: `Cannot delete family with ${familyMembersSnapshot.size} member(s).` });
+    }
+  };
+
+  const addMember = async (data: NewMemberData) => {
+    if (!communityId) return;
     const age = calculateAge(data.yearOfBirth);
     const tier = getTier(age);
     const fullName = [data.firstName, data.middleName, data.lastName]
       .filter(part => part && part.trim())
       .join(' ');
     
-    let member: Member = {
-      id: String(Date.now()), // Temp ID
+    const newMemberBase = {
       name: fullName,
       firstName: data.firstName,
       middleName: data.middleName || '',
@@ -238,116 +299,188 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       phoneCountryCode: data.phoneCountryCode || '',
       age,
       tier,
-      contribution: 0, // Will be calculated
+      contribution: 0,
       payments: [],
       joinDate: new Date().toISOString(),
     };
-    member.contribution = getContribution(member);
+    const contribution = getContribution({ ...newMemberBase, id: '' });
+    const newMember = { ...newMemberBase, contribution };
 
-    setMembers(prev => [...prev, member]);
-    if (!families.some(f => f.name === data.family)) {
-      addFamily(data.family);
+    try {
+        await addDoc(collection(db, `communities/${communityId}/members`), newMember);
+        if (!families.some(f => f.name === data.family)) {
+            await addFamily(data.family);
+        }
+        toast({ title: "Member Added", description: `${fullName} has been added to the registry.` });
+    } catch(error: any) {
+        toast({ variant: "destructive", title: "Error adding member", description: error.message });
     }
-    toast({ title: "Member Added", description: `${fullName} has been added to the registry.` });
   };
 
-  const updateMember = (updatedData: Member) => {
+  const updateMember = async (updatedData: Member) => {
+    if (!communityId) return;
     const age = calculateAge(updatedData.yearOfBirth);
     const tier = getTier(age);
     const fullName = [updatedData.firstName, updatedData.middleName, updatedData.lastName]
       .filter(part => part && part.trim())
       .join(' ');
     
-    const updatedMember: Member = {
+    const updatedMemberBase = {
       ...updatedData,
       name: fullName,
       age,
       tier,
       contribution: 0, // will be recalculated
     };
-    updatedMember.contribution = getContribution(updatedMember);
+    updatedMemberBase.contribution = getContribution(updatedMemberBase);
     
-    setMembers(prev => prev.map(m => m.id === updatedData.id ? updatedMember : m));
-    closeDialog();
-    toast({ title: "Member Updated", description: `${fullName}'s details have been updated.` });
+    // remove id from the object to avoid writing it to the document
+    const { id, ...memberToUpdate } = updatedMemberBase;
+
+    try {
+        const memberDocRef = doc(db, `communities/${communityId}/members`, id);
+        await updateDoc(memberDocRef, memberToUpdate);
+        closeDialog();
+        toast({ title: "Member Updated", description: `${fullName}'s details have been updated.` });
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "Error updating member", description: error.message });
+    }
   };
 
-  const deleteMember = (id: string) => {
-    const memberName = members.find(m => m.id === id)?.name || 'Member';
-    setMembers(prev => prev.filter(m => m.id !== id));
-    toast({ title: "Member Deleted", description: `${memberName} has been removed.` });
+  const deleteMember = async (id: string) => {
+    if (!communityId) return;
+    try {
+        const memberName = members.find(m => m.id === id)?.name || 'Member';
+        await deleteDoc(doc(db, `communities/${communityId}/members`, id));
+        toast({ title: "Member Deleted", description: `${memberName} has been removed.` });
+    } catch(error: any) {
+        toast({ variant: "destructive", title: "Error deleting member", description: error.message });
+    }
   };
 
-  const recordPayment = (memberId: string, contributionId: string, paymentData: Omit<NewPaymentData, 'contributionId'>) => {
-    const newPayment: Payment = { id: String(Date.now()), contributionId, ...paymentData };
-    setMembers(prev => prev.map(m => {
-      if (m.id === memberId) {
-        return { ...m, payments: [...m.payments, newPayment] };
-      }
-      return m;
-    }));
-    const memberName = members.find(m => m.id === memberId)?.name || 'Member';
-    const contributionName = customContributions.find(c => c.id === contributionId)?.name || 'Contribution';
-    toast({ title: "Payment Recorded", description: `Payment of ${settings.currency}${paymentData.amount} for ${memberName} towards ${contributionName} has been recorded.` });
-    closeDialog();
+  const recordPayment = async (memberId: string, contributionId: string, paymentData: Omit<NewPaymentData, 'contributionId'>) => {
+    if (!communityId) return;
+    try {
+        const memberDocRef = doc(db, `communities/${communityId}/members`, memberId);
+        const memberSnapshot = await getDoc(memberDocRef);
+        if (memberSnapshot.exists()) {
+            const memberData = memberSnapshot.data() as Member;
+            const newPayment: Payment = { 
+                id: doc(collection(db, 'dummy')).id, // Generate a client-side ID
+                contributionId, 
+                ...paymentData 
+            };
+            const updatedPayments = [...(memberData.payments || []), newPayment];
+            await updateDoc(memberDocRef, { payments: updatedPayments });
+            
+            const memberName = memberData.name || 'Member';
+            const contributionName = customContributions.find(c => c.id === contributionId)?.name || 'Contribution';
+            toast({ title: "Payment Recorded", description: `Payment of ${settings.currency}${paymentData.amount} for ${memberName} towards ${contributionName} has been recorded.` });
+            closeDialog();
+        }
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "Error recording payment", description: error.message });
+    }
   };
 
-  const updatePayment = (memberId: string, updatedPayment: Payment) => {
-    setMembers(prev => prev.map(m => {
-      if (m.id === memberId) {
-        const updatedPayments = m.payments.map(p => p.id === updatedPayment.id ? updatedPayment : p);
-        return { ...m, payments: updatedPayments };
-      }
-      return m;
-    }));
-    toast({ title: "Payment Updated", description: `Payment details have been updated.` });
-    closeDialog();
+  const updatePayment = async (memberId: string, updatedPayment: Payment) => {
+     if (!communityId) return;
+     try {
+        const memberDocRef = doc(db, `communities/${communityId}/members`, memberId);
+        const memberSnapshot = await getDoc(memberDocRef);
+        if(memberSnapshot.exists()) {
+            const memberData = memberSnapshot.data() as Member;
+            const updatedPayments = (memberData.payments || []).map(p => p.id === updatedPayment.id ? updatedPayment : p);
+            await updateDoc(memberDocRef, { payments: updatedPayments });
+            toast({ title: "Payment Updated", description: `Payment details have been updated.` });
+            closeDialog();
+        }
+     } catch (error: any) {
+        toast({ variant: "destructive", title: "Error updating payment", description: error.message });
+     }
   };
 
-  const deletePayment = (memberId: string, paymentId: string) => {
-    setMembers(prev => prev.map(m => {
-      if (m.id === memberId) {
-        const updatedPayments = m.payments.filter(p => p.id !== paymentId);
-        return { ...m, payments: updatedPayments };
-      }
-      return m;
-    }));
-    toast({ title: "Payment Deleted", description: `The payment has been removed.` });
+  const deletePayment = async (memberId: string, paymentId: string) => {
+     if (!communityId) return;
+      try {
+        const memberDocRef = doc(db, `communities/${communityId}/members`, memberId);
+        const memberSnapshot = await getDoc(memberDocRef);
+        if(memberSnapshot.exists()) {
+            const memberData = memberSnapshot.data() as Member;
+            const updatedPayments = (memberData.payments || []).filter(p => p.id !== paymentId);
+            await updateDoc(memberDocRef, { payments: updatedPayments });
+            toast({ title: "Payment Deleted", description: `The payment has been removed.` });
+        }
+     } catch (error: any) {
+        toast({ variant: "destructive", title: "Error deleting payment", description: error.message });
+     }
   };
   
-  const updateSettings = (newSettings: Omit<Settings, 'tier1Contribution' | 'tier2Contribution'>) => {
-    setSettings(s => ({...s, ...newSettings}));
-    toast({ title: "Settings Updated", description: "Membership settings have been saved." });
+  const updateSettings = async (newSettings: Partial<Settings>) => {
+    if (!communityId) return;
+    try {
+        const communityDocRef = doc(db, 'communities', communityId);
+        await updateDoc(communityDocRef, newSettings);
+        toast({ title: "Settings Updated", description: "Membership settings have been saved." });
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "Error updating settings", description: error.message });
+    }
   }
 
-  const recalculateTiers = () => {
-    setMembers(prev => prev.map(member => {
-      const tier = getTier(member.age);
-      const contribution = getContribution({ ...member, tier });
-      return { ...member, tier, contribution };
-    }));
-    toast({ title: "Groups Updated", description: "All member groups and default contributions have been recalculated." });
+  const recalculateTiers = async () => {
+    if (!communityId) return;
+    try {
+        const batch = writeBatch(db);
+        members.forEach(member => {
+            const tier = getTier(member.age);
+            const contribution = getContribution({ ...member, tier });
+            if (member.tier !== tier || member.contribution !== contribution) {
+                const memberDocRef = doc(db, `communities/${communityId}/members`, member.id);
+                batch.update(memberDocRef, { tier, contribution });
+            }
+        });
+        await batch.commit();
+        toast({ title: "Groups Updated", description: "All member groups and default contributions have been recalculated." });
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "Error recalculating tiers", description: error.message });
+    }
   };
 
-  const addCustomContribution = (data: NewCustomContributionData) => {
-    const newContrib: CustomContribution = { id: String(Date.now()), ...data };
-    setCustomContributions(prev => [...prev, newContrib]);
-    toast({ title: "Template Added", description: `"${data.name}" has been added.` });
-    recalculateTiers();
+  const addCustomContribution = async (data: NewCustomContributionData) => {
+    if (!communityId) return;
+    try {
+        await addDoc(collection(db, `communities/${communityId}/contributions`), data);
+        toast({ title: "Template Added", description: `"${data.name}" has been added.` });
+        await recalculateTiers();
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "Error adding template", description: error.message });
+    }
   };
 
-  const updateCustomContribution = (updatedContribution: CustomContribution) => {
-    setCustomContributions(prev => prev.map(c => c.id === updatedContribution.id ? updatedContribution : c));
-    toast({ title: "Template Updated", description: `"${updatedContribution.name}" has been updated.` });
-    closeDialog();
-    recalculateTiers();
+  const updateCustomContribution = async (updatedContribution: CustomContribution) => {
+    if (!communityId) return;
+    try {
+        const { id, ...dataToUpdate } = updatedContribution;
+        const contribDocRef = doc(db, `communities/${communityId}/contributions`, id);
+        await updateDoc(contribDocRef, dataToUpdate);
+        toast({ title: "Template Updated", description: `"${updatedContribution.name}" has been updated.` });
+        closeDialog();
+        await recalculateTiers();
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "Error updating template", description: error.message });
+    }
   };
 
-  const deleteCustomContribution = (id: string) => {
-    const contribName = customContributions.find(c => c.id === id)?.name || 'Template';
-    setCustomContributions(prev => prev.filter(c => c.id !== id));
-    toast({ title: "Template Deleted", description: `"${contribName}" has been removed.` });
-    recalculateTiers();
+  const deleteCustomContribution = async (id: string) => {
+    if (!communityId) return;
+    try {
+        const contribName = customContributions.find(c => c.id === id)?.name || 'Template';
+        await deleteDoc(doc(db, `communities/${communityId}/contributions`, id));
+        toast({ title: "Template Deleted", description: `"${contribName}" has been removed.` });
+        await recalculateTiers();
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "Error deleting template", description: error.message });
+    }
   };
 
   const contextValue = useMemo(() => ({
@@ -356,6 +489,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     settings,
     customContributions,
     isLoading,
+    communityId,
     addMember,
     updateMember,
     deleteMember,
@@ -380,8 +514,10 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     getBalance,
     getPaidAmountForContribution,
     getBalanceForContribution,
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [members, families, settings, customContributions, isLoading, dialogState]);
+  }), [
+    members, families, settings, customContributions, isLoading, communityId, dialogState, 
+    getTier, getContribution, calculateAge
+  ]);
 
   return (
     <CommunityContext.Provider value={contextValue}>

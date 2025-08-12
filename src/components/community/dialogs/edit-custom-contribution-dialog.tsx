@@ -24,7 +24,7 @@ interface EditCustomContributionDialogProps {
   contribution: CustomContribution;
 }
 
-const TIERS = ['Under 18', 'Group 1 (18-24)', 'Group 2 (25+)'];
+const TIERS = (settings) => [`Group 1 (${settings.tier1Age}-${settings.tier2Age-1})`, `Group 2 (${settings.tier2Age}+)`, 'Under 18'];
 
 const formSchema = z.object({
   id: z.string(),
@@ -72,6 +72,8 @@ export function EditCustomContributionDialog({ contribution }: EditCustomContrib
     form.reset();
     closeDialog();
   }
+  
+  const tierOptions = TIERS(settings);
 
   return (
     <Dialog open={dialogState?.type === 'edit-custom-contribution'} onOpenChange={handleClose}>
@@ -153,7 +155,7 @@ export function EditCustomContributionDialog({ contribution }: EditCustomContrib
                   <div className="mb-4">
                     <FormLabel className="text-base">Applicable Age Groups</FormLabel>
                   </div>
-                  {TIERS.map((item) => (
+                  {tierOptions.map((item) => (
                     <FormField
                       key={item}
                       control={form.control}

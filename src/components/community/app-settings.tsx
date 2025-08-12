@@ -9,6 +9,8 @@ import { DollarSign, Globe } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '../ui/badge';
 import { Settings as AppSettingsType } from '@/lib/types';
+import { useState, useEffect } from 'react';
+import { useDebounce } from 'use-debounce';
 
 const CURRENCIES = [
   { value: '₦', label: 'NGN (₦)' },
@@ -20,14 +22,27 @@ const CURRENCIES = [
 
 export function AppSettings() {
   const { settings, updateSettings, recalculateTiers, customContributions, openDialog, deleteCustomContribution } = useCommunity();
+  
+  const [localSettings, setLocalSettings] = useState(settings);
+  const [debouncedSettings] = useDebounce(localSettings, 500);
+
+  useEffect(() => {
+    setLocalSettings(settings);
+  }, [settings]);
+
+  useEffect(() => {
+    if (JSON.stringify(debouncedSettings) !== JSON.stringify(settings)) {
+      updateSettings(debouncedSettings);
+    }
+  }, [debouncedSettings, settings, updateSettings]);
 
   const handleSettingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    updateSettings({ ...settings, [name]: parseInt(value) || 0 });
+    setLocalSettings(prev => ({ ...prev, [name]: parseInt(value) || 0 }));
   };
 
   const handleCurrencyChange = (value: string) => {
-    updateSettings({ ...settings, currency: value });
+    setLocalSettings(prev => ({ ...prev, currency: value }));
   };
   
   return (
@@ -111,7 +126,7 @@ export function AppSettings() {
           <CardContent>
              <div className="space-y-2">
                 <Label htmlFor="currency">Currency</Label>
-                <Select value={settings.currency} onValueChange={handleCurrencyChange}>
+                <Select value={localSettings.currency} onValueChange={handleCurrencyChange}>
                   <SelectTrigger id="currency">
                     <SelectValue placeholder="Select a currency" />
                   </SelectTrigger>
@@ -139,11 +154,11 @@ export function AppSettings() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="tier1Age">Group 1 Starting Age</Label>
-                <Input id="tier1Age" name="tier1Age" type="number" value={settings.tier1Age} onChange={handleSettingChange} />
+                <Input id="tier1Age" name="tier1Age" type="number" value={localSettings.tier1Age} onChange={handleSettingChange} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="tier2Age">Group 2 Starting Age</Label>
-                <Input id="tier2Age" name="tier2Age" type="number" value={settings.tier2Age} onChange={handleSettingChange} />
+                <Input id="tier2Age" name="tier2Age" type="number" value={localSettings.tier2Age} onChange={handleSettingChange} />
               </div>
             </div>
             <Button onClick={recalculateTiers} className="mt-6 w-full">

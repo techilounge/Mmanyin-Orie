@@ -18,7 +18,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
-const TIERS = ['Under 18', 'Group 1 (18-24)', 'Group 2 (25+)'];
+const TIERS = (settings) => [`Group 1 (${settings.tier1Age}-${settings.tier2Age-1})`, `Group 2 (${settings.tier2Age}+)`, 'Under 18'];
 
 const formSchema = z.object({
   name: z.string().min(1, 'Template name is required.'),
@@ -49,6 +49,8 @@ export function AddCustomContributionDialog() {
     form.reset();
     closeDialog();
   }
+
+  const tierOptions = TIERS(settings);
 
   return (
     <Dialog open={dialogState?.type === 'add-custom-contribution'} onOpenChange={handleClose}>
@@ -130,7 +132,7 @@ export function AddCustomContributionDialog() {
                   <div className="mb-4">
                     <FormLabel className="text-base">Applicable Age Groups</FormLabel>
                   </div>
-                  {TIERS.map((item) => (
+                  {tierOptions.map((item) => (
                     <FormField
                       key={item}
                       control={form.control}
