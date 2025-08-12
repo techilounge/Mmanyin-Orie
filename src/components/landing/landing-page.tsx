@@ -89,11 +89,18 @@ export function LandingPage() {
                 <Image src="/logo.png" alt="Mmanyin Orie Logo" width={40} height={40} className="rounded-lg" />
                 <h1 className="text-2xl font-bold text-foreground">Mmanyin Orie</h1>
             </div>
-            <Link href="/auth/sign-in">
-                <Button>
-                    Sign In
-                </Button>
-            </Link>
+            <div className="flex items-center gap-2">
+               <Link href="/auth/sign-in">
+                  <Button variant="ghost">
+                      Sign In
+                  </Button>
+              </Link>
+              <Link href="/auth/sign-up">
+                  <Button>
+                      Sign Up
+                  </Button>
+              </Link>
+            </div>
         </header>
 
         <main className="flex flex-1 flex-col items-center">
