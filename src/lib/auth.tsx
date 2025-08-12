@@ -31,7 +31,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       if (user) {
-        // Fetch the corresponding appUser document
         const userDocRef = doc(db, 'users', user.uid);
         const unsubUser = onSnapshot(userDocRef, (doc) => {
           if (doc.exists()) {
@@ -61,63 +60,76 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
+    if (user && isAuthPage) {
+      router.push('/app');
+      return;
+    }
+    
     if (user && appUser) {
-      if (isAuthPage) {
-        router.push('/app'); // Redirect logged-in users from auth pages to the app
-        return;
-      }
-      
       const isAppEntryPoint = pathname === '/app' || pathname === '/dashboard'; // dashboard is legacy
-
-      // Multi-tenancy routing guard for /app/* pages
       if(isAppEntryPoint) {
+        const memberships = appUser.memberships || [];
+
+        if (memberships.length === 0) {
+          // New user, no communities yet.
+          router.push('/subscribe');
+          return;
+        }
+
+        const communityId = appUser.primaryCommunityId || memberships[0];
+
+        if (!communityId) {
+          // Data inconsistency, should not happen.
+          router.push('/subscribe');
+          return;
+        }
+
+        // Check community status and redirect
         (async () => {
-          // TODO: Add site_owner check later
-          
-          const memberships = (appUser.memberships || []) as string[];
-
-          if (memberships.length === 0) {
-            router.push('/subscribe');
-          } else {
-            const primaryCommunityId = appUser.primaryCommunityId;
-            const communityId = primaryCommunityId || memberships[0];
-
-            if (!communityId) {
-                router.push('/subscribe'); // Should not happen
-                return;
-            }
-
+          try {
             const communityDocRef = doc(db, 'communities', communityId);
             const communityDoc = await getDoc(communityDocRef);
+
+            if (!communityDoc.exists()) {
+              // The community they were part of was deleted.
+              router.push('/subscribe');
+              return;
+            }
+
             const status = communityDoc.data()?.subscription?.status;
 
-            if (!status || !['active', 'trialing'].includes(status)) {
-                router.push(`/billing/${communityId}`);
+            if (['active', 'trialing'].includes(status)) {
+              // TODO: Check if community needs onboarding later
+              if (pathname !== `/app/${communityId}`) {
+                router.push(`/app/${communityId}`);
+              }
             } else {
-                // TODO: Check if community needs onboarding
-                if (pathname !== `/app/${communityId}`) {
-                   router.push(`/app/${communityId}`);
-                }
+              router.push(`/billing/${communityId}`);
             }
+          } catch (error) {
+            console.error("Error checking community status:", error);
+            // Fallback to a safe page if there's an error
+            router.push('/subscribe');
           }
         })();
       }
     } else if (user && !appUser && !isPublicPage) {
         // User exists in Firebase Auth, but not in Firestore 'users' collection yet.
         // This can happen right after sign up, before the user doc is created.
-        // We can either wait, or redirect to a page that handles this state.
-        // For now, let's assume the creation is fast and the listener will pick it up.
-        // If they navigate away or something fails, they might get stuck.
-        // A /create-profile page could be a good failsafe.
+        // For now, let the skeleton loader show while we wait for the onSnapshot listener.
     }
   }, [user, appUser, loading, router, pathname]);
 
-  if (loading || (!user && !publicPaths.some(path => pathname.startsWith(path) || path === pathname))) {
+  // Show a loading skeleton while auth state is resolving, unless it's a public page that can be shown immediately.
+  const isPublicAndReady = publicPaths.some(path => pathname.startsWith(path) || path === pathname) && !loading;
+  if (loading && !isPublicAndReady) {
      return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="p-8 space-y-4">
-          <Skeleton className="h-12 w-12 rounded-full" />
-          <Skeleton className="h-8 w-64 rounded-md" />
+        <div className="p-8 space-y-4 w-full max-w-md">
+          <div className="flex justify-center mb-4">
+            <Skeleton className="h-16 w-16 rounded-2xl" />
+          </div>
+          <Skeleton className="h-8 w-full rounded-md" />
           <Skeleton className="h-96 w-full rounded-xl" />
         </div>
       </div>
