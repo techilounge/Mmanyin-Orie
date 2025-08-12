@@ -2,11 +2,11 @@
 'use client';
 import { CommunityProvider } from '@/components/community/community-provider';
 import { CommunityApp } from '@/components/community/community-app';
-import { useSearchParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 
-export default function DashboardPage() {
-  const searchParams = useSearchParams();
-  const communityId = searchParams.get('communityId');
+export default function CommunityPage() {
+  const params = useParams();
+  const communityId = params.communityId as string;
 
   return (
     <CommunityProvider communityId={communityId}>

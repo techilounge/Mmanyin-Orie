@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, updateProfile, setPersistence, browserLocalPersistence } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, updateProfile, setPersistence, browserLocalPersistence, User as FirebaseUser } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,35 +12,28 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Chrome } from 'lucide-react';
+import type { AppUser } from '@/lib/types';
 
 
 export default function SignUpPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [communityName, setCommunityName] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
-  const createCommunityAndUser = async (user: any, name: string) => {
-    const communityId = user.uid; // Use user's UID as community ID for simplicity
-    
-    // Create user document
-    await setDoc(doc(db, "users", user.uid), {
-      uid: user.uid,
-      email: user.email,
+  const createUserDocument = async (user: FirebaseUser, name: string) => {
+    const userDocRef = doc(db, "users", user.uid);
+    const newUser: Omit<AppUser, 'uid'> = {
       displayName: user.displayName || name,
-      communityId: communityId,
-      role: 'Site Owner'
-    });
-
-    // Create community document
-    await setDoc(doc(db, "communities", communityId), {
-      ownerId: user.uid,
-      name: name,
+      email: user.email,
+      photoURL: user.photoURL,
       createdAt: new Date().toISOString(),
-    });
+      lastLoginAt: new Date().toISOString(),
+    };
+    await setDoc(userDocRef, newUser, { merge: true });
   }
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -57,9 +50,9 @@ export default function SignUpPage() {
     try {
       await setPersistence(auth, browserLocalPersistence)
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(userCredential.user, { displayName: communityName });
-      await createCommunityAndUser(userCredential.user, communityName);
-      router.push('/dashboard');
+      await updateProfile(userCredential.user, { displayName: displayName });
+      await createUserDocument(userCredential.user, displayName);
+      // The auth guard will handle redirection.
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -76,11 +69,9 @@ export default function SignUpPage() {
     try {
       await setPersistence(auth, browserLocalPersistence);
       const userCredential = await signInWithPopup(auth, provider);
-      // For Google sign-in, the community name can be derived or asked in a subsequent step.
-      // For now, we'll use their display name.
-      const name = userCredential.user.displayName || 'My Community';
-      await createCommunityAndUser(userCredential.user, name);
-      router.push('/dashboard');
+      const name = userCredential.user.displayName || 'New User';
+      await createUserDocument(userCredential.user, name);
+      // The auth guard will handle redirection.
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -100,8 +91,8 @@ export default function SignUpPage() {
       <CardContent className="space-y-4">
         <form onSubmit={handleSignUp} className="space-y-4">
            <div className="space-y-2">
-            <Label htmlFor="communityName">Community/Organization Name</Label>
-            <Input id="communityName" type="text" value={communityName} onChange={(e) => setCommunityName(e.target.value)} required />
+            <Label htmlFor="displayName">Your Name</Label>
+            <Input id="displayName" type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} required />
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>

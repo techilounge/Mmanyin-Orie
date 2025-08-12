@@ -4,9 +4,10 @@
 import type { ReactNode } from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { usePathname, useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
+import { collectionGroup, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 
 interface AuthContextType {
   user: User | null;
@@ -14,6 +15,8 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType>({ user: null, loading: true });
+
+const publicPaths = ['/auth/sign-in', '/auth/sign-up', '/'];
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -32,33 +35,66 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (loading) return;
 
-    const isAuthPage = pathname.startsWith('/auth');
-    const isLandingPage = pathname === '/';
+    const isPublicPage = publicPaths.some(path => pathname.startsWith(path));
+    const isAppPage = pathname.startsWith('/app');
 
-    if (!user && !isAuthPage && !isLandingPage) {
+    if (!user && !isPublicPage) {
       router.push('/auth/sign-in');
-    } else if (user && isAuthPage) {
-      router.push('/dashboard');
+      return;
+    }
+
+    if (user) {
+      if(isPublicPage && pathname !== '/') {
+        router.push('/app'); // Redirect logged-in users from auth pages
+        return;
+      }
+      
+      // Multi-tenancy routing guard for /app/* pages
+      if(isAppPage || pathname === '/dashboard') { // dashboard is legacy, redirect to /app
+        (async () => {
+          // TODO: Add site_owner check later
+          
+          const membershipsQuery = query(collectionGroup(db, 'members'), where('uid', '==', user.uid));
+          const membershipsSnapshot = await getDocs(membershipsQuery);
+
+          if (membershipsSnapshot.empty) {
+            router.push('/subscribe');
+          } else {
+            const userDocRef = doc(db, 'users', user.uid);
+            const userDoc = await getDoc(userDocRef);
+            const primaryCommunityId = userDoc.data()?.primaryCommunityId;
+            
+            const communityId = primaryCommunityId || membershipsSnapshot.docs[0].ref.parent.parent?.id;
+
+            if (!communityId) {
+                router.push('/subscribe'); // Should not happen
+                return;
+            }
+
+            const communityDocRef = doc(db, 'communities', communityId);
+            const communityDoc = await getDoc(communityDocRef);
+            const status = communityDoc.data()?.subscription?.status;
+
+            if (!['active', 'trialing'].includes(status)) {
+                router.push(`/billing/${communityId}`);
+            } else {
+                // TODO: Check if community needs onboarding
+                if (pathname !== `/app/${communityId}`) {
+                   router.push(`/app/${communityId}`);
+                }
+            }
+          }
+        })();
+      }
     }
   }, [user, loading, router, pathname]);
 
-  if (loading) {
+  if (loading || (!user && !publicPaths.some(path => pathname.startsWith(path)))) {
      return (
-      <div className="min-h-screen bg-background">
-        <header className="bg-card shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center py-4">
-              <div className="flex items-center space-x-3">
-                <Skeleton className="h-10 w-10 rounded-lg" />
-                <Skeleton className="h-8 w-48 rounded-md" />
-              </div>
-              <div className="flex gap-3">
-                <Skeleton className="h-10 w-36 rounded-lg" />
-              </div>
-            </div>
-          </div>
-        </header>
-        <div className="p-8">
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="p-8 space-y-4">
+          <Skeleton className="h-12 w-12 rounded-full" />
+          <Skeleton className="h-8 w-64 rounded-md" />
           <Skeleton className="h-96 w-full rounded-xl" />
         </div>
       </div>

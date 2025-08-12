@@ -1,3 +1,4 @@
+
 export interface Payment {
   id: string; // Firestore document ID
   contributionId: string; // Links payment to a specific CustomContribution
@@ -22,6 +23,8 @@ export interface Member {
   contribution: number;
   payments: Payment[];
   joinDate: string; // ISO date string
+  role: 'owner' | 'admin' | 'user';
+  uid: string;
 }
 
 export interface Family {
@@ -44,8 +47,36 @@ export interface CustomContribution {
   frequency: 'one-time' | 'monthly';
 }
 
+export interface AppUser {
+    uid: string;
+    displayName: string | null;
+    email: string | null;
+    photoURL: string | null;
+    primaryCommunityId?: string;
+    createdAt: string;
+    lastLoginAt: string;
+}
+
+export interface Community {
+    id: string;
+    name: string;
+    slug: string;
+    ownerUid: string;
+    timezone: string;
+    createdAt: string;
+    updatedAt: string;
+    subscription: {
+        status: 'active' | 'trialing' | 'past_due' | 'canceled' | 'incomplete';
+        planId: string | null;
+        stripeCustomerId: string | null;
+        stripeSubId: string | null;
+        currentPeriodEnd: string | null; // ISO date string
+    };
+}
+
+
 // Data for creating a new document, omitting the ID
-export type NewMemberData = Omit<Member, 'id' | 'name' | 'age' | 'tier' | 'contribution' | 'payments' | 'joinDate'>;
+export type NewMemberData = Omit<Member, 'id' | 'name' | 'age' | 'tier' | 'contribution' | 'payments' | 'joinDate' | 'role' | 'uid'>;
 export type NewPaymentData = Omit<Payment, 'id'>;
 export type NewCustomContributionData = Omit<CustomContribution, 'id'>;
 

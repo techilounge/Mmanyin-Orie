@@ -1,3 +1,4 @@
+
 'use client';
 import { useEffect } from 'react';
 import { useCommunity } from '@/hooks/use-community';
@@ -118,7 +119,7 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
                   )} />
                 </div>
                 <FormField control={form.control} name="middleName" render={({ field }) => (
-                  <FormItem><FormLabel>Middle Name <span className="text-muted-foreground">(optional)</span></FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                  <FormItem><FormLabel>Middle Name <span className="text-muted-foreground">(optional)</span></FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField control={form.control} name="yearOfBirth" render={({ field }) => (
                   <FormItem><FormLabel>Year of Birth</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
@@ -144,7 +145,7 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
                 />
                 
                 <FormField control={form.control} name="email" render={({ field }) => (
-                  <FormItem><FormLabel>Email <span className="text-muted-foreground">(optional)</span></FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
+                  <FormItem><FormLabel>Email <span className="text-muted-foreground">(optional)</span></FormLabel><FormControl><Input type="email" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormItem>
                   <FormLabel>Phone <span className="text-muted-foreground">(optional)</span></FormLabel>
@@ -168,7 +169,7 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
                      )} />
                     <FormField name="phone" control={form.control} render={({ field }) => (
                       <FormItem className="flex-1">
-                        <FormControl><Input type="tel" {...field} /></FormControl>
+                        <FormControl><Input type="tel" {...field} value={field.value ?? ''} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )} />

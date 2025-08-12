@@ -1,3 +1,4 @@
+
 'use client';
 import type { ReactNode } from 'react';
 import React, { createContext, useState, useEffect, useMemo, useCallback } from 'react';
@@ -70,14 +71,13 @@ const DEFAULT_SETTINGS: Settings = {
   currency: '₦',
 };
 
-export function CommunityProvider({ children }: { children: ReactNode }) {
+export function CommunityProvider({ children, communityId: activeCommunityId }: { children: ReactNode, communityId: string | null }) {
   const { user } = useAuth();
   const [members, setMembers] = useState<Member[]>([]);
   const [families, setFamilies] = useState<Family[]>([]);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [customContributions, setCustomContributions] = useState<CustomContribution[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [communityId, setCommunityId] = useState<string | null>(null);
   
   const { toast } = useToast();
   const [dialogState, setDialogState] = useState<DialogState>(null);
@@ -85,40 +85,20 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
   const openDialog = (state: DialogState) => setDialogState(state);
   const closeDialog = () => setDialogState(null);
 
-  // Fetch community ID from user document
-  useEffect(() => {
-    if (user) {
-      const userDocRef = doc(db, 'users', user.uid);
-      const unsubscribe = onSnapshot(userDocRef, (doc) => {
-        if (doc.exists()) {
-          const userData = doc.data();
-          if (userData.communityId) {
-            setCommunityId(userData.communityId);
-          } else {
-             // This case might happen if user doc is created but community linkage fails
-            setIsLoading(false);
-          }
-        } else {
-            setIsLoading(false);
-        }
-      });
-      return () => unsubscribe();
-    } else {
-      setIsLoading(false);
-      setCommunityId(null);
-    }
-  }, [user]);
-
   // Set up Firestore listeners
   useEffect(() => {
-    if (!communityId) {
+    if (!activeCommunityId) {
         setIsLoading(!user); // still loading if user exists but communityId not yet fetched
+        setMembers([]);
+        setFamilies([]);
+        setCustomContributions([]);
+        setSettings(DEFAULT_SETTINGS);
         return;
     }
     
     setIsLoading(true);
 
-    const communityDocRef = doc(db, 'communities', communityId);
+    const communityDocRef = doc(db, 'communities', activeCommunityId);
     
     const unsubscribes = [
       onSnapshot(collection(communityDocRef, 'members'), (snapshot) => {
@@ -145,7 +125,6 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       })
     ];
     
-    // Using a timeout to prevent flicker on fast loads
     const timer = setTimeout(() => setIsLoading(false), 300);
 
     return () => {
@@ -153,7 +132,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
         clearTimeout(timer);
     };
 
-  }, [communityId, user]);
+  }, [activeCommunityId, user]);
 
 
   const calculateAge = useCallback((yearOfBirth: number) => new Date().getFullYear() - yearOfBirth, []);
@@ -215,7 +194,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
   }
   
   const addFamily = async (familyName: string): Promise<boolean> => {
-    if (!communityId) {
+    if (!activeCommunityId) {
         toast({ variant: 'destructive', title: 'Error', description: 'No community selected.' });
         return false;
     }
@@ -224,7 +203,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
         toast({ variant: 'destructive', title: 'Error', description: 'Family name cannot be empty.' });
         return false;
     }
-    const familiesQuery = query(collection(db, `communities/${communityId}/families`), where('name', '==', trimmedName));
+    const familiesQuery = query(collection(db, `communities/${activeCommunityId}/families`), where('name', '==', trimmedName));
     const querySnapshot = await getDocs(familiesQuery);
     if (!querySnapshot.empty) {
         toast({ variant: 'destructive', title: 'Error', description: `Family "${trimmedName}" already exists.` });
@@ -232,7 +211,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-        await addDoc(collection(db, `communities/${communityId}/families`), { name: trimmedName });
+        await addDoc(collection(db, `communities/${activeCommunityId}/families`), { name: trimmedName });
         toast({ title: 'Family Created', description: `The "${trimmedName}" family has been added.` });
         return true;
     } catch (error: any) {
@@ -242,7 +221,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
 };
 
   const updateFamily = async (family: Family, newFamilyName: string) => {
-    if (!communityId) return;
+    if (!activeCommunityId) return;
     const trimmedNewName = newFamilyName.trim();
     if (!trimmedNewName) {
         toast({ variant: "destructive", title: "Error", description: "Family name cannot be empty." });
@@ -255,11 +234,11 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
 
     try {
         const batch = writeBatch(db);
-        const familyDocRef = doc(db, `communities/${communityId}/families`, family.id);
+        const familyDocRef = doc(db, `communities/${activeCommunityId}/families`, family.id);
         batch.update(familyDocRef, { name: trimmedNewName });
         
         // Update family name for all members of that family
-        const membersQuery = query(collection(db, `communities/${communityId}/members`), where("family", "==", family.name));
+        const membersQuery = query(collection(db, `communities/${activeCommunityId}/members`), where("family", "==", family.name));
         const membersSnapshot = await getDocs(membersQuery);
         membersSnapshot.forEach(doc => {
             batch.update(doc.ref, { family: trimmedNewName });
@@ -274,13 +253,13 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
   };
 
   const deleteFamily = async (family: Family) => {
-    if (!communityId) return;
-    const familyMembersQuery = query(collection(db, `communities/${communityId}/members`), where("family", "==", family.name));
+    if (!activeCommunityId) return;
+    const familyMembersQuery = query(collection(db, `communities/${activeCommunityId}/members`), where("family", "==", family.name));
     const familyMembersSnapshot = await getDocs(familyMembersQuery);
 
     if (familyMembersSnapshot.empty) {
         try {
-            await deleteDoc(doc(db, `communities/${communityId}/families`, family.id));
+            await deleteDoc(doc(db, `communities/${activeCommunityId}/families`, family.id));
             toast({ title: "Family Deleted", description: `The "${family.name}" family has been removed.` });
         } catch (error: any) {
             toast({ variant: "destructive", title: "Deletion Failed", description: error.message });
@@ -291,7 +270,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
   };
 
   const addMember = async (data: NewMemberData): Promise<boolean> => {
-    if (!communityId) return false;
+    if (!activeCommunityId) return false;
     try {
       const age = calculateAge(data.yearOfBirth);
       const tier = getTier(age);
@@ -315,12 +294,15 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
         tier,
         payments: [],
         joinDate: joinDate,
+        role: 'user' as const, // All new members are users by default
+        uid: doc(collection(db, 'dummy')).id, // Placeholder, should be linked to an actual user
       };
       
       const contribution = getContribution(newMemberBase, customContributions);
       const newMember = { ...newMemberBase, contribution };
-
-      await addDoc(collection(db, `communities/${communityId}/members`), newMember);
+      
+      const docRef = doc(collection(db, `communities/${activeCommunityId}/members`));
+      await setDoc(docRef, newMember);
       
       toast({ title: "Member Added", description: `${fullName} has been added to the registry.` });
       return true;
@@ -331,14 +313,13 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
   };
 
   const updateMember = async (updatedData: Member) => {
-    if (!communityId) return;
+    if (!activeCommunityId) return;
     const age = calculateAge(updatedData.yearOfBirth);
     const tier = getTier(age);
     const fullName = [updatedData.firstName, updatedData.middleName, updatedData.lastName]
       .filter(part => part && part.trim())
       .join(' ');
     
-    // Create a temporary member object without ID and contribution to calculate the new contribution
     const tempMemberForCalc = {
       ...updatedData,
       name: fullName,
@@ -349,6 +330,8 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       email: updatedData.email || '',
       phone: updatedData.phone || '',
       phoneCountryCode: updatedData.phoneCountryCode || '',
+      role: updatedData.role,
+      uid: updatedData.uid
     };
     const newContribution = getContribution(tempMemberForCalc, customContributions);
 
@@ -360,11 +343,10 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
         contribution: newContribution
     };
     
-    // remove id from the object to avoid writing it to the document
     const { id, ...dataToSend } = memberToUpdate;
 
     try {
-        const memberDocRef = doc(db, `communities/${communityId}/members`, id);
+        const memberDocRef = doc(db, `communities/${activeCommunityId}/members`, id);
         await updateDoc(memberDocRef, dataToSend);
         closeDialog();
         toast({ title: "Member Updated", description: `${fullName}'s details have been updated.` });
@@ -374,10 +356,10 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
   };
 
   const deleteMember = async (id: string) => {
-    if (!communityId) return;
+    if (!activeCommunityId) return;
     try {
         const memberName = members.find(m => m.id === id)?.name || 'Member';
-        await deleteDoc(doc(db, `communities/${communityId}/members`, id));
+        await deleteDoc(doc(db, `communities/${activeCommunityId}/members`, id));
         toast({ title: "Member Deleted", description: `${memberName} has been removed.` });
     } catch(error: any) {
         toast({ variant: "destructive", title: "Error deleting member", description: error.message });
@@ -385,9 +367,9 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
   };
 
   const recordPayment = async (memberId: string, contributionId: string, paymentData: Omit<NewPaymentData, 'contributionId'>) => {
-    if (!communityId) return;
+    if (!activeCommunityId) return;
     try {
-        const memberDocRef = doc(db, `communities/${communityId}/members`, memberId);
+        const memberDocRef = doc(db, `communities/${activeCommunityId}/members`, memberId);
         const memberSnapshot = await getDoc(memberDocRef);
         if (memberSnapshot.exists()) {
             const memberData = memberSnapshot.data() as Member;
@@ -410,9 +392,9 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
   };
 
   const updatePayment = async (memberId: string, updatedPayment: Payment) => {
-     if (!communityId) return;
+     if (!activeCommunityId) return;
      try {
-        const memberDocRef = doc(db, `communities/${communityId}/members`, memberId);
+        const memberDocRef = doc(db, `communities/${activeCommunityId}/members`, memberId);
         const memberSnapshot = await getDoc(memberDocRef);
         if(memberSnapshot.exists()) {
             const memberData = memberSnapshot.data() as Member;
@@ -427,9 +409,9 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
   };
 
   const deletePayment = async (memberId: string, paymentId: string) => {
-     if (!communityId) return;
+     if (!activeCommunityId) return;
       try {
-        const memberDocRef = doc(db, `communities/${communityId}/members`, memberId);
+        const memberDocRef = doc(db, `communities/${activeCommunityId}/members`, memberId);
         const memberSnapshot = await getDoc(memberDocRef);
         if(memberSnapshot.exists()) {
             const memberData = memberSnapshot.data() as Member;
@@ -443,9 +425,9 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
   };
   
   const updateSettings = async (newSettings: Partial<Settings>) => {
-    if (!communityId) return;
+    if (!activeCommunityId) return;
     try {
-        const communityDocRef = doc(db, 'communities', communityId);
+        const communityDocRef = doc(db, 'communities', activeCommunityId);
         await updateDoc(communityDocRef, newSettings);
         toast({ title: "Settings Updated", description: "Membership settings have been saved." });
     } catch (error: any) {
@@ -454,14 +436,14 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
   }
 
   const recalculateTiers = async () => {
-    if (!communityId) return;
+    if (!activeCommunityId) return;
     try {
         const batch = writeBatch(db);
         members.forEach(member => {
             const tier = getTier(member.age);
             const contribution = getContribution({ ...member, tier }, customContributions);
             if (member.tier !== tier || member.contribution !== contribution) {
-                const memberDocRef = doc(db, `communities/${communityId}/members`, member.id);
+                const memberDocRef = doc(db, `communities/${activeCommunityId}/members`, member.id);
                 batch.update(memberDocRef, { tier, contribution });
             }
         });
@@ -473,9 +455,9 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
   };
 
   const addCustomContribution = async (data: NewCustomContributionData) => {
-    if (!communityId) return;
+    if (!activeCommunityId) return;
     try {
-        await addDoc(collection(db, `communities/${communityId}/contributions`), data);
+        await addDoc(collection(db, `communities/${activeCommunityId}/contributions`), data);
         toast({ title: "Template Added", description: `"${data.name}" has been added.` });
         await recalculateTiers();
     } catch (error: any) {
@@ -484,10 +466,10 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
   };
 
   const updateCustomContribution = async (updatedContribution: CustomContribution) => {
-    if (!communityId) return;
+    if (!activeCommunityId) return;
     try {
         const { id, ...dataToUpdate } = updatedContribution;
-        const contribDocRef = doc(db, `communities/${communityId}/contributions`, id);
+        const contribDocRef = doc(db, `communities/${activeCommunityId}/contributions`, id);
         await updateDoc(contribDocRef, dataToUpdate);
         toast({ title: "Template Updated", description: `"${updatedContribution.name}" has been updated.` });
         closeDialog();
@@ -498,10 +480,10 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
   };
 
   const deleteCustomContribution = async (id: string) => {
-    if (!communityId) return;
+    if (!activeCommunityId) return;
     try {
         const contribName = customContributions.find(c => c.id === id)?.name || 'Template';
-        await deleteDoc(doc(db, `communities/${communityId}/contributions`, id));
+        await deleteDoc(doc(db, `communities/${activeCommunityId}/contributions`, id));
         toast({ title: "Template Deleted", description: `"${contribName}" has been removed.` });
         await recalculateTiers();
     } catch (error: any) {
@@ -515,7 +497,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     settings,
     customContributions,
     isLoading,
-    communityId,
+    communityId: activeCommunityId,
     addMember,
     updateMember,
     deleteMember,
@@ -541,7 +523,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     getPaidAmountForContribution,
     getBalanceForContribution,
   }), [
-    members, families, settings, customContributions, isLoading, communityId, dialogState, 
+    members, families, settings, customContributions, isLoading, activeCommunityId, dialogState, 
     getTier, getContribution, calculateAge, addFamily, addMember, updateMember, deleteMember, updateFamily, deleteFamily, updateSettings, recalculateTiers, addCustomContribution, updateCustomContribution, deleteCustomContribution, recordPayment, updatePayment, deletePayment, openDialog, closeDialog, getPaidAmount, getBalance, getPaidAmountForContribution, getBalanceForContribution
   ]);
 

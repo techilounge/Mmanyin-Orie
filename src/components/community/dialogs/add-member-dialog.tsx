@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -16,8 +17,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { COUNTRIES } from '@/lib/countries';
 import { NewMemberData } from '@/lib/types';
 
-// Build unique options by dial code, merging names that share a code.
-// Example: "+1" => "United States / Canada (+1)"
 const COUNTRY_OPTIONS = (() => {
   const byCode = new Map<string, string[]>();
   for (const c of COUNTRIES) {
@@ -63,7 +62,7 @@ export function AddMemberDialog() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       firstName: '', lastName: '', middleName: '',
-      yearOfBirth: '' as any, // Use empty string to avoid uncontrolled -> controlled error
+      yearOfBirth: undefined,
       family: '', newFamilyName: '',
       email: '', phone: '', phoneCountryCode: '+234',
     },
@@ -75,7 +74,7 @@ export function AddMemberDialog() {
     if (isOpen) {
       form.reset({
         firstName: '', lastName: '', middleName: '',
-        yearOfBirth: '' as any,
+        yearOfBirth: undefined,
         family: familyToAddTo || '', newFamilyName: '',
         email: '', phone: '', phoneCountryCode: '+234',
       });
@@ -151,7 +150,7 @@ export function AddMemberDialog() {
                 )} />
 
                 <FormField name="yearOfBirth" control={form.control} render={({ field }) => (
-                  <FormItem><FormLabel>Year of Birth</FormLabel><FormControl><Input type="number" placeholder={currentYear.toString()} {...field} /></FormControl><FormMessage /></FormItem>
+                  <FormItem><FormLabel>Year of Birth</FormLabel><FormControl><Input type="number" placeholder={currentYear.toString()} {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                 )} />
 
                 <Controller name="family" control={form.control} render={({ field }) => (
@@ -177,7 +176,7 @@ export function AddMemberDialog() {
                 )}
 
                 <FormField name="email" control={form.control} render={({ field }) => (
-                  <FormItem><FormLabel>Email <span className="text-muted-foreground">(optional)</span></FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
+                  <FormItem><FormLabel>Email <span className="text-muted-foreground">(optional)</span></FormLabel><FormControl><Input type="email" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                 )} />
                 
                 <FormItem>
@@ -202,7 +201,7 @@ export function AddMemberDialog() {
                      )} />
                     <FormField name="phone" control={form.control} render={({ field }) => (
                       <FormItem className="flex-1">
-                        <FormControl><Input type="tel" {...field} /></FormControl>
+                        <FormControl><Input type="tel" {...field} value={field.value ?? ''} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )} />
