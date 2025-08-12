@@ -215,21 +215,31 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
   }
   
   const addFamily = async (familyName: string): Promise<boolean> => {
-    if (!communityId) return false;
-    const trimmedName = familyName.trim();
-    if (!trimmedName || families.some(f => f.name.toLowerCase() === trimmedName.toLowerCase())) {
-        toast({ variant: "destructive", title: "Error", description: `Family "${trimmedName}" already exists or is invalid.` });
+    if (!communityId) {
+        toast({ variant: 'destructive', title: 'Error', description: 'No community selected.' });
         return false;
     }
+    const trimmedName = familyName.trim();
+    if (!trimmedName) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Family name cannot be empty.' });
+        return false;
+    }
+    const familiesQuery = query(collection(db, `communities/${communityId}/families`), where('name', '==', trimmedName));
+    const querySnapshot = await getDocs(familiesQuery);
+    if (!querySnapshot.empty) {
+        toast({ variant: 'destructive', title: 'Error', description: `Family "${trimmedName}" already exists.` });
+        return false;
+    }
+
     try {
         await addDoc(collection(db, `communities/${communityId}/families`), { name: trimmedName });
-        toast({ title: "Family Created", description: `The "${trimmedName}" family has been added.` });
+        toast({ title: 'Family Created', description: `The "${trimmedName}" family has been added.` });
         return true;
     } catch (error: any) {
-        toast({ variant: "destructive", title: "Error", description: error.message });
+        toast({ variant: 'destructive', title: 'Error', description: error.message });
         return false;
     }
-  };
+};
 
   const updateFamily = async (family: Family, newFamilyName: string) => {
     if (!communityId) return;
