@@ -27,7 +27,7 @@ interface EditCustomContributionDialogProps {
 const TIERS = ['Under 18', 'Group 1 (18-24)', 'Group 2 (25+)'];
 
 const formSchema = z.object({
-  id: z.number(),
+  id: z.string(),
   name: z.string().min(1, 'Template name is required.'),
   amount: z.coerce.number().min(0, 'Amount must be a positive number.'),
   description: z.string().optional(),

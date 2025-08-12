@@ -37,7 +37,7 @@ const COUNTRY_OPTIONS = (() => {
 
 const currentYear = new Date().getFullYear();
 const formSchema = z.object({
-  id: z.number(),
+  id: z.string(),
   firstName: z.string().min(1, 'First name is required.'),
   lastName: z.string().min(1, 'Last name is required.'),
   middleName: z.string().optional(),
@@ -81,7 +81,7 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
   
   if (!member) return null;
 
-  const onSubmit = (values: EditMemberForm) => {
+  const onSubmit = (values: Omit<EditMemberForm, 'id'>) => {
     const memberData: Member = { 
         ...member, 
         ...values,
@@ -135,7 +135,7 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
                           <SelectTrigger><SelectValue placeholder="Select a family" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {families.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                          {families.map(f => <SelectItem key={f.id} value={f.name}>{f.name}</SelectItem>)}
                         </SelectContent>
                       </Select>
                       <FormMessage />

@@ -16,9 +16,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 export function Payments() {
   const { members, settings, getPaidAmount, getBalance, openDialog, customContributions, getPaidAmountForContribution, getBalanceForContribution, deletePayment } = useCommunity();
   const [selectedMemberId, setSelectedMemberId] = useState<string>('');
-  const [paymentToDelete, setPaymentToDelete] = useState<{memberId: number, paymentId: number} | null>(null);
+  const [paymentToDelete, setPaymentToDelete] = useState<{memberId: string, paymentId: string} | null>(null);
 
-  const selectedMember = members.find(m => m.id.toString() === selectedMemberId);
+  const selectedMember = members.find(m => m.id === selectedMemberId);
 
   const getPaymentStatusColor = (balance: number, contribution: number) => {
     if (contribution <= 0) return 'bg-gray-300';
@@ -111,10 +111,6 @@ export function Payments() {
                 </TableHeader>
                 
                 {applicableContributions.length > 0 ? applicableContributions.map((contrib: CustomContribution) => {
-                    const totalForContribution = contrib.frequency === 'monthly'
-                        ? getBalanceForContribution(member, contrib) * -1 // This is a trick to get total paid for monthly
-                        : contrib.amount;
-
                     const balance = getBalanceForContribution(member, contrib);
                     const paid = getPaidAmountForContribution(member, contrib.id);
                     const paymentsForContribution = member.payments.filter(p => p.contributionId === contrib.id);
@@ -225,7 +221,7 @@ export function Payments() {
             </SelectTrigger>
             <SelectContent>
               {members.map(member => (
-                <SelectItem key={member.id} value={member.id.toString()}>
+                <SelectItem key={member.id} value={member.id}>
                   {member.name} ({member.family})
                 </SelectItem>
               ))}

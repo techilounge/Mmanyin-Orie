@@ -21,7 +21,7 @@ export function AddFamilyDialog() {
   const formSchema = z.object({
     familyName: z.string()
       .min(1, 'Family name is required.')
-      .refine(name => !families.includes(name.trim()), {
+      .refine(name => !families.some(f => f.name === name.trim()), {
         message: 'This family name already exists.',
       }),
   });

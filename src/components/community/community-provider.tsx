@@ -12,24 +12,24 @@ interface CommunityContextType {
   customContributions: CustomContribution[];
   isLoading: boolean;
   
-  addMember: (newMemberData: Omit<NewMemberData, 'useCustomContribution' | 'customContribution'>) => void;
+  addMember: (newMemberData: NewMemberData) => void;
   updateMember: (updatedMemberData: Member) => void;
-  deleteMember: (id: number) => void;
+  deleteMember: (id: string) => void;
   
   addFamily: (familyName: string) => void;
-  updateFamily: (oldFamilyName: string, newFamilyName: string) => void;
-  deleteFamily: (familyName: string) => void;
+  updateFamily: (family: Family, newFamilyName: string) => void;
+  deleteFamily: (family: Family) => void;
   
   updateSettings: (newSettings: Settings) => void;
   recalculateTiers: () => void;
   
   addCustomContribution: (contributionData: NewCustomContributionData) => void;
   updateCustomContribution: (updatedContribution: CustomContribution) => void;
-  deleteCustomContribution: (id: number) => void;
+  deleteCustomContribution: (id: string) => void;
 
-  recordPayment: (memberId: number, contributionId: number, paymentData: Omit<NewPaymentData, 'contributionId'>) => void;
-  updatePayment: (memberId: number, updatedPayment: Payment) => void;
-  deletePayment: (memberId: number, paymentId: number) => void;
+  recordPayment: (memberId: string, contributionId: string, paymentData: Omit<NewPaymentData, 'contributionId'>) => void;
+  updatePayment: (memberId: string, updatedPayment: Payment) => void;
+  deletePayment: (memberId: string, paymentId: string) => void;
 
   dialogState: DialogState;
   openDialog: (state: DialogState) => void;
@@ -40,7 +40,7 @@ interface CommunityContextType {
   calculateAge: (yearOfBirth: number) => number;
   getPaidAmount: (member: Member) => number;
   getBalance: (member: Member) => number;
-  getPaidAmountForContribution: (member: Member, contributionId: number, month?: number) => number;
+  getPaidAmountForContribution: (member: Member, contributionId: string, month?: number) => number;
   getBalanceForContribution: (member: Member, contribution: CustomContribution, month?: number) => number;
 }
 
@@ -49,16 +49,18 @@ export const CommunityContext = createContext<CommunityContextType | undefined>(
 const DEFAULT_SETTINGS: Settings = {
   tier1Age: 18,
   tier2Age: 25,
-  tier1Contribution: 0,
-  tier2Contribution: 0,
   currency: '₦',
 };
 
-const DEFAULT_FAMILIES = ['Smith', 'Johnson', 'Williams'];
+const DEFAULT_FAMILIES: Family[] = [
+    { id: 'Smith', name: 'Smith' }, 
+    { id: 'Johnson', name: 'Johnson' }, 
+    { id: 'Williams', name: 'Williams' }
+];
 const DEFAULT_CUSTOM_CONTRIBUTIONS: CustomContribution[] = [
-    { id: 1, name: 'Annual Dues', amount: 100, description: 'Yearly community dues', tiers: ['Group 2 (25+)'], frequency: 'one-time' },
-    { id: 2, name: 'Youth Dues', amount: 50, description: 'Discounted yearly dues', tiers: ['Group 1 (18-24)'], frequency: 'one-time' },
-    { id: 3, name: 'Building Fund', amount: 200, description: 'Contribution for the new community hall', tiers: ['Group 1 (18-24)', 'Group 2 (25+)'], frequency: 'one-time' }
+    { id: '1', name: 'Annual Dues', amount: 100, description: 'Yearly community dues', tiers: ['Group 2 (25+)'], frequency: 'one-time' },
+    { id: '2', name: 'Youth Dues', amount: 50, description: 'Discounted yearly dues', tiers: ['Group 1 (18-24)'], frequency: 'one-time' },
+    { id: '3', name: 'Building Fund', amount: 200, description: 'Contribution for the new community hall', tiers: ['Group 1 (18-24)', 'Group 2 (25+)'], frequency: 'one-time' }
 ];
 
 export function CommunityProvider({ children }: { children: ReactNode }) {
@@ -75,30 +77,31 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
   const closeDialog = () => setDialogState(null);
 
   useEffect(() => {
+    // This will be replaced with Firestore logic in Phase 3
     try {
       const savedMembers = localStorage.getItem('communityMembers');
       const savedFamilies = localStorage.getItem('communityFamilies');
       const savedSettings = localStorage.getItem('communitySettings');
       const savedCustomContributions = localStorage.getItem('customContributions');
 
-      const initialMembers: Member[] = savedMembers ? JSON.parse(savedMembers) : [];
-      // Quick migration for members who don't have a payments array or payments with contributionId
-      const migratedMembers = initialMembers.map((m: any) => ({
-        ...m,
-        joinDate: m.joinDate || new Date().toISOString(),
-        phoneCountryCode: m.phoneCountryCode || '+234',
-        payments: (m.payments || []).map(p => ({
-          ...p,
-          contributionId: p.contributionId || -1,
-        }))
-      }));
+      if (savedMembers) setMembers(JSON.parse(savedMembers));
+      if (savedFamilies) {
+          const parsedFamilies = JSON.parse(savedFamilies);
+          // migrate old string[] to Family[]
+          const migratedFamilies = parsedFamilies.map(f => (typeof f === 'string' ? { id: f, name: f } : f));
+          setFamilies(migratedFamilies);
+      } else {
+          setFamilies(DEFAULT_FAMILIES);
+      }
+      if (savedSettings) setSettings(JSON.parse(savedSettings));
+      if (savedCustomContributions) {
+        const initialContributions: CustomContribution[] = JSON.parse(savedCustomContributions);
+        const migratedContributions = initialContributions.map(c => ({...c, id: String(c.id), tiers: c.tiers || [], frequency: c.frequency || 'one-time' }));
+        setCustomContributions(migratedContributions);
+      } else {
+         setCustomContributions(DEFAULT_CUSTOM_CONTRIBUTIONS);
+      }
 
-      setMembers(migratedMembers);
-      setFamilies(savedFamilies ? JSON.parse(savedFamilies) : DEFAULT_FAMILIES);
-      setSettings(savedSettings ? JSON.parse(savedSettings) : DEFAULT_SETTINGS);
-      const initialContributions: CustomContribution[] = savedCustomContributions ? JSON.parse(savedCustomContributions) : DEFAULT_CUSTOM_CONTRIBUTIONS;
-      const migratedContributions = initialContributions.map(c => ({...c, tiers: c.tiers || [], frequency: c.frequency || 'one-time' }));
-      setCustomContributions(migratedContributions);
     } catch (error) {
       console.error("Failed to load data from localStorage", error);
     } finally {
@@ -139,10 +142,8 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
           const now = new Date();
           let months = 0;
           if (getYear(now) > getYear(joinDate)) {
-             // Full months for previous years + months for current year
              months = (getYear(now) - getYear(joinDate) - 1) * 12 + (12 - getMonth(joinDate)) + (getMonth(now) + 1);
           } else {
-             // Months for the current year
              months = getMonth(now) - getMonth(joinDate) + 1;
           }
           return sum + (c.amount * Math.max(0, months));
@@ -159,7 +160,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     return member.contribution - getPaidAmount(member);
   }
 
-  const getPaidAmountForContribution = (member: Member, contributionId: number, month?: number) => {
+  const getPaidAmountForContribution = (member: Member, contributionId: string, month?: number) => {
     return member.payments
       .filter(p => {
         const matchesContribution = p.contributionId === contributionId;
@@ -179,42 +180,45 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
   }
   
   const addFamily = (familyName: string) => {
-    if (familyName.trim() && !families.includes(familyName.trim())) {
-      setFamilies(prev => [...prev, familyName.trim()]);
-      toast({ title: "Family Created", description: `The "${familyName}" family has been added.` });
+    const trimmedName = familyName.trim();
+    if (trimmedName && !families.some(f => f.name === trimmedName)) {
+      const newFamily: Family = { id: trimmedName, name: trimmedName };
+      setFamilies(prev => [...prev, newFamily]);
+      toast({ title: "Family Created", description: `The "${trimmedName}" family has been added.` });
     } else {
-      toast({ variant: "destructive", title: "Error", description: `Family "${familyName}" already exists or is invalid.` });
+      toast({ variant: "destructive", title: "Error", description: `Family "${trimmedName}" already exists or is invalid.` });
     }
   };
 
-  const updateFamily = (oldFamilyName: string, newFamilyName: string) => {
+  const updateFamily = (family: Family, newFamilyName: string) => {
     const trimmedNewName = newFamilyName.trim();
     if (!trimmedNewName) {
         toast({ variant: "destructive", title: "Error", description: "Family name cannot be empty." });
         return;
     }
-    if (families.includes(trimmedNewName) && trimmedNewName !== oldFamilyName) {
+    if (families.some(f => f.name === trimmedNewName) && trimmedNewName !== family.name) {
         toast({ variant: "destructive", title: "Error", description: `Family "${trimmedNewName}" already exists.` });
         return;
     }
 
-    setFamilies(prev => prev.map(f => f === oldFamilyName ? trimmedNewName : f));
-    setMembers(prev => prev.map(m => m.family === oldFamilyName ? { ...m, family: trimmedNewName } : m));
-    toast({ title: "Family Updated", description: `Family "${oldFamilyName}" has been renamed to "${trimmedNewName}".` });
+    const updatedFamily = { ...family, name: trimmedNewName };
+    setFamilies(prev => prev.map(f => f.id === family.id ? updatedFamily : f));
+    setMembers(prev => prev.map(m => m.family === family.name ? { ...m, family: trimmedNewName } : m));
+    toast({ title: "Family Updated", description: `Family "${family.name}" has been renamed to "${trimmedNewName}".` });
     closeDialog();
   };
 
-  const deleteFamily = (familyName: string) => {
-    const familyMembers = members.filter(m => m.family === familyName);
+  const deleteFamily = (family: Family) => {
+    const familyMembers = members.filter(m => m.family === family.name);
     if (familyMembers.length === 0) {
-      setFamilies(prev => prev.filter(f => f !== familyName));
-      toast({ title: "Family Deleted", description: `The "${familyName}" family has been removed.` });
+      setFamilies(prev => prev.filter(f => f.id !== family.id));
+      toast({ title: "Family Deleted", description: `The "${family.name}" family has been removed.` });
     } else {
       toast({ variant: "destructive", title: "Deletion Failed", description: `Cannot delete family with ${familyMembers.length} member(s).` });
     }
   };
 
-  const addMember = (data: Omit<NewMemberData, 'useCustomContribution' | 'customContribution'>) => {
+  const addMember = (data: NewMemberData) => {
     const age = calculateAge(data.yearOfBirth);
     const tier = getTier(age);
     const fullName = [data.firstName, data.middleName, data.lastName]
@@ -222,7 +226,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       .join(' ');
     
     let member: Member = {
-      id: Date.now(),
+      id: String(Date.now()), // Temp ID
       name: fullName,
       firstName: data.firstName,
       middleName: data.middleName || '',
@@ -235,16 +239,14 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       age,
       tier,
       contribution: 0, // Will be calculated
-      useCustomContribution: false,
-      customContribution: null,
       payments: [],
       joinDate: new Date().toISOString(),
     };
     member.contribution = getContribution(member);
 
     setMembers(prev => [...prev, member]);
-    if (!families.includes(data.family)) {
-      setFamilies(prev => [...prev, data.family]);
+    if (!families.some(f => f.name === data.family)) {
+      addFamily(data.family);
     }
     toast({ title: "Member Added", description: `${fullName} has been added to the registry.` });
   };
@@ -270,14 +272,14 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     toast({ title: "Member Updated", description: `${fullName}'s details have been updated.` });
   };
 
-  const deleteMember = (id: number) => {
+  const deleteMember = (id: string) => {
     const memberName = members.find(m => m.id === id)?.name || 'Member';
     setMembers(prev => prev.filter(m => m.id !== id));
     toast({ title: "Member Deleted", description: `${memberName} has been removed.` });
   };
 
-  const recordPayment = (memberId: number, contributionId: number, paymentData: Omit<NewPaymentData, 'contributionId'>) => {
-    const newPayment: Payment = { id: Date.now(), contributionId, ...paymentData };
+  const recordPayment = (memberId: string, contributionId: string, paymentData: Omit<NewPaymentData, 'contributionId'>) => {
+    const newPayment: Payment = { id: String(Date.now()), contributionId, ...paymentData };
     setMembers(prev => prev.map(m => {
       if (m.id === memberId) {
         return { ...m, payments: [...m.payments, newPayment] };
@@ -290,7 +292,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     closeDialog();
   };
 
-  const updatePayment = (memberId: number, updatedPayment: Payment) => {
+  const updatePayment = (memberId: string, updatedPayment: Payment) => {
     setMembers(prev => prev.map(m => {
       if (m.id === memberId) {
         const updatedPayments = m.payments.map(p => p.id === updatedPayment.id ? updatedPayment : p);
@@ -302,7 +304,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     closeDialog();
   };
 
-  const deletePayment = (memberId: number, paymentId: number) => {
+  const deletePayment = (memberId: string, paymentId: string) => {
     setMembers(prev => prev.map(m => {
       if (m.id === memberId) {
         const updatedPayments = m.payments.filter(p => p.id !== paymentId);
@@ -313,8 +315,8 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     toast({ title: "Payment Deleted", description: `The payment has been removed.` });
   };
   
-  const updateSettings = (newSettings: Settings) => {
-    setSettings(newSettings);
+  const updateSettings = (newSettings: Omit<Settings, 'tier1Contribution' | 'tier2Contribution'>) => {
+    setSettings(s => ({...s, ...newSettings}));
     toast({ title: "Settings Updated", description: "Membership settings have been saved." });
   }
 
@@ -328,7 +330,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
   };
 
   const addCustomContribution = (data: NewCustomContributionData) => {
-    const newContrib: CustomContribution = { id: Date.now(), ...data };
+    const newContrib: CustomContribution = { id: String(Date.now()), ...data };
     setCustomContributions(prev => [...prev, newContrib]);
     toast({ title: "Template Added", description: `"${data.name}" has been added.` });
     recalculateTiers();
@@ -341,7 +343,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     recalculateTiers();
   };
 
-  const deleteCustomContribution = (id: number) => {
+  const deleteCustomContribution = (id: string) => {
     const contribName = customContributions.find(c => c.id === id)?.name || 'Template';
     setCustomContributions(prev => prev.filter(c => c.id !== id));
     toast({ title: "Template Deleted", description: `"${contribName}" has been removed.` });

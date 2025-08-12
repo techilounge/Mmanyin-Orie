@@ -20,6 +20,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Progress } from '../ui/progress';
+import { Member } from '@/lib/types';
 
 export function Members() {
   const { members, families, deleteMember, openDialog, getTier, settings, getPaidAmount, getBalance } = useCommunity();
@@ -27,7 +28,7 @@ export function Members() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterFamily, setFilterFamily] = useState('');
   const [filterTier, setFilterTier] = useState('');
-  const [memberToDelete, setMemberToDelete] = useState<number | null>(null);
+  const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
 
   const clearFilters = () => {
     setSearchTerm('');
@@ -56,7 +57,7 @@ export function Members() {
 
   const confirmDelete = () => {
     if (memberToDelete !== null) {
-      deleteMember(memberToDelete);
+      deleteMember(memberToDelete.id);
       setMemberToDelete(null);
     }
   };
@@ -99,9 +100,9 @@ export function Members() {
                   <SelectValue placeholder="All Families" />
                 </SelectTrigger>
                 <SelectContent>
-                  {families.sort().map((f) => (
-                    <SelectItem key={f} value={f}>
-                      {f}
+                  {families.sort((a, b) => a.name.localeCompare(b.name)).map((f) => (
+                    <SelectItem key={f.id} value={f.name}>
+                      {f.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -197,7 +198,7 @@ export function Members() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => setMemberToDelete(m.id)}
+                            onClick={() => setMemberToDelete(m)}
                             aria-label="Delete member"
                           >
                             <Trash2 size={16} className="text-destructive" />
@@ -226,7 +227,7 @@ export function Members() {
             <AlertDialogTitle className="flex items-center gap-2"><AlertCircle className="text-destructive"/>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete "
-              {members.find((x) => x.id === memberToDelete)?.name}" from the registry.
+              {memberToDelete?.name}" from the registry.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

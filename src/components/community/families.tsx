@@ -44,18 +44,18 @@ export function Families() {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
-      {families.sort().map(family => {
-        const familyMembers = members.filter(m => m.family === family);
+      {families.sort((a,b) => a.name.localeCompare(b.name)).map(family => {
+        const familyMembers = members.filter(m => m.family === family.name);
         const familyContribution = familyMembers.reduce((sum, m) => sum + m.contribution, 0);
         const familyPaid = familyMembers.reduce((sum, m) => sum + getPaidAmount(m), 0);
         
         return (
-          <Collapsible key={family} defaultOpen={false} asChild>
+          <Collapsible key={family.id} defaultOpen={false} asChild>
             <Card className="flex flex-col h-full hover:shadow-lg transition-shadow duration-300">
               <CardHeader>
                   <div className="flex justify-between items-start">
                       <div className="flex-1">
-                          <CardTitle className="text-2xl font-bold">{family} Family</CardTitle>
+                          <CardTitle className="text-2xl font-bold">{family.name} Family</CardTitle>
                           <CardDescription>Manage family members and track contributions.</CardDescription>
                       </div>
                       <div className='flex items-center'>
@@ -128,7 +128,7 @@ export function Families() {
                   </div>
                 </CardContent>
                 <CardFooter className="mt-auto border-t pt-4">
-                  <Button onClick={() => openDialog({ type: 'add-member', family })} className="w-full">
+                  <Button onClick={() => openDialog({ type: 'add-member', family: family.name })} className="w-full">
                     <Plus className="mr-2 h-4 w-4" /> Add Member
                   </Button>
                 </CardFooter>

@@ -8,6 +8,7 @@ import { Settings, Plus, Trash2, Edit } from 'lucide-react';
 import { DollarSign, Globe } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '../ui/badge';
+import { Settings as AppSettingsType } from '@/lib/types';
 
 const CURRENCIES = [
   { value: '₦', label: 'NGN (₦)' },

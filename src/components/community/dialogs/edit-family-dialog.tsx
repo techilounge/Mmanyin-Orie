@@ -27,19 +27,19 @@ export function EditFamilyDialog({ family }: EditFamilyDialogProps) {
   const formSchema = z.object({
     familyName: z.string()
       .min(1, 'Family name is required.')
-      .refine(name => name === family || !families.includes(name.trim()), {
+      .refine(name => name === family.name || !families.some(f => f.name === name.trim()), {
         message: 'This family name already exists.',
       }),
   });
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { familyName: family || '' },
+    defaultValues: { familyName: family?.name || '' },
   });
 
   useEffect(() => {
     if (family) {
-      form.setValue('familyName', family);
+      form.setValue('familyName', family.name);
     }
   }, [family, form]);
 
@@ -61,7 +61,7 @@ export function EditFamilyDialog({ family }: EditFamilyDialogProps) {
         <DialogHeader>
           <DialogTitle>Edit Family Name</DialogTitle>
           <DialogDescription>
-            Update the name for the "{family}" family.
+            Update the name for the "{family.name}" family.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>

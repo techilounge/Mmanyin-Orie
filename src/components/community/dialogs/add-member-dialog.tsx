@@ -14,6 +14,7 @@ import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { COUNTRIES } from '@/lib/countries';
+import { NewMemberData } from '@/lib/types';
 
 // Build unique options by dial code, merging names that share a code.
 // Example: "+1" => "United States / Canada (+1)"
@@ -85,7 +86,7 @@ export function AddMemberDialog() {
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     const familyName = values.family === 'new' ? values.newFamilyName! : values.family;
-    const memberData = {
+    const memberData: NewMemberData = {
         ...values,
         family: familyName,
         phoneCountryCode: values.phoneCountryCode || '',
@@ -133,7 +134,7 @@ export function AddMemberDialog() {
                         <SelectTrigger><SelectValue placeholder="Select a family" /></SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {families.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                        {families.map((f) => <SelectItem key={f.id} value={f.name}>{f.name}</SelectItem>)}
                         <SelectItem value="new">Create new family...</SelectItem>
                       </SelectContent>
                     </Select>
