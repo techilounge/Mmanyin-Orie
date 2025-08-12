@@ -24,10 +24,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [appUser, setAppUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
+    setMounted(true);
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       if (user) {
@@ -50,7 +52,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || !mounted) return;
 
     const isPublicPage = publicPaths.some(path => pathname.startsWith(path) || path === pathname);
     const isAuthPage = pathname.startsWith('/auth');
@@ -71,7 +73,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const memberships = appUser.memberships || [];
 
         if (memberships.length === 0) {
-          // New user, no communities yet.
           router.push('/subscribe');
           return;
         }
@@ -79,19 +80,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const communityId = appUser.primaryCommunityId || memberships[0];
 
         if (!communityId) {
-          // Data inconsistency, should not happen.
           router.push('/subscribe');
           return;
         }
 
-        // Check community status and redirect
         (async () => {
           try {
             const communityDocRef = doc(db, 'communities', communityId);
             const communityDoc = await getDoc(communityDocRef);
 
             if (!communityDoc.exists()) {
-              // The community they were part of was deleted.
               router.push('/subscribe');
               return;
             }
@@ -99,7 +97,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const status = communityDoc.data()?.subscription?.status;
 
             if (['active', 'trialing'].includes(status)) {
-              // TODO: Check if community needs onboarding later
               if (pathname !== `/app/${communityId}`) {
                 router.push(`/app/${communityId}`);
               }
@@ -108,21 +105,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
           } catch (error) {
             console.error("Error checking community status:", error);
-            // Fallback to a safe page if there's an error
             router.push('/subscribe');
           }
         })();
       }
     } else if (user && !appUser && !isPublicPage) {
-        // User exists in Firebase Auth, but not in Firestore 'users' collection yet.
-        // This can happen right after sign up, before the user doc is created.
-        // For now, let the skeleton loader show while we wait for the onSnapshot listener.
+      // User exists in Firebase Auth, but not in Firestore 'users' collection yet.
     }
-  }, [user, appUser, loading, router, pathname]);
+  }, [user, appUser, loading, router, pathname, mounted]);
 
-  // Show a loading skeleton while auth state is resolving, unless it's a public page that can be shown immediately.
-  const isPublicAndReady = publicPaths.some(path => pathname.startsWith(path) || path === pathname) && !loading;
-  if (loading && !isPublicAndReady) {
+  const isLoadingOrUnmounted = loading || !mounted;
+  const isPublicPage = publicPaths.some(path => pathname.startsWith(path) || path === pathname);
+
+  if (isLoadingOrUnmounted && !isPublicPage) {
      return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="p-8 space-y-4 w-full max-w-md">
