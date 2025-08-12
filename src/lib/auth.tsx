@@ -7,7 +7,7 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { usePathname, useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import type { AppUser } from '@/lib/types';
 
 interface AuthContextType {
@@ -56,7 +56,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    if (loading || !mounted) return;
+    if (!mounted || loading) return;
 
     const pathIsPublic = publicPaths.some(p => pathname === p || (p !== '/' && pathname.startsWith(p)));
     const isAuthPage = pathname.startsWith('/auth');
@@ -66,7 +66,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    if (user && appUser) {
+    if (user) {
       if (isAuthPage) {
         router.push('/app');
         return;
@@ -74,6 +74,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       const isAppEntryPoint = pathname === '/app' || pathname === '/dashboard';
       if(isAppEntryPoint) {
+        if (appUser) {
           const memberships = appUser.memberships || [];
           if (memberships.length === 0) {
             router.push('/subscribe');
@@ -85,6 +86,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             return;
           }
           router.push(`/app/${communityId}`);
+        }
       }
     }
 
@@ -106,8 +108,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     );
   }
 
-
-  return <AuthContext.Provider value={{ user, appUser, loading }}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, appUser, loading }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => {
