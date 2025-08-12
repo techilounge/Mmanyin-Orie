@@ -69,11 +69,11 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
         id: member.id,
         firstName: member.firstName,
         lastName: member.lastName,
-        middleName: member.middleName,
+        middleName: member.middleName || '',
         yearOfBirth: member.yearOfBirth,
         family: member.family,
-        email: member.email,
-        phone: member.phone,
+        email: member.email || '',
+        phone: member.phone || '',
         phoneCountryCode: member.phoneCountryCode || '+234',
       });
     }

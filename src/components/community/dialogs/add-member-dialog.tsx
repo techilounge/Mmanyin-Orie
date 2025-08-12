@@ -63,7 +63,7 @@ export function AddMemberDialog() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       firstName: '', lastName: '', middleName: '',
-      yearOfBirth: undefined,
+      yearOfBirth: '' as any, // Use empty string to avoid uncontrolled -> controlled error
       family: '', newFamilyName: '',
       email: '', phone: '', phoneCountryCode: '+234',
     },
@@ -73,14 +73,13 @@ export function AddMemberDialog() {
 
   useEffect(() => {
     if (isOpen) {
-      if (familyToAddTo) form.setValue('family', familyToAddTo);
-    } else {
       form.reset({
         firstName: '', lastName: '', middleName: '',
-        yearOfBirth: undefined,
-        family: '', newFamilyName: '',
+        yearOfBirth: '' as any,
+        family: familyToAddTo || '', newFamilyName: '',
         email: '', phone: '', phoneCountryCode: '+234',
       });
+    } else {
       setIsSubmitting(false);
     }
   }, [isOpen, familyToAddTo, form]);
