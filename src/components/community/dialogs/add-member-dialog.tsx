@@ -63,7 +63,7 @@ export function AddMemberDialog() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       firstName: '', lastName: '', middleName: '',
-      yearOfBirth: '' as any, // Initialize with empty string to avoid uncontrolled component error
+      yearOfBirth: undefined,
       family: '', newFamilyName: '',
       email: '', phone: '', phoneCountryCode: '+234',
     },
@@ -77,7 +77,7 @@ export function AddMemberDialog() {
     } else {
       form.reset({
         firstName: '', lastName: '', middleName: '',
-        yearOfBirth: '' as any,
+        yearOfBirth: undefined,
         family: '', newFamilyName: '',
         email: '', phone: '', phoneCountryCode: '+234',
       });
@@ -90,14 +90,13 @@ export function AddMemberDialog() {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
     try {
-        const familyName = values.family === 'new' ? values.newFamilyName!.trim() : values.family;
+        const isNewFamily = values.family === 'new';
         const memberData: NewMemberData = {
             ...values,
-            family: familyName,
+            family: isNewFamily ? values.newFamilyName!.trim() : values.family,
             phoneCountryCode: values.phoneCountryCode || '',
         };
-        await addMember(memberData);
-        closeDialog(); // This will also trigger the useEffect to reset the form
+        await addMember(memberData, isNewFamily ? values.newFamilyName!.trim() : undefined);
     } catch (error) {
         console.error("Failed to add member:", error);
     } finally {
@@ -152,7 +151,7 @@ export function AddMemberDialog() {
                   </FormItem>
                 )} />
 
-                {familySelection === 'new' && (
+                {familySelection === 'new' && !familyToAddTo && (
                   <FormField name="newFamilyName" control={form.control} render={({ field }) => (
                     <FormItem><FormLabel>New Family Name</FormLabel><FormControl><Input placeholder="Enter new family name" {...field} /></FormControl><FormMessage /></FormItem>
                   )} />

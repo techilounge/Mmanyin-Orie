@@ -30,7 +30,7 @@ interface CommunityContextType {
   isLoading: boolean;
   communityId: string | null;
   
-  addMember: (newMemberData: NewMemberData) => Promise<void>;
+  addMember: (newMemberData: NewMemberData, newFamilyName?: string) => Promise<void>;
   updateMember: (updatedMemberData: Member) => Promise<void>;
   deleteMember: (id: string) => Promise<void>;
   
@@ -53,7 +53,7 @@ interface CommunityContextType {
   openDialog: (state: DialogState) => void;
   closeDialog: () => void;
 
-  getContribution: (member: Omit<Member, 'id' | 'contribution'>) => number;
+  getContribution: (member: Omit<Member, 'id' | 'contribution'>, currentCustomContributions: CustomContribution[]) => number;
   getTier: (age: number) => string;
   calculateAge: (yearOfBirth: number) => number;
   getPaidAmount: (member: Member) => number;
@@ -164,8 +164,8 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     return `Group 2 (${settings.tier2Age}+)`;
   }, [settings.tier1Age, settings.tier2Age]);
 
- const getContribution = useCallback((member: Omit<Member, 'id' | 'contribution'>) => {
-    const applicableContributions = customContributions.filter(c => c.tiers.includes(member.tier));
+ const getContribution = useCallback((member: Omit<Member, 'id' | 'contribution'>, currentCustomContributions: CustomContribution[]) => {
+    const applicableContributions = currentCustomContributions.filter(c => c.tiers.includes(member.tier));
     
     return applicableContributions.reduce((sum, c) => {
         if (c.frequency === 'monthly') {
@@ -181,7 +181,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
         }
         return sum + c.amount;
     }, 0);
-  }, [customContributions]);
+  }, []);
 
   const getPaidAmount = (member: Member) => {
     if (!member.payments) return 0;
@@ -278,39 +278,45 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const addMember = async (data: NewMemberData) => {
+  const addMember = async (data: NewMemberData, newFamilyName?: string) => {
     if (!communityId) return;
-    const age = calculateAge(data.yearOfBirth);
-    const tier = getTier(age);
-    const fullName = [data.firstName, data.middleName, data.lastName]
-      .filter(part => part && part.trim())
-      .join(' ');
-    
-    const newMemberBase = {
-      name: fullName,
-      firstName: data.firstName,
-      middleName: data.middleName || '',
-      lastName: data.lastName,
-      yearOfBirth: data.yearOfBirth,
-      family: data.family,
-      email: data.email || '',
-      phone: data.phone || '',
-      phoneCountryCode: data.phoneCountryCode || '',
-      age,
-      tier,
-      payments: [],
-      joinDate: new Date().toISOString(),
-    };
-    
-    const contribution = getContribution(newMemberBase);
-    const newMember = { ...newMemberBase, contribution };
-
     try {
-        await addDoc(collection(db, `communities/${communityId}/members`), newMember);
-        if (!families.some(f => f.name === data.family)) {
-            await addFamily(data.family);
-        }
-        toast({ title: "Member Added", description: `${fullName} has been added to the registry.` });
+      let familyNameToUse = data.family;
+      if (newFamilyName && newFamilyName.trim()) {
+        const trimmedFamilyName = newFamilyName.trim();
+        await addFamily(trimmedFamilyName);
+        familyNameToUse = trimmedFamilyName;
+      }
+
+      const age = calculateAge(data.yearOfBirth);
+      const tier = getTier(age);
+      const fullName = [data.firstName, data.middleName, data.lastName]
+        .filter(part => part && part.trim())
+        .join(' ');
+
+      const newMemberBase = {
+        name: fullName,
+        firstName: data.firstName,
+        middleName: data.middleName || '',
+        lastName: data.lastName,
+        yearOfBirth: data.yearOfBirth,
+        family: familyNameToUse,
+        email: data.email || '',
+        phone: data.phone || '',
+        phoneCountryCode: data.phoneCountryCode || '',
+        age,
+        tier,
+        payments: [],
+        joinDate: new Date().toISOString(),
+      };
+      
+      const contribution = getContribution(newMemberBase, customContributions);
+      const newMember = { ...newMemberBase, contribution };
+
+      await addDoc(collection(db, `communities/${communityId}/members`), newMember);
+      
+      toast({ title: "Member Added", description: `${fullName} has been added to the registry.` });
+      closeDialog();
     } catch(error: any) {
         toast({ variant: "destructive", title: "Error adding member", description: error.message });
     }
@@ -336,7 +342,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       phone: updatedData.phone || '',
       phoneCountryCode: updatedData.phoneCountryCode || '',
     };
-    const newContribution = getContribution(tempMemberForCalc);
+    const newContribution = getContribution(tempMemberForCalc, customContributions);
 
     const memberToUpdate = {
         ...updatedData,
@@ -445,7 +451,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
         const batch = writeBatch(db);
         members.forEach(member => {
             const tier = getTier(member.age);
-            const contribution = getContribution({ ...member, tier });
+            const contribution = getContribution({ ...member, tier }, customContributions);
             if (member.tier !== tier || member.contribution !== contribution) {
                 const memberDocRef = doc(db, `communities/${communityId}/members`, member.id);
                 batch.update(memberDocRef, { tier, contribution });
