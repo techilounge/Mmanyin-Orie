@@ -104,7 +104,7 @@ export function Members() {
                   <SelectValue placeholder="All Families" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Families</SelectItem>
+                  <SelectItem value="all">All Families</SelectItem>
                   {families.sort((a, b) => a.name.localeCompare(b.name)).map((f) => (
                     <SelectItem key={f.id} value={f.name}>
                       {f.name}
@@ -118,7 +118,7 @@ export function Members() {
                   <SelectValue placeholder="All Age Groups" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Age Groups</SelectItem>
+                  <SelectItem value="all">All Age Groups</SelectItem>
                   {tierOptions.map((t) => (
                     <SelectItem key={t} value={t}>
                       {t}
