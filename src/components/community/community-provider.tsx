@@ -53,7 +53,7 @@ interface CommunityContextType {
   openDialog: (state: DialogState) => void;
   closeDialog: () => void;
 
-  getContribution: (member: Member) => number;
+  getContribution: (member: Omit<Member, 'id' | 'contribution'>) => number;
   getTier: (age: number) => string;
   calculateAge: (yearOfBirth: number) => number;
   getPaidAmount: (member: Member) => number;
@@ -164,23 +164,23 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     return `Group 2 (${settings.tier2Age}+)`;
   }, [settings.tier1Age, settings.tier2Age]);
 
-  const getContribution = useCallback((member: Member) => {
-    return customContributions
-      .filter(c => c.tiers.includes(member.tier))
-      .reduce((sum, c) => {
+ const getContribution = useCallback((member: Omit<Member, 'id' | 'contribution'>) => {
+    const applicableContributions = customContributions.filter(c => c.tiers.includes(member.tier));
+    
+    return applicableContributions.reduce((sum, c) => {
         if (c.frequency === 'monthly') {
-          const joinDate = new Date(member.joinDate);
-          const now = new Date();
-          let months = 0;
-          if (getYear(now) > getYear(joinDate)) {
-             months = (getYear(now) - getYear(joinDate) - 1) * 12 + (12 - getMonth(joinDate)) + (getMonth(now) + 1);
-          } else {
-             months = getMonth(now) - getMonth(joinDate) + 1;
-          }
-          return sum + (c.amount * Math.max(0, months));
+            const joinDate = new Date(member.joinDate);
+            const now = new Date();
+            let months = 0;
+            if (getYear(now) > getYear(joinDate)) {
+               months = (getYear(now) - getYear(joinDate) - 1) * 12 + (12 - getMonth(joinDate)) + (getMonth(now) + 1);
+            } else {
+               months = getMonth(now) - getMonth(joinDate) + 1;
+            }
+            return sum + (c.amount * Math.max(0, months));
         }
         return sum + c.amount;
-      }, 0);
+    }, 0);
   }, [customContributions]);
 
   const getPaidAmount = (member: Member) => {
@@ -197,10 +197,10 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     return member.payments
       .filter(p => {
         const matchesContribution = p.contributionId === contributionId;
+        if (month === undefined) return matchesContribution;
         const pDate = new Date(p.date);
         const pMonth = getMonth(pDate);
-        const matchesMonth = month === undefined || pMonth === month;
-        return matchesContribution && matchesMonth;
+        return matchesContribution && (p.month === month || pMonth === month);
       })
       .reduce((sum, p) => sum + p.amount, 0);
   }
@@ -219,8 +219,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     const trimmedName = familyName.trim();
     if (trimmedName && !families.some(f => f.name === trimmedName)) {
         try {
-            const familyDocRef = doc(collection(db, `communities/${communityId}/families`));
-            await setDoc(familyDocRef, { name: trimmedName });
+            await addDoc(collection(db, `communities/${communityId}/families`), { name: trimmedName });
             toast({ title: "Family Created", description: `The "${trimmedName}" family has been added.` });
         } catch (error: any) {
             toast({ variant: "destructive", title: "Error", description: error.message });
@@ -299,11 +298,11 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       phoneCountryCode: data.phoneCountryCode || '',
       age,
       tier,
-      contribution: 0,
       payments: [],
       joinDate: new Date().toISOString(),
     };
-    const contribution = getContribution({ ...newMemberBase, id: '' });
+    
+    const contribution = getContribution(newMemberBase);
     const newMember = { ...newMemberBase, contribution };
 
     try {
@@ -325,21 +324,34 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       .filter(part => part && part.trim())
       .join(' ');
     
-    const updatedMemberBase = {
+    // Create a temporary member object without ID and contribution to calculate the new contribution
+    const tempMemberForCalc = {
       ...updatedData,
       name: fullName,
       age,
       tier,
-      contribution: 0, // will be recalculated
+      joinDate: updatedData.joinDate,
+      payments: updatedData.payments || [],
+      email: updatedData.email || '',
+      phone: updatedData.phone || '',
+      phoneCountryCode: updatedData.phoneCountryCode || '',
     };
-    updatedMemberBase.contribution = getContribution(updatedMemberBase);
+    const newContribution = getContribution(tempMemberForCalc);
+
+    const memberToUpdate = {
+        ...updatedData,
+        name: fullName,
+        age,
+        tier,
+        contribution: newContribution
+    };
     
     // remove id from the object to avoid writing it to the document
-    const { id, ...memberToUpdate } = updatedMemberBase;
+    const { id, ...dataToSend } = memberToUpdate;
 
     try {
         const memberDocRef = doc(db, `communities/${communityId}/members`, id);
-        await updateDoc(memberDocRef, memberToUpdate);
+        await updateDoc(memberDocRef, dataToSend);
         closeDialog();
         toast({ title: "Member Updated", description: `${fullName}'s details have been updated.` });
     } catch (error: any) {
@@ -516,7 +528,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     getBalanceForContribution,
   }), [
     members, families, settings, customContributions, isLoading, communityId, dialogState, 
-    getTier, getContribution, calculateAge
+    getTier, getContribution, calculateAge, addFamily, addMember, updateMember, deleteMember, updateFamily, deleteFamily, updateSettings, recalculateTiers, addCustomContribution, updateCustomContribution, deleteCustomContribution, recordPayment, updatePayment, deletePayment, openDialog, closeDialog, getPaidAmount, getBalance, getPaidAmountForContribution, getBalanceForContribution
   ]);
 
   return (

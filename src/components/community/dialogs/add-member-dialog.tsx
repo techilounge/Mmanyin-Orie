@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useCommunity } from '@/hooks/use-community';
 import { Button } from '@/components/ui/button';
 import {
@@ -53,6 +53,8 @@ export function AddMemberDialog() {
   const {
     dialogState, closeDialog, addMember, families,
   } = useCommunity();
+  
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isOpen = dialogState?.type === 'add-member';
   const familyToAddTo = isOpen && (dialogState as any).family ? (dialogState as any).family as string : undefined;
@@ -79,20 +81,28 @@ export function AddMemberDialog() {
         family: '', newFamilyName: '',
         email: '', phone: '', phoneCountryCode: '+234',
       });
+      setIsSubmitting(false);
     }
   }, [isOpen, familyToAddTo, form]);
 
-  const handleClose = () => { form.reset(); closeDialog(); };
+  const handleClose = () => { if(!isSubmitting) closeDialog(); };
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    const familyName = values.family === 'new' ? values.newFamilyName! : values.family;
-    const memberData: NewMemberData = {
-        ...values,
-        family: familyName,
-        phoneCountryCode: values.phoneCountryCode || '',
-    };
-    addMember(memberData);
-    handleClose();
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    setIsSubmitting(true);
+    try {
+        const familyName = values.family === 'new' ? values.newFamilyName!.trim() : values.family;
+        const memberData: NewMemberData = {
+            ...values,
+            family: familyName,
+            phoneCountryCode: values.phoneCountryCode || '',
+        };
+        await addMember(memberData);
+        closeDialog(); // This will also trigger the useEffect to reset the form
+    } catch (error) {
+        console.error("Failed to add member:", error);
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   return (
@@ -129,12 +139,12 @@ export function AddMemberDialog() {
                 <Controller name="family" control={form.control} render={({ field }) => (
                   <FormItem>
                     <FormLabel>Family</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select value={field.value} onValueChange={field.onChange} disabled={!!familyToAddTo}>
                       <FormControl>
                         <SelectTrigger><SelectValue placeholder="Select a family" /></SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {families.map((f) => <SelectItem key={f.id} value={f.name}>{f.name}</SelectItem>)}
+                        {families.sort((a,b) => a.name.localeCompare(b.name)).map((f) => <SelectItem key={f.id} value={f.name}>{f.name}</SelectItem>)}
                         <SelectItem value="new">Create new family...</SelectItem>
                       </SelectContent>
                     </Select>
@@ -185,8 +195,10 @@ export function AddMemberDialog() {
             </ScrollArea>
 
             <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={handleClose}>Cancel</Button>
-              <Button type="submit">Add Member</Button>
+              <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>Cancel</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Adding Member...' : 'Add Member'}
+              </Button>
             </DialogFooter>
           </form>
         </Form>
