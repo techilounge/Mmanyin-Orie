@@ -55,7 +55,7 @@ const howItWorks = [
 const faqs = [
     {
         question: "Is my community's data secure?",
-        answer: "Yes, your data is stored locally in your browser, ensuring you have full control and privacy. No data is sent to external servers."
+        answer: "Yes, your data is stored securely on Firebase, with access controls to protect your privacy."
     },
     {
         question: "Can I customize the contribution amounts?",
@@ -67,7 +67,7 @@ const faqs = [
     },
      {
         question: "How do I get started?",
-        answer: "Simply click the 'Access the Dashboard' button. You can start creating families and adding members immediately with no sign-up required."
+        answer: "Simply sign up or sign in, and you'll be guided through setting up your community."
     }
 ]
 
@@ -90,7 +90,7 @@ export function LandingPage() {
                 <h1 className="text-2xl font-bold text-foreground">Mmanyin Orie</h1>
             </div>
             <Link href="/auth/sign-in">
-                <Button variant="outline">
+                <Button>
                     Sign In
                 </Button>
             </Link>
@@ -117,9 +117,9 @@ export function LandingPage() {
                     <p className="max-w-2xl text-lg text-muted-foreground sm:text-xl">
                         A modern, streamlined solution for community management. Track members, manage contributions, and organize families with ease and clarity.
                     </p>
-                    <Link href="/dashboard">
+                    <Link href="/auth/sign-up">
                         <Button size="lg" className="group bg-primary text-primary-foreground hover:bg-primary/90">
-                            Access the Dashboard
+                            Get Started for Free
                             <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
                         </Button>
                     </Link>

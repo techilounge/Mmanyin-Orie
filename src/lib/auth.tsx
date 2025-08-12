@@ -36,7 +36,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (loading) return;
 
     const isPublicPage = publicPaths.some(path => pathname.startsWith(path));
-    const isAppPage = pathname.startsWith('/app');
+    const isAuthPage = pathname.startsWith('/auth');
 
     if (!user && !isPublicPage) {
       router.push('/auth/sign-in');
@@ -44,13 +44,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     if (user) {
-      if(isPublicPage && pathname !== '/') {
-        router.push('/app'); // Redirect logged-in users from auth pages
+      if (isAuthPage) {
+        router.push('/app'); // Redirect logged-in users from auth pages to the app
         return;
       }
       
+      const isAppEntryPoint = pathname === '/app' || pathname === '/dashboard'; // dashboard is legacy
+
       // Multi-tenancy routing guard for /app/* pages
-      if(isAppPage || pathname === '/dashboard') { // dashboard is legacy, redirect to /app
+      if(isAppEntryPoint) {
         (async () => {
           // TODO: Add site_owner check later
           
@@ -75,7 +77,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const communityDoc = await getDoc(communityDocRef);
             const status = communityDoc.data()?.subscription?.status;
 
-            if (!['active', 'trialing'].includes(status)) {
+            if (!status || !['active', 'trialing'].includes(status)) {
                 router.push(`/billing/${communityId}`);
             } else {
                 // TODO: Check if community needs onboarding
