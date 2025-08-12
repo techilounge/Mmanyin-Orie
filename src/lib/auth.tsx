@@ -18,7 +18,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({ user: null, appUser: null, loading: true });
 
-const publicPaths = ['/auth/sign-in', '/auth/sign-up', '/', '/subscribe'];
+const publicPaths = ['/', '/auth/sign-in', '/auth/sign-up', '/subscribe'];
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -30,26 +30,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
       if (user) {
         const userDocRef = doc(db, 'users', user.uid);
-        const unsubUser = onSnapshot(userDocRef, (doc) => {
-          if (doc.exists()) {
-            setAppUser({ uid: doc.id, ...doc.data() } as AppUser);
-          } else {
-            setAppUser(null);
-          }
-          setLoading(false);
-        });
-        return () => unsubUser();
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          setAppUser({ uid: userDoc.id, ...userDoc.data() } as AppUser);
+        } else {
+          setAppUser(null);
+        }
       } else {
         setAppUser(null);
-        setLoading(false);
       }
+      setLoading(false);
     });
     return () => unsubscribe();
   }, []);
@@ -57,75 +51,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (loading || !mounted) return;
 
-    const isPublicPage = publicPaths.some(path => pathname.startsWith(path) || path === pathname);
+    const pathIsPublic = publicPaths.some(p => pathname === p || (p !== '/' && pathname.startsWith(p)));
+    const isAuthPage = pathname.startsWith('/auth');
 
-    // If user is not logged in, and they are trying to access a protected page,
-    // redirect them to the sign-in page.
-    if (!user && !isPublicPage) {
+    // If user is not logged in and trying to access a protected page
+    if (!user && !pathIsPublic) {
       router.push('/auth/sign-in');
       return;
     }
-    
-    // If the user is logged in, handle redirects away from auth pages
-    // and to the correct part of the app.
-    if (user) {
-      const isAuthPage = pathname.startsWith('/auth');
+
+    if (user && appUser) {
+      // If user is logged in and on an auth page, redirect them
       if (isAuthPage) {
         router.push('/app');
         return;
       }
-
-      if (appUser) {
-        const isAppEntryPoint = pathname === '/app' || pathname === '/dashboard'; // dashboard is legacy
-        if(isAppEntryPoint) {
+      
+      const isAppEntryPoint = pathname === '/app' || pathname === '/dashboard';
+      if(isAppEntryPoint) {
           const memberships = appUser.memberships || [];
-
           if (memberships.length === 0) {
             router.push('/subscribe');
             return;
           }
-
           const communityId = appUser.primaryCommunityId || memberships[0];
-
           if (!communityId) {
             router.push('/subscribe');
             return;
           }
-
-          (async () => {
-            try {
-              const communityDocRef = doc(db, 'communities', communityId);
-              const communityDoc = await getDoc(communityDocRef);
-
-              if (!communityDoc.exists()) {
-                router.push('/subscribe');
-                return;
-              }
-
-              const status = communityDoc.data()?.subscription?.status;
-
-              if (['active', 'trialing'].includes(status)) {
-                if (pathname !== `/app/${communityId}`) {
-                  router.push(`/app/${communityId}`);
-                }
-              } else {
-                router.push(`/billing/${communityId}`);
-              }
-            } catch (error) {
-              console.error("Error checking community status:", error);
-              router.push('/subscribe');
-            }
-          })();
-        }
+          router.push(`/app/${communityId}`);
       }
     }
+
   }, [user, appUser, loading, router, pathname, mounted]);
 
-  const isLoadingOrUnmounted = loading || !mounted;
-  const isPublicPage = publicPaths.some(path => pathname.startsWith(path) || path === pathname);
+  const pathIsPublic = publicPaths.some(p => pathname === p || (p !== '/' && pathname.startsWith(p)));
 
-  if (isLoadingOrUnmounted && !isPublicPage) {
-     return (
+  if (loading && !pathIsPublic) {
+    return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="p-8 space-y-4 w-full max-w-md">
           <div className="flex justify-center mb-4">
