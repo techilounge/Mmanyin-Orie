@@ -51,7 +51,7 @@ const formSchema = z.object({
 
 export function AddMemberDialog() {
   const {
-    dialogState, closeDialog, addMember, families,
+    dialogState, closeDialog, addMember, families, addFamily
   } = useCommunity();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -90,13 +90,33 @@ export function AddMemberDialog() {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
     try {
-        const isNewFamily = values.family === 'new';
+        let familyNameToUse = values.family;
+        if (values.family === 'new' && values.newFamilyName) {
+            const newFamilyNameTrimmed = values.newFamilyName.trim();
+            const success = await addFamily(newFamilyNameTrimmed);
+            if (success) {
+                familyNameToUse = newFamilyNameTrimmed;
+            } else {
+                setIsSubmitting(false);
+                return; // Stop if family creation failed
+            }
+        }
+        
         const memberData: NewMemberData = {
-            ...values,
-            family: isNewFamily ? values.newFamilyName!.trim() : values.family,
+            firstName: values.firstName,
+            lastName: values.lastName,
+            middleName: values.middleName,
+            yearOfBirth: values.yearOfBirth,
+            family: familyNameToUse,
+            email: values.email,
+            phone: values.phone,
             phoneCountryCode: values.phoneCountryCode || '',
         };
-        await addMember(memberData, isNewFamily ? values.newFamilyName!.trim() : undefined);
+        
+        const memberSuccess = await addMember(memberData);
+        if(memberSuccess) {
+            handleClose();
+        }
     } catch (error) {
         console.error("Failed to add member:", error);
     } finally {

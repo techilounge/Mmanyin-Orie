@@ -30,11 +30,11 @@ interface CommunityContextType {
   isLoading: boolean;
   communityId: string | null;
   
-  addMember: (newMemberData: NewMemberData, newFamilyName?: string) => Promise<void>;
+  addMember: (newMemberData: NewMemberData) => Promise<boolean>;
   updateMember: (updatedMemberData: Member) => Promise<void>;
   deleteMember: (id: string) => Promise<void>;
   
-  addFamily: (familyName: string) => Promise<void>;
+  addFamily: (familyName: string) => Promise<boolean>;
   updateFamily: (family: Family, newFamilyName: string) => Promise<void>;
   deleteFamily: (family: Family) => Promise<void>;
   
@@ -214,18 +214,20 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     return totalOwedForOneTime - paid;
   }
   
-  const addFamily = async (familyName: string) => {
-    if (!communityId) return;
+  const addFamily = async (familyName: string): Promise<boolean> => {
+    if (!communityId) return false;
     const trimmedName = familyName.trim();
-    if (trimmedName && !families.some(f => f.name === trimmedName)) {
-        try {
-            await addDoc(collection(db, `communities/${communityId}/families`), { name: trimmedName });
-            toast({ title: "Family Created", description: `The "${trimmedName}" family has been added.` });
-        } catch (error: any) {
-            toast({ variant: "destructive", title: "Error", description: error.message });
-        }
-    } else {
-      toast({ variant: "destructive", title: "Error", description: `Family "${trimmedName}" already exists or is invalid.` });
+    if (!trimmedName || families.some(f => f.name.toLowerCase() === trimmedName.toLowerCase())) {
+        toast({ variant: "destructive", title: "Error", description: `Family "${trimmedName}" already exists or is invalid.` });
+        return false;
+    }
+    try {
+        await addDoc(collection(db, `communities/${communityId}/families`), { name: trimmedName });
+        toast({ title: "Family Created", description: `The "${trimmedName}" family has been added.` });
+        return true;
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "Error", description: error.message });
+        return false;
     }
   };
 
@@ -278,21 +280,16 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const addMember = async (data: NewMemberData, newFamilyName?: string) => {
-    if (!communityId) return;
+  const addMember = async (data: NewMemberData): Promise<boolean> => {
+    if (!communityId) return false;
     try {
-      let familyNameToUse = data.family;
-      if (newFamilyName && newFamilyName.trim()) {
-        const trimmedFamilyName = newFamilyName.trim();
-        await addFamily(trimmedFamilyName);
-        familyNameToUse = trimmedFamilyName;
-      }
-
       const age = calculateAge(data.yearOfBirth);
       const tier = getTier(age);
       const fullName = [data.firstName, data.middleName, data.lastName]
         .filter(part => part && part.trim())
         .join(' ');
+      
+      const joinDate = new Date().toISOString();
 
       const newMemberBase = {
         name: fullName,
@@ -300,14 +297,14 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
         middleName: data.middleName || '',
         lastName: data.lastName,
         yearOfBirth: data.yearOfBirth,
-        family: familyNameToUse,
+        family: data.family,
         email: data.email || '',
         phone: data.phone || '',
         phoneCountryCode: data.phoneCountryCode || '',
         age,
         tier,
         payments: [],
-        joinDate: new Date().toISOString(),
+        joinDate: joinDate,
       };
       
       const contribution = getContribution(newMemberBase, customContributions);
@@ -316,9 +313,10 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       await addDoc(collection(db, `communities/${communityId}/members`), newMember);
       
       toast({ title: "Member Added", description: `${fullName} has been added to the registry.` });
-      closeDialog();
+      return true;
     } catch(error: any) {
         toast({ variant: "destructive", title: "Error adding member", description: error.message });
+        return false;
     }
   };
 
