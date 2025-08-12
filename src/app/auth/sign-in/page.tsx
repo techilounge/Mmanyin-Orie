@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +25,7 @@ export default function SignInPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
+      await setPersistence(auth, browserLocalPersistence);
       await signInWithEmailAndPassword(auth, email, password);
       router.push('/dashboard');
     } catch (error: any) {
@@ -41,6 +42,8 @@ export default function SignInPage() {
     setIsGoogleLoading(true);
     const provider = new GoogleAuthProvider();
     try {
+      // Set persistence to local storage
+      await setPersistence(auth, browserLocalPersistence)
       await signInWithPopup(auth, provider);
       router.push('/dashboard');
     } catch (error: any) {

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, updateProfile } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, updateProfile, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
@@ -55,6 +55,7 @@ export default function SignUpPage() {
     }
     setIsLoading(true);
     try {
+      await setPersistence(auth, browserLocalPersistence)
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(userCredential.user, { displayName: communityName });
       await createCommunityAndUser(userCredential.user, communityName);
@@ -73,6 +74,7 @@ export default function SignUpPage() {
     setIsGoogleLoading(true);
     const provider = new GoogleAuthProvider();
     try {
+      await setPersistence(auth, browserLocalPersistence);
       const userCredential = await signInWithPopup(auth, provider);
       // For Google sign-in, the community name can be derived or asked in a subsequent step.
       // For now, we'll use their display name.
