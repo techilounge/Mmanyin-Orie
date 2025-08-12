@@ -7,7 +7,7 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { usePathname, useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
-import { collection, query, where, getDocs, doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import type { AppUser } from '@/lib/types';
 
 interface AuthContextType {
@@ -30,6 +30,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       if (user) {
@@ -55,62 +58,66 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (loading || !mounted) return;
 
     const isPublicPage = publicPaths.some(path => pathname.startsWith(path) || path === pathname);
-    const isAuthPage = pathname.startsWith('/auth');
 
+    // If user is not logged in, and they are trying to access a protected page,
+    // redirect them to the sign-in page.
     if (!user && !isPublicPage) {
       router.push('/auth/sign-in');
       return;
     }
-
-    if (user && isAuthPage) {
-      router.push('/app');
-      return;
-    }
     
-    if (user && appUser) {
-      const isAppEntryPoint = pathname === '/app' || pathname === '/dashboard'; // dashboard is legacy
-      if(isAppEntryPoint) {
-        const memberships = appUser.memberships || [];
-
-        if (memberships.length === 0) {
-          router.push('/subscribe');
-          return;
-        }
-
-        const communityId = appUser.primaryCommunityId || memberships[0];
-
-        if (!communityId) {
-          router.push('/subscribe');
-          return;
-        }
-
-        (async () => {
-          try {
-            const communityDocRef = doc(db, 'communities', communityId);
-            const communityDoc = await getDoc(communityDocRef);
-
-            if (!communityDoc.exists()) {
-              router.push('/subscribe');
-              return;
-            }
-
-            const status = communityDoc.data()?.subscription?.status;
-
-            if (['active', 'trialing'].includes(status)) {
-              if (pathname !== `/app/${communityId}`) {
-                router.push(`/app/${communityId}`);
-              }
-            } else {
-              router.push(`/billing/${communityId}`);
-            }
-          } catch (error) {
-            console.error("Error checking community status:", error);
-            router.push('/subscribe');
-          }
-        })();
+    // If the user is logged in, handle redirects away from auth pages
+    // and to the correct part of the app.
+    if (user) {
+      const isAuthPage = pathname.startsWith('/auth');
+      if (isAuthPage) {
+        router.push('/app');
+        return;
       }
-    } else if (user && !appUser && !isPublicPage) {
-      // User exists in Firebase Auth, but not in Firestore 'users' collection yet.
+
+      if (appUser) {
+        const isAppEntryPoint = pathname === '/app' || pathname === '/dashboard'; // dashboard is legacy
+        if(isAppEntryPoint) {
+          const memberships = appUser.memberships || [];
+
+          if (memberships.length === 0) {
+            router.push('/subscribe');
+            return;
+          }
+
+          const communityId = appUser.primaryCommunityId || memberships[0];
+
+          if (!communityId) {
+            router.push('/subscribe');
+            return;
+          }
+
+          (async () => {
+            try {
+              const communityDocRef = doc(db, 'communities', communityId);
+              const communityDoc = await getDoc(communityDocRef);
+
+              if (!communityDoc.exists()) {
+                router.push('/subscribe');
+                return;
+              }
+
+              const status = communityDoc.data()?.subscription?.status;
+
+              if (['active', 'trialing'].includes(status)) {
+                if (pathname !== `/app/${communityId}`) {
+                  router.push(`/app/${communityId}`);
+                }
+              } else {
+                router.push(`/billing/${communityId}`);
+              }
+            } catch (error) {
+              console.error("Error checking community status:", error);
+              router.push('/subscribe');
+            }
+          })();
+        }
+      }
     }
   }, [user, appUser, loading, router, pathname, mounted]);
 
