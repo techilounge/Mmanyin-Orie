@@ -1,3 +1,4 @@
+
 'use client';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -88,7 +89,7 @@ export function LandingPage() {
                 <Image src="/logo.png" alt="Mmanyin Orie Logo" width={40} height={40} className="rounded-lg" />
                 <h1 className="text-2xl font-bold text-foreground">Mmanyin Orie</h1>
             </div>
-            <Link href="/dashboard">
+            <Link href="/auth/sign-in">
                 <Button variant="outline">
                     Sign In
                 </Button>
