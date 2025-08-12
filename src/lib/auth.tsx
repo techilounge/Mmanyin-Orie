@@ -7,19 +7,22 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { usePathname, useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
-import { collectionGroup, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import type { AppUser } from '@/lib/types';
 
 interface AuthContextType {
   user: User | null;
+  appUser: AppUser | null;
   loading: boolean;
 }
 
-const AuthContext = createContext<AuthContextType>({ user: null, loading: true });
+const AuthContext = createContext<AuthContextType>({ user: null, appUser: null, loading: true });
 
-const publicPaths = ['/auth/sign-in', '/auth/sign-up', '/'];
+const publicPaths = ['/auth/sign-in', '/auth/sign-up', '/', '/subscribe'];
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [appUser, setAppUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
@@ -27,7 +30,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
-      setLoading(false);
+      if (user) {
+        // Fetch the corresponding appUser document
+        const userDocRef = doc(db, 'users', user.uid);
+        const unsubUser = onSnapshot(userDocRef, (doc) => {
+          if (doc.exists()) {
+            setAppUser({ uid: doc.id, ...doc.data() } as AppUser);
+          } else {
+            setAppUser(null);
+          }
+          setLoading(false);
+        });
+        return () => unsubUser();
+      } else {
+        setAppUser(null);
+        setLoading(false);
+      }
     });
     return () => unsubscribe();
   }, []);
@@ -35,7 +53,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (loading) return;
 
-    const isPublicPage = publicPaths.some(path => pathname.startsWith(path));
+    const isPublicPage = publicPaths.some(path => pathname.startsWith(path) || path === pathname);
     const isAuthPage = pathname.startsWith('/auth');
 
     if (!user && !isPublicPage) {
@@ -43,7 +61,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    if (user) {
+    if (user && appUser) {
       if (isAuthPage) {
         router.push('/app'); // Redirect logged-in users from auth pages to the app
         return;
@@ -56,17 +74,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         (async () => {
           // TODO: Add site_owner check later
           
-          const membershipsQuery = query(collectionGroup(db, 'members'), where('uid', '==', user.uid));
-          const membershipsSnapshot = await getDocs(membershipsQuery);
+          const memberships = (appUser.memberships || []) as string[];
 
-          if (membershipsSnapshot.empty) {
+          if (memberships.length === 0) {
             router.push('/subscribe');
           } else {
-            const userDocRef = doc(db, 'users', user.uid);
-            const userDoc = await getDoc(userDocRef);
-            const primaryCommunityId = userDoc.data()?.primaryCommunityId;
-            
-            const communityId = primaryCommunityId || membershipsSnapshot.docs[0].ref.parent.parent?.id;
+            const primaryCommunityId = appUser.primaryCommunityId;
+            const communityId = primaryCommunityId || memberships[0];
 
             if (!communityId) {
                 router.push('/subscribe'); // Should not happen
@@ -88,10 +102,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         })();
       }
+    } else if (user && !appUser && !isPublicPage) {
+        // User exists in Firebase Auth, but not in Firestore 'users' collection yet.
+        // This can happen right after sign up, before the user doc is created.
+        // We can either wait, or redirect to a page that handles this state.
+        // For now, let's assume the creation is fast and the listener will pick it up.
+        // If they navigate away or something fails, they might get stuck.
+        // A /create-profile page could be a good failsafe.
     }
-  }, [user, loading, router, pathname]);
+  }, [user, appUser, loading, router, pathname]);
 
-  if (loading || (!user && !publicPaths.some(path => pathname.startsWith(path)))) {
+  if (loading || (!user && !publicPaths.some(path => pathname.startsWith(path) || path === pathname))) {
      return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="p-8 space-y-4">
@@ -103,7 +124,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     );
   }
 
-  return <AuthContext.Provider value={{ user, loading }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, appUser, loading }}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

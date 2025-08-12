@@ -55,6 +55,7 @@ export interface AppUser {
     primaryCommunityId?: string;
     createdAt: string;
     lastLoginAt: string;
+    memberships?: string[]; // Array of communityIds
 }
 
 export interface Community {

@@ -32,6 +32,7 @@ export default function SignUpPage() {
       photoURL: user.photoURL,
       createdAt: new Date().toISOString(),
       lastLoginAt: new Date().toISOString(),
+      memberships: [], // Start with no memberships
     };
     await setDoc(userDocRef, newUser, { merge: true });
   }
