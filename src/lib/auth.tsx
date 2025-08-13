@@ -33,21 +33,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(user);
       if (user) {
         const userDocRef = doc(db, 'users', user.uid);
-        try {
-            const docSnap = await getDoc(userDocRef);
+        const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
              if (docSnap.exists()) {
                 setAppUser({ uid: docSnap.id, ...docSnap.data() } as AppUser);
             } else {
                 setAppUser(null);
             }
-        } catch (error) {
-            console.error("Error fetching user document:", error);
+            setLoading(false);
+        }, (error) => {
+            console.error("Error listening to user document:", error);
             setAppUser(null);
-        }
+            setLoading(false);
+        });
+        return () => unsubscribeUser();
       } else {
         setAppUser(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -86,12 +88,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           router.push('/subscribe');
           return;
         }
-        // This is a temporary redirect. In the future we will check subscription status.
         router.push(`/app/${communityId}`);
       }
     } else if (user && !appUser && !isAuthPage) {
-        // User exists in auth but not in DB, maybe midway through signup.
-        // Or user deleted from DB. Let's send to sign-in to be safe.
         router.push('/auth/sign-in');
     }
 

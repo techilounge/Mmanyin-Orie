@@ -1,18 +1,17 @@
 
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, updateProfile, setPersistence, browserLocalPersistence, User as FirebaseUser } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { createUserWithEmailAndPassword, updateProfile, setPersistence, browserLocalPersistence } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Chrome } from 'lucide-react';
-import type { AppUser } from '@/lib/types';
+import { signInWithGoogle, completeGoogleRedirect, ensureUserDocument } from '@/lib/google-auth';
 
 
 export default function SignUpPage() {
@@ -24,18 +23,12 @@ export default function SignUpPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const createUserDocument = async (user: FirebaseUser, name: string) => {
-    const userDocRef = doc(db, "users", user.uid);
-    const newUser: Omit<AppUser, 'uid'> = {
-      displayName: user.displayName || name,
-      email: user.email,
-      photoURL: user.photoURL,
-      createdAt: new Date().toISOString(),
-      lastLoginAt: new Date().toISOString(),
-      memberships: [], // Start with no memberships
-    };
-    await setDoc(userDocRef, newUser, { merge: true });
-  }
+  useEffect(() => {
+    // finish redirect flows quietly
+    completeGoogleRedirect().then((res) => {
+      if (res?.user) router.push('/subscribe');
+    });
+  }, [router]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,11 +42,11 @@ export default function SignUpPage() {
     }
     setIsLoading(true);
     try {
-      await setPersistence(auth, browserLocalPersistence)
+      await setPersistence(auth, browserLocalPersistence);
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(userCredential.user, { displayName: displayName });
-      await createUserDocument(userCredential.user, displayName);
-      // The auth guard will handle redirection.
+      await ensureUserDocument(userCredential.user);
+      router.push('/subscribe');
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -66,19 +59,15 @@ export default function SignUpPage() {
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
-    const provider = new GoogleAuthProvider();
     try {
-      await setPersistence(auth, browserLocalPersistence);
-      const userCredential = await signInWithPopup(auth, provider);
-      const name = userCredential.user.displayName || 'New User';
-      await createUserDocument(userCredential.user, name);
-      // The auth guard will handle redirection.
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Google Sign In Failed',
-        description: error.message,
-      });
+      const cred = await signInWithGoogle();
+      if (cred?.user) {
+        await ensureUserDocument(cred.user);
+        router.push('/subscribe');
+      }
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Google Sign-Up failed', description: err?.message ?? 'Please try again.' });
+    } finally {
       setIsGoogleLoading(false);
     }
   };

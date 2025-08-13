@@ -14,23 +14,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { COUNTRIES } from '@/lib/countries';
+import { COUNTRY_OPTIONS } from '@/lib/countries';
 import { NewMemberData } from '@/lib/types';
-
-const COUNTRY_OPTIONS = (() => {
-  const byCode = new Map<string, string[]>();
-  for (const c of COUNTRIES) {
-    const code = String(c.code).trim();
-    const name = (c.name ?? '').trim();
-    if (!byCode.has(code)) byCode.set(code, []);
-    const list = byCode.get(code)!;
-    if (name && !list.includes(name)) list.push(name);
-  }
-  return Array.from(byCode.entries()).map(([code, names]) => ({
-    code,
-    label: `${names.join(' / ')} (${code})`,
-  }));
-})();
 
 const currentYear = new Date().getFullYear();
 const formSchema = z.object({

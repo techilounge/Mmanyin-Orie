@@ -19,22 +19,7 @@ import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Member } from '@/lib/types';
-import { COUNTRIES } from '@/lib/countries';
-
-const COUNTRY_OPTIONS = (() => {
-  const byCode = new Map<string, string[]>();
-  for (const c of COUNTRIES) {
-    const code = String(c.code).trim();
-    const name = (c.name ?? '').trim();
-    if (!byCode.has(code)) byCode.set(code, []);
-    const list = byCode.get(code)!;
-    if (name && !list.includes(name)) list.push(name);
-  }
-  return Array.from(byCode.entries()).map(([code, names]) => ({
-    code,
-    label: `${names.join(' / ')} (${code})`,
-  }));
-})();
+import { COUNTRY_OPTIONS } from '@/lib/countries';
 
 const currentYear = new Date().getFullYear();
 const formSchema = z.object({
