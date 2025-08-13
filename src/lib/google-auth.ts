@@ -52,16 +52,18 @@ export async function ensureUserDocument(user: FirebaseUser) {
   const ref = doc(db, 'users', user.uid);
   const snap = await getDoc(ref);
   if (!snap.exists()) {
-    const newUser: Omit<AppUser, 'uid'> = {
+    const newUser: Omit<AppUser, 'uid' | 'createdAt' | 'lastLoginAt'> = {
       displayName: user.displayName,
       email: user.email,
       photoURL: user.photoURL,
-      createdAt: new Date().toISOString(),
-      lastLoginAt: new Date().toISOString(),
       memberships: [],
     };
-    await setDoc(ref, newUser);
+    await setDoc(ref, {
+        ...newUser,
+        createdAt: serverTimestamp(),
+        lastLoginAt: serverTimestamp(),
+    });
   } else {
-    await setDoc(ref, { lastLoginAt: new Date().toISOString() }, { merge: true });
+    await setDoc(ref, { lastLoginAt: serverTimestamp() }, { merge: true });
   }
 }
