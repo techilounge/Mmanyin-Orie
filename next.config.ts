@@ -47,7 +47,6 @@ const nextConfig: NextConfig = {
             "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://apis.google.com https://accounts.google.com",
             "frame-src 'self' https://accounts.google.com https://*.firebaseapp.com https://*.cloudworkstations.dev",
             "connect-src 'self' https://*.firebaseio.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://apis.google.com https://accounts.google.com https://*.cloudworkstations.dev",
-            "frame-ancestors 'self'",
           ].join('; ')
         },
       ],

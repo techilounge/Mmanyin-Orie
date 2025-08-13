@@ -70,7 +70,7 @@ export function AddMemberDialog() {
 
   const handleClose = () => { if(!isSubmitting) closeDialog(); };
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>>) => {
     setIsSubmitting(true);
     try {
         let familyNameToUse = values.family;
