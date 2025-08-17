@@ -1,4 +1,3 @@
-
 'use client';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -87,7 +86,7 @@ export function LandingPage() {
         <header className="sticky top-0 z-50 flex w-full items-center justify-between p-4 sm:p-6 bg-background/80 backdrop-blur-sm">
             <div className="flex items-center space-x-3">
                 <Image src="/logo.png" alt="Mmanyin Orie Logo" width={40} height={40} className="rounded-lg" />
-                <h1 className="text-2xl font-bold text-foreground">Mmanyin Orie</h1>
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground">Mmanyin Orie</h1>
             </div>
             <div className="flex items-center gap-2">
                <Link href="/auth/sign-in">
@@ -105,7 +104,7 @@ export function LandingPage() {
 
         <main className="flex flex-1 flex-col items-center">
             {/* Hero Section */}
-            <section className="flex flex-col items-center justify-center text-center py-20 sm:py-32">
+            <section className="flex flex-col items-center justify-center text-center py-20 sm:py-32 px-4">
                 <div className="flex flex-col items-center space-y-6">
                     <div className="flex flex-col items-center space-y-4">
                         <Image 
@@ -117,7 +116,7 @@ export function LandingPage() {
                             priority
                             data-ai-hint="logo"
                         />
-                        <h1 className="text-5xl font-extrabold tracking-tight text-foreground sm:text-6xl md:text-7xl">
+                        <h1 className="text-4xl font-extrabold tracking-tight text-foreground sm:text-6xl md:text-7xl">
                             Mmanyin Orie
                         </h1>
                     </div>

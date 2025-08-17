@@ -1,4 +1,3 @@
-
 'use client';
 import { useCommunity } from '@/hooks/use-community';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,15 +7,15 @@ import { Users, Home, DollarSign, TrendingUp, TrendingDown } from 'lucide-react'
 import { Progress } from '../ui/progress';
 
 const StatCard = ({ title, value, icon: Icon, colorClass, iconBgClass }) => (
-  <Card className={`${colorClass} border-0`}>
-    <CardContent className="p-5">
+  <Card className={`${colorClass} border-0 shadow-sm`}>
+    <CardContent className="p-4 sm:p-5">
       <div className="flex items-center">
         <div className={`p-3 rounded-lg ${iconBgClass}`}>
-          <Icon className="h-8 w-8 text-primary" />
+          <Icon className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
         </div>
         <div className="ml-4">
           <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <p className="text-2xl font-bold text-foreground">{value}</p>
+          <p className="text-xl sm:text-2xl font-bold text-foreground">{value}</p>
         </div>
       </div>
     </CardContent>
@@ -47,7 +46,7 @@ export function Dashboard() {
   
   return (
     <div className="space-y-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
         <StatCard title="Total Members" value={stats.totalMembers} icon={Users} colorClass="bg-blue-100 dark:bg-blue-900/20" iconBgClass="bg-white/50 text-blue-600 dark:text-blue-400" />
         <StatCard title="Total Families" value={stats.totalFamilies} icon={Home} colorClass="bg-indigo-100 dark:bg-indigo-900/20" iconBgClass="bg-white/50 text-indigo-600 dark:text-indigo-400" />
         <StatCard title="Expected Contributions" value={`${settings.currency}${stats.totalContributions.toLocaleString()}`} icon={DollarSign} colorClass="bg-yellow-100 dark:bg-yellow-900/20" iconBgClass="bg-white/50 text-yellow-600 dark:text-yellow-400" />
@@ -65,9 +64,9 @@ export function Dashboard() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead>Family</TableHead>
+                  <TableHead className="hidden md:table-cell">Family</TableHead>
                   <TableHead>Age Group</TableHead>
-                  <TableHead>Contribution</TableHead>
+                  <TableHead className="hidden sm:table-cell">Contribution</TableHead>
                   <TableHead>Payment Status</TableHead>
                 </TableRow>
               </TableHeader>
@@ -81,25 +80,25 @@ export function Dashboard() {
                   return (
                   <TableRow key={member.id}>
                     <TableCell className="font-medium">{member.name}</TableCell>
-                    <TableCell>{member.family}</TableCell>
+                    <TableCell className="hidden md:table-cell">{member.family}</TableCell>
                     <TableCell>
                       <Badge variant={
                         tier.includes('Group 1') ? 'secondary' :
                         tier.includes('Group 2') ? 'outline' : 'default'
-                      } className={
+                      } className={`text-xs whitespace-nowrap ${
                         tier.includes('Group 1') ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200' :
                         tier.includes('Group 2') ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200' :
                         ''
-                      }>{tier}</Badge>
+                      }`}>{tier}</Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       <div className="flex items-center gap-2">
                         <span>{settings.currency}{(contribution).toLocaleString()}</span>
                       </div>
                     </TableCell>
                     <TableCell>
-                        <div className='w-40'>
-                            <div className='text-xs text-muted-foreground'>
+                        <div className='w-32 sm:w-40'>
+                            <div className='text-xs text-muted-foreground whitespace-nowrap'>
                                 {settings.currency}{paidAmount.toLocaleString()} / {settings.currency}{balance.toLocaleString()}
                             </div>
                             <Progress value={progress} className='h-2 mt-1' indicatorClassName={getPaymentStatusColor(balance, contribution)} />

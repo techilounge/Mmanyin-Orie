@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -93,7 +92,7 @@ export function Members() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="text"
-                  placeholder="Search members by name, family, or contact..."
+                  placeholder="Search members..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10"
@@ -144,13 +143,13 @@ export function Members() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[200px]">Name</TableHead>
-                  <TableHead>Family</TableHead>
-                  <TableHead>Age</TableHead>
+                  <TableHead className="w-[150px] sm:w-[200px]">Name</TableHead>
+                  <TableHead className="hidden md:table-cell">Family</TableHead>
+                  <TableHead className="hidden lg:table-cell">Age</TableHead>
                   <TableHead>Age Group</TableHead>
-                  <TableHead className="text-right">Contribution</TableHead>
-                  <TableHead className="w-[200px]">Payment Status</TableHead>
-                  <TableHead>Contact</TableHead>
+                  <TableHead className="hidden sm:table-cell text-right">Contribution</TableHead>
+                  <TableHead className="w-[150px] sm:w-[200px]">Payment Status</TableHead>
+                  <TableHead className="hidden xl:table-cell">Contact</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -167,10 +166,10 @@ export function Members() {
                   return (
                     <TableRow key={m.id}>
                       <TableCell className="font-medium">{m.name}</TableCell>
-                      <TableCell>{m.family}</TableCell>
-                      <TableCell>{m.age}</TableCell>
+                      <TableCell className="hidden md:table-cell">{m.family}</TableCell>
+                      <TableCell className="hidden lg:table-cell">{m.age}</TableCell>
                       <TableCell>
-                        <Badge variant={tier.includes('Group 1') ? 'secondary' : tier.includes('Group 2') ? 'outline' : 'default'}  className={`text-xs ${
+                        <Badge variant={tier.includes('Group 1') ? 'secondary' : tier.includes('Group 2') ? 'outline' : 'default'}  className={`text-xs whitespace-nowrap ${
                         tier.includes('Group 1') ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200' :
                         tier.includes('Group 2') ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200' :
                         ''
@@ -178,7 +177,7 @@ export function Members() {
                           {tier}
                         </Badge>
                       </TableCell>
-                       <TableCell className="text-right">
+                       <TableCell className="hidden sm:table-cell text-right">
                         <span>{settings.currency}{(contribution).toLocaleString()}</span>
                       </TableCell>
                       <TableCell>
@@ -189,7 +188,7 @@ export function Members() {
                             <Progress value={progress} className='h-2 mt-1' indicatorClassName={getPaymentStatusColor(balance, contribution)} />
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden xl:table-cell">
                         <div className="flex flex-col text-sm text-muted-foreground">
                           {m.email && <span className="truncate max-w-[150px]">{m.email}</span>}
                           {fullPhone && <span className="whitespace-nowrap">{fullPhone}</span>}

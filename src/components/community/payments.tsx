@@ -51,14 +51,14 @@ export function Payments() {
                 const paid = getPaidAmountForContribution(member, contribution.id, month);
 
                 return (
-                    <div key={month} className="flex justify-between items-center bg-background p-2 rounded-md">
-                        <div className="text-sm">
+                    <div key={month} className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-background p-2 rounded-md gap-2">
+                        <div className="text-sm flex-1">
                             <span className="font-medium">{monthName}</span>
                             <p className="text-xs text-muted-foreground">
                                 Due: {settings.currency}{contribution.amount} | Paid: {settings.currency}{paid} | Balance: {settings.currency}{balance.toFixed(2)}
                             </p>
                         </div>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 self-end sm:self-center">
                             <Button size="sm" variant="outline" onClick={() => openDialog({ type: 'record-payment', member, contribution, month })} disabled={balance <= 0}>
                                 Pay
                             </Button>
@@ -83,7 +83,7 @@ export function Payments() {
         <CardHeader>
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle>Payment Details for {member.name}</CardTitle>
+              <CardTitle className="text-xl md:text-2xl">Payment Details for {member.name}</CardTitle>
               <CardDescription>
                 Family: {member.family} | Age Group: {member.tier}
               </CardDescription>
@@ -98,16 +98,16 @@ export function Payments() {
               <Progress value={progress} className='h-2 mt-1' indicatorClassName={getPaymentStatusColor(totalBalance, totalOwed)} />
           </div>
 
-          <div className="border rounded-lg">
+          <div className="border rounded-lg overflow-x-auto">
             <Table>
                 <TableHeader>
                   <TableRow>
                       <TableHead className="w-12"></TableHead>
-                      <TableHead>Contribution Type</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                      <TableHead className="text-right">Paid</TableHead>
+                      <TableHead>Contribution</TableHead>
+                      <TableHead className="text-right hidden sm:table-cell">Amount</TableHead>
+                      <TableHead className="text-right hidden sm:table-cell">Paid</TableHead>
                       <TableHead className="text-right">Balance</TableHead>
-                      <TableHead className="text-center w-40">Actions</TableHead>
+                      <TableHead className="text-center w-32 sm:w-40">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 
@@ -149,12 +149,16 @@ export function Payments() {
                               )}
                               </TableCell>
                               <TableCell className="font-medium">
-                              {contrib.name}
-                              {isMonthly && <span className="text-xs text-muted-foreground ml-2">(Monthly)</span>}
-                              {contrib.description && <p className="text-xs text-muted-foreground max-w-xs">{contrib.description}</p>}
+                                <div className="flex flex-col">
+                                  <span>{contrib.name}</span>
+                                  {isMonthly && <span className="text-xs text-muted-foreground">(Monthly)</span>}
+                                  <div className="sm:hidden text-xs text-muted-foreground">
+                                    {settings.currency}{amount.toLocaleString()} | Paid: {settings.currency}{paid.toLocaleString()}
+                                  </div>
+                                </div>
                               </TableCell>
-                              <TableCell className="text-right">{settings.currency}{amount.toLocaleString()}</TableCell>
-                              <TableCell className="text-right text-green-600 dark:text-green-400">{settings.currency}{paid.toLocaleString()}</TableCell>
+                              <TableCell className="text-right hidden sm:table-cell">{settings.currency}{amount.toLocaleString()}</TableCell>
+                              <TableCell className="text-right hidden sm:table-cell text-green-600 dark:text-green-400">{settings.currency}{paid.toLocaleString()}</TableCell>
                               <TableCell className="text-right font-medium">{settings.currency}{balance.toLocaleString()}</TableCell>
                               <TableCell className="text-center">
                                 {!isMonthly && (
@@ -164,7 +168,7 @@ export function Payments() {
                                       size="sm"
                                       variant="outline"
                                   >
-                                      Record Payment
+                                      Record
                                   </Button>
                                 )}
                               </TableCell>
@@ -178,11 +182,11 @@ export function Payments() {
                                     (paymentsForContribution.length > 0 ? (
                                       <div className="space-y-2">
                                       {paymentsForContribution.map((payment: Payment) => (
-                                          <div key={payment.id} className="flex justify-between items-center bg-background p-2 rounded-md">
+                                          <div key={payment.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-background p-2 rounded-md gap-2">
                                           <div className="text-sm">
                                               <span className="font-medium">{settings.currency}{payment.amount.toLocaleString()}</span> on <span>{format(new Date(payment.date), "PPP")}</span>
                                           </div>
-                                          <div className="flex items-center gap-1">
+                                          <div className="flex items-center gap-1 self-end sm:self-center">
                                               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDialog({ type: 'edit-payment', member, contribution: contrib, payment })}>
                                               <Edit className="h-4 w-4" />
                                               </Button>
@@ -250,7 +254,7 @@ export function Payments() {
       {selectedMember ? (
         renderMemberPayments(selectedMember)
       ) : (
-        <div className="text-center py-12 bg-card rounded-xl shadow-md border border-dashed">
+        <div className="text-center py-12 bg-card rounded-xl shadow-sm border border-dashed">
           <Users className="mx-auto h-12 w-12 text-muted-foreground" />
           <h3 className="mt-2 text-sm font-medium text-foreground">No Member Selected</h3>
           <p className="mt-1 text-sm text-muted-foreground">Please select a member above to see their payment information.</p>

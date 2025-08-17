@@ -61,16 +61,16 @@ export function AppSettings() {
                 </CardDescription>
               </div>
               <Button onClick={() => openDialog({ type: 'add-custom-contribution' })} variant="outline">
-                <Plus /> Add Contribution
+                <Plus className="mr-2 h-4 w-4" /> Add Contribution
               </Button>
             </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {customContributions.map(contrib => (
-                <div key={contrib.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50">
+                <div key={contrib.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg hover:bg-muted/50 gap-4">
                   <div className="flex-1">
-                    <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                       <h4 className="font-medium text-foreground">{contrib.name}</h4>
                       <span className="px-3 py-1 bg-accent text-accent-foreground rounded-full text-sm font-medium">
                         {settings.currency}{contrib.amount}
@@ -90,7 +90,7 @@ export function AppSettings() {
                       <p className="text-sm text-muted-foreground mt-2">{contrib.description}</p>
                     )}
                   </div>
-                  <div className="flex items-center">
+                  <div className="flex items-center self-end sm:self-center">
                     <Button variant="ghost" size="icon" onClick={() => openDialog({ type: 'edit-custom-contribution', contribution: contrib })} aria-label="Edit Template">
                       <Edit className="h-4 w-4 text-primary" />
                     </Button>
