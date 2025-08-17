@@ -1,3 +1,4 @@
+
 'use client';
 import { useCommunity } from '@/hooks/use-community';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -75,19 +76,20 @@ export function Dashboard() {
                   const paidAmount = getPaidAmount(member);
                   const balance = getBalance(member);
                   const progress = member.contribution > 0 ? (paidAmount / member.contribution) * 100 : 0;
+                  const tier = member.tier || '';
                   return (
                   <TableRow key={member.id}>
                     <TableCell className="font-medium">{member.name}</TableCell>
                     <TableCell>{member.family}</TableCell>
                     <TableCell>
                       <Badge variant={
-                        member.tier.includes('Group 1') ? 'secondary' :
-                        member.tier.includes('Group 2') ? 'outline' : 'default'
+                        tier.includes('Group 1') ? 'secondary' :
+                        tier.includes('Group 2') ? 'outline' : 'default'
                       } className={
-                        member.tier.includes('Group 1') ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200' :
-                        member.tier.includes('Group 2') ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200' :
+                        tier.includes('Group 1') ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200' :
+                        tier.includes('Group 2') ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200' :
                         ''
-                      }>{member.tier}</Badge>
+                      }>{tier}</Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">

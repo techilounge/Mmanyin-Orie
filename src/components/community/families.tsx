@@ -1,3 +1,4 @@
+
 'use client';
 import { useCommunity } from '@/hooks/use-community';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -101,24 +102,26 @@ export function Families() {
                     </div>
 
                   <div className="space-y-2 flex-grow max-h-56 overflow-y-auto pr-2 hide-scrollbar">
-                    {familyMembers.length > 0 ? familyMembers.map(member => (
+                    {familyMembers.length > 0 ? familyMembers.map(member => {
+                      const tier = member.tier || '';
+                      return (
                       <div key={member.id} className="flex justify-between items-center text-sm p-2 rounded-md hover:bg-muted/50">
                         <span className="font-medium truncate max-w-[120px]">{member.name}</span>
                         <div className="flex items-center gap-2">
                             <Badge variant={
-                                member.tier.includes('Group 1') ? 'secondary' :
-                                member.tier.includes('Group 2') ? 'outline' : 'default'
+                                tier.includes('Group 1') ? 'secondary' :
+                                tier.includes('Group 2') ? 'outline' : 'default'
                             } className={`text-xs ${
-                                member.tier.includes('Group 1') ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200' :
-                                member.tier.includes('Group 2') ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200' :
+                                tier.includes('Group 1') ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200' :
+                                tier.includes('Group 2') ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200' :
                                 ''
-                            }`}>{member.tier}</Badge>
+                            }`}>{tier}</Badge>
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDialog({ type: 'edit-member', member })} aria-label={`Edit ${member.name}`}>
                                 <Edit className="h-4 w-4 text-primary" />
                             </Button>
                         </div>
                       </div>
-                    )) : (
+                    )}) : (
                       <div className="flex flex-col items-center justify-center h-full text-center py-8">
                          <Users className="h-10 w-10 text-muted-foreground/60 mb-2"/>
                          <p className="text-sm font-medium text-muted-foreground">No members in this family yet.</p>

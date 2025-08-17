@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -39,7 +40,7 @@ export function Members() {
   const filteredMembers = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
     return members.filter((m) => {
-      const tier = getTier(m.age);
+      const tier = m.tier || '';
       const fullPhone = `${m.phoneCountryCode || ''}${m.phone || ''}`.toLowerCase();
       const matchesSearch =
         !q ||
@@ -53,7 +54,7 @@ export function Members() {
 
       return matchesSearch && matchesFamily && matchesTier;
     });
-  }, [members, searchTerm, filterFamily, filterTier, getTier]);
+  }, [members, searchTerm, filterFamily, filterTier]);
 
   const confirmDelete = () => {
     if (memberToDelete !== null) {
@@ -64,13 +65,15 @@ export function Members() {
 
   const tierOptions = useMemo(() => {
     const dynamicTiers = new Set<string>();
-    members.forEach((m) => dynamicTiers.add(getTier(m.age)));
+    members.forEach((m) => {
+      if(m.tier) dynamicTiers.add(m.tier)
+    });
     return Array.from(dynamicTiers).sort((a,b) => {
       if (a.includes('Under')) return -1;
       if (b.includes('Under')) return 1;
       return a.localeCompare(b);
     });
-  }, [members, getTier]);
+  }, [members]);
 
 
   const getPaymentStatusColor = (balance: number, contribution: number) => {
@@ -154,7 +157,7 @@ export function Members() {
 
               <TableBody>
                 {filteredMembers.map((m) => {
-                  const tier = getTier(m.age);
+                  const tier = m.tier || '';
                   const paidAmount = getPaidAmount(m);
                   const balance = getBalance(m);
                   const progress = m.contribution > 0 ? (paidAmount / m.contribution) * 100 : 0;
