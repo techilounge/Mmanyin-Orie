@@ -26,7 +26,7 @@ const StatCard = ({ title, value, icon: Icon, colorClass, iconBgClass }) => (
 export function Dashboard() {
   const { members, families, getTier, settings, getPaidAmount, getBalance } = useCommunity();
 
-  const totalContributions = members.reduce((sum, m) => sum + m.contribution, 0);
+  const totalContributions = members.reduce((sum, m) => sum + (m.contribution || 0), 0);
   const totalPaid = members.reduce((sum, m) => sum + getPaidAmount(m), 0);
   const totalBalance = totalContributions - totalPaid;
 
@@ -73,9 +73,10 @@ export function Dashboard() {
               </TableHeader>
               <TableBody>
                 {members.slice(-5).reverse().map(member => {
+                  const contribution = member.contribution || 0;
                   const paidAmount = getPaidAmount(member);
                   const balance = getBalance(member);
-                  const progress = member.contribution > 0 ? (paidAmount / member.contribution) * 100 : 0;
+                  const progress = contribution > 0 ? (paidAmount / contribution) * 100 : 0;
                   const tier = member.tier || '';
                   return (
                   <TableRow key={member.id}>
@@ -93,7 +94,7 @@ export function Dashboard() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span>{settings.currency}{member.contribution.toLocaleString()}</span>
+                        <span>{settings.currency}{(contribution).toLocaleString()}</span>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -101,7 +102,7 @@ export function Dashboard() {
                             <div className='text-xs text-muted-foreground'>
                                 {settings.currency}{paidAmount.toLocaleString()} / {settings.currency}{balance.toLocaleString()}
                             </div>
-                            <Progress value={progress} className='h-2 mt-1' indicatorClassName={getPaymentStatusColor(balance, member.contribution)} />
+                            <Progress value={progress} className='h-2 mt-1' indicatorClassName={getPaymentStatusColor(balance, contribution)} />
                         </div>
                       </TableCell>
                   </TableRow>

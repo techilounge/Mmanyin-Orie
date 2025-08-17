@@ -47,7 +47,7 @@ export function Families() {
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
       {families.sort((a,b) => a.name.localeCompare(b.name)).map(family => {
         const familyMembers = members.filter(m => m.family === family.name);
-        const familyContribution = familyMembers.reduce((sum, m) => sum + m.contribution, 0);
+        const familyContribution = familyMembers.reduce((sum, m) => sum + (m.contribution || 0), 0);
         const familyPaid = familyMembers.reduce((sum, m) => sum + getPaidAmount(m), 0);
         
         return (

@@ -157,10 +157,11 @@ export function Members() {
 
               <TableBody>
                 {filteredMembers.map((m) => {
+                  const contribution = m.contribution || 0;
                   const tier = m.tier || '';
                   const paidAmount = getPaidAmount(m);
                   const balance = getBalance(m);
-                  const progress = m.contribution > 0 ? (paidAmount / m.contribution) * 100 : 0;
+                  const progress = contribution > 0 ? (paidAmount / contribution) * 100 : 0;
                   const fullPhone = m.phone ? `${m.phoneCountryCode} ${m.phone}` : '';
 
                   return (
@@ -178,14 +179,14 @@ export function Members() {
                         </Badge>
                       </TableCell>
                        <TableCell className="text-right">
-                        <span>{settings.currency}{m.contribution.toLocaleString()}</span>
+                        <span>{settings.currency}{(contribution).toLocaleString()}</span>
                       </TableCell>
                       <TableCell>
                         <div className='w-full'>
                             <div className='text-xs text-muted-foreground whitespace-nowrap'>
                                 Paid: {settings.currency}{paidAmount.toLocaleString()}
                             </div>
-                            <Progress value={progress} className='h-2 mt-1' indicatorClassName={getPaymentStatusColor(balance, m.contribution)} />
+                            <Progress value={progress} className='h-2 mt-1' indicatorClassName={getPaymentStatusColor(balance, contribution)} />
                         </div>
                       </TableCell>
                       <TableCell>
