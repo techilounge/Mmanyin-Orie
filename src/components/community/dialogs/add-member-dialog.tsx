@@ -15,7 +15,7 @@ import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { COUNTRY_OPTIONS } from '@/lib/countries';
-import { NewMemberData } from '@/lib/types';
+import type { NewMemberData } from '@/lib/types';
 
 const currentYear = new Date().getFullYear();
 const formSchema = z.object({
@@ -70,7 +70,7 @@ export function AddMemberDialog() {
 
   const handleClose = () => { if(!isSubmitting) closeDialog(); };
 
-  const onSubmit = async (values: z.infer<typeof formSchema>>) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
     try {
         let familyNameToUse = values.family;
