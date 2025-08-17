@@ -18,7 +18,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({ user: null, appUser: null, loading: true });
 
-const publicPaths = ['/', '/auth/sign-in', '/auth/sign-up', '/subscribe'];
+const publicPaths = ['/', '/auth/sign-in', '/auth/sign-up'];
+const isSubscribePage = (path: string) => path === '/subscribe';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -65,24 +66,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const pathIsPublic = publicPaths.some(p => pathname === p || (p !== '/' && pathname.startsWith(p)));
     const isAuthPage = pathname.startsWith('/auth');
 
-    if (!user && !pathIsPublic) {
+    if (!user && !pathIsPublic && !isSubscribePage(pathname)) {
       router.push('/auth/sign-in');
       return;
     }
-
+    
     if (user && appUser) {
       if (isAuthPage) {
         router.push('/app');
         return;
       }
       
+      const memberships = appUser.memberships || [];
+      if (memberships.length === 0 && !isSubscribePage(pathname)) {
+        router.push('/subscribe');
+        return;
+      }
+
+      if (memberships.length > 0 && isSubscribePage(pathname)) {
+        router.push('/app');
+        return;
+      }
+
       const isAppEntryPoint = pathname === '/app' || pathname === '/dashboard';
       if(isAppEntryPoint) {
-        const memberships = appUser.memberships || [];
-        if (memberships.length === 0) {
-          router.push('/subscribe');
-          return;
-        }
         const communityId = appUser.primaryCommunityId || memberships[0];
         if (!communityId) {
           router.push('/subscribe');
@@ -90,7 +97,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         router.push(`/app/${communityId}`);
       }
-    } else if (user && !appUser && !isAuthPage) {
+    } else if (user && !appUser && !isAuthPage && !isSubscribePage(pathname)) {
         router.push('/auth/sign-in');
     }
 
@@ -100,9 +107,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return null;
   }
   
-  const pathIsPublic = publicPaths.some(p => pathname === p || (p !== '/' && pathname.startsWith(p)));
+  const pathIsPublicOrSubscribe = publicPaths.some(p => pathname === p || (p !== '/' && pathname.startsWith(p))) || isSubscribePage(pathname);
 
-  if (loading && !pathIsPublic) {
+  if (loading && !pathIsPublicOrSubscribe) {
      return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="p-8 space-y-4 w-full max-w-md">
