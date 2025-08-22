@@ -1,0 +1,62 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+  
+    function isOwner(communityId) {
+      return get(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)).data.role == 'owner';
+    }
+    
+    function isAdmin(communityId) {
+      let userRole = get(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)).data.role;
+      return userRole == 'admin' || userRole == 'owner';
+    }
+
+    function isMember(communityId) {
+        return exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid));
+    }
+    
+    function subscriptionActive(communityId) {
+      let subStatus = get(/databases/$(database)/documents/communities/$(communityId)).data.subscription.status;
+      return subStatus == 'active' || subStatus == 'trialing';
+    }
+
+    match /users/{userId} {
+      allow read: if request.auth.uid == userId;
+      allow create: if request.auth.uid == userId;
+      allow update: if request.auth.uid == userId;
+    }
+    
+    match /communities/{communityId} {
+      allow read: if isMember(communityId);
+      allow create: if request.auth.uid == request.resource.data.ownerUid;
+      allow write: if (isMember(communityId) && subscriptionActive(communityId));
+      
+      match /members/{memberId} {
+        allow read: if isMember(communityId);
+        allow create: if isAdmin(communityId);
+        allow update: if isAdmin(communityId) || request.auth.uid == memberId;
+        allow delete: if isOwner(communityId);
+      }
+      
+      match /families/{familyId} {
+        allow read: if isMember(communityId);
+        allow create: if isAdmin(communityId);
+        allow update: if isAdmin(communityId);
+        allow delete: if isOwner(communityId);
+      }
+      
+      match /contributions/{contributionId} {
+        allow read: if isMember(communityId);
+        allow create, update: if isAdmin(communityId);
+        allow delete: if isOwner(communityId);
+      }
+    }
+    
+    match /invitations/{inviteId} {
+        allow read: if request.auth != null;
+        allow create: if isAdmin(request.resource.data.communityId);
+        allow update: if request.auth.uid == resource.data.acceptedByUid || isAdmin(resource.data.communityId);
+    }
+  }
+}
