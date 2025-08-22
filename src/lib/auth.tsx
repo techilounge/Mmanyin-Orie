@@ -18,7 +18,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({ user: null, appUser: null, loading: true });
 
-const publicPaths = ['/', '/auth/sign-in', '/auth/sign-up'];
+const publicPaths = ['/', '/auth/sign-in', '/auth/sign-up', '/auth/accept-invite'];
 const isSubscribePage = (path: string) => path === '/subscribe';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -72,13 +72,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     
     if (user && appUser) {
-      if (isAuthPage) {
+      if (isAuthPage && !pathname.startsWith('/auth/accept-invite')) {
         router.push('/app');
         return;
       }
       
       const memberships = appUser.memberships || [];
-      if (memberships.length === 0 && !isSubscribePage(pathname)) {
+      if (memberships.length === 0 && !isSubscribePage(pathname) && !pathname.startsWith('/auth/accept-invite')) {
         router.push('/subscribe');
         return;
       }

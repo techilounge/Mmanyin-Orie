@@ -2,7 +2,7 @@
 'use client';
 import type { ReactNode } from 'react';
 import React, { createContext, useState, useEffect, useMemo, useCallback } from 'react';
-import type { Member, Family, Settings, CustomContribution, NewMemberData, NewCustomContributionData, DialogState, NewPaymentData, Payment } from '@/lib/types';
+import type { Member, Family, Settings, CustomContribution, NewMemberData, NewCustomContributionData, DialogState, NewPaymentData, Payment, Invitation } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getMonth, getYear } from 'date-fns';
 import { useAuth } from '@/lib/auth';
@@ -30,8 +30,9 @@ interface CommunityContextType {
   customContributions: CustomContribution[];
   isLoading: boolean;
   communityId: string | null;
+  communityName: string;
   
-  addMember: (newMemberData: NewMemberData) => Promise<boolean>;
+  inviteMember: (newMemberData: NewMemberData) => Promise<string | null>;
   updateMember: (updatedMemberData: Member) => Promise<void>;
   deleteMember: (id: string) => Promise<void>;
   
@@ -77,6 +78,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
   const [families, setFamilies] = useState<Family[]>([]);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [customContributions, setCustomContributions] = useState<CustomContribution[]>([]);
+  const [communityName, setCommunityName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   
   const { toast } = useToast();
@@ -93,6 +95,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         setFamilies([]);
         setCustomContributions([]);
         setSettings(DEFAULT_SETTINGS);
+        setCommunityName('');
         return;
     }
     
@@ -121,6 +124,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
                 tier2Age: communityData.tier2Age || DEFAULT_SETTINGS.tier2Age,
                 currency: communityData.currency || DEFAULT_SETTINGS.currency
             });
+            setCommunityName(communityData.name || '');
         }
       })
     ];
@@ -269,48 +273,76 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     }
   };
 
-  const addMember = async (data: NewMemberData): Promise<boolean> => {
-    if (!activeCommunityId) return false;
+  const inviteMember = async (data: NewMemberData): Promise<string | null> => {
+    if (!activeCommunityId || !user) return null;
     try {
-      const age = calculateAge(data.yearOfBirth);
-      const tier = getTier(age);
-      const fullName = [data.firstName, data.middleName, data.lastName]
-        .filter(part => part && part.trim())
-        .join(' ');
-      
-      const joinDate = new Date().toISOString();
+        const age = calculateAge(data.yearOfBirth);
+        const tier = getTier(age);
+        const fullName = [data.firstName, data.middleName, data.lastName]
+            .filter(part => part && part.trim())
+            .join(' ');
+        
+        const joinDate = new Date().toISOString();
 
-      const newMemberBase = {
-        name: fullName,
-        firstName: data.firstName,
-        middleName: data.middleName || '',
-        lastName: data.lastName,
-        yearOfBirth: data.yearOfBirth,
-        family: data.family,
-        email: data.email || '',
-        phone: data.phone || '',
-        phoneCountryCode: data.phoneCountryCode || '',
-        age,
-        tier,
-        payments: [],
-        joinDate: joinDate,
-        role: 'user' as const, // All new members are users by default
-        uid: doc(collection(db, 'dummy')).id, // Placeholder, should be linked to an actual user
-      };
-      
-      const contribution = getContribution(newMemberBase, customContributions);
-      const newMember = { ...newMemberBase, contribution };
-      
-      const docRef = doc(collection(db, `communities/${activeCommunityId}/members`));
-      await setDoc(docRef, newMember);
-      
-      toast({ title: "Member Added", description: `${fullName} has been added to the registry.` });
-      return true;
+        const memberDocRef = doc(collection(db, `communities/${activeCommunityId}/members`));
+        const inviteDocRef = doc(collection(db, 'invitations'));
+        
+        const batch = writeBatch(db);
+
+        const newMemberBase = {
+            name: fullName,
+            firstName: data.firstName,
+            middleName: data.middleName || '',
+            lastName: data.lastName,
+            yearOfBirth: data.yearOfBirth,
+            family: data.family,
+            email: data.email,
+            phone: data.phone || '',
+            phoneCountryCode: data.phoneCountryCode || '',
+            age,
+            tier,
+            payments: [],
+            joinDate: joinDate,
+            role: 'user' as const,
+            status: 'invited' as const,
+            uid: null,
+        };
+        
+        const contribution = getContribution(newMemberBase, customContributions);
+        const newMember = { ...newMemberBase, contribution };
+        
+        batch.set(memberDocRef, newMember);
+
+        const newInvitation: Invitation = {
+            communityId: activeCommunityId,
+            communityName: communityName,
+            memberId: memberDocRef.id,
+            email: data.email,
+            firstName: data.firstName,
+            lastName: data.lastName,
+            role: 'user',
+            status: 'pending',
+            createdAt: new Date().toISOString(),
+            createdBy: user.uid,
+        };
+
+        batch.set(inviteDocRef, newInvitation);
+
+        await batch.commit();
+        
+        const inviteLink = `${window.location.origin}/auth/accept-invite?token=${inviteDocRef.id}`;
+
+        toast({ 
+            title: "Member Invited", 
+            description: `${fullName} has been invited. Share the link with them to join.`
+        });
+        return inviteLink;
+
     } catch(error: any) {
-        toast({ variant: "destructive", title: "Error adding member", description: error.message });
-        return false;
+        toast({ variant: "destructive", title: "Error inviting member", description: error.message });
+        return null;
     }
-  };
+};
 
   const updateMember = async (updatedData: Member) => {
     if (!activeCommunityId) return;
@@ -331,7 +363,8 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
       phone: updatedData.phone || '',
       phoneCountryCode: updatedData.phoneCountryCode || '',
       role: updatedData.role,
-      uid: updatedData.uid
+      uid: updatedData.uid,
+      status: updatedData.status
     };
     const newContribution = getContribution(tempMemberForCalc, customContributions);
 
@@ -498,7 +531,8 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     customContributions,
     isLoading,
     communityId: activeCommunityId,
-    addMember,
+    communityName,
+    inviteMember,
     updateMember,
     deleteMember,
     addFamily,
@@ -523,8 +557,8 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     getPaidAmountForContribution,
     getBalanceForContribution,
   }), [
-    members, families, settings, customContributions, isLoading, activeCommunityId, dialogState, 
-    getTier, getContribution, calculateAge, addFamily, addMember, updateMember, deleteMember, updateFamily, deleteFamily, updateSettings, recalculateTiers, addCustomContribution, updateCustomContribution, deleteCustomContribution, recordPayment, updatePayment, deletePayment, openDialog, closeDialog, getPaidAmount, getBalance, getPaidAmountForContribution, getBalanceForContribution
+    members, families, settings, customContributions, isLoading, activeCommunityId, communityName, dialogState, 
+    getTier, getContribution, calculateAge, addFamily, inviteMember, updateMember, deleteMember, updateFamily, deleteFamily, updateSettings, recalculateTiers, addCustomContribution, updateCustomContribution, deleteCustomContribution, recordPayment, updatePayment, deletePayment, openDialog, closeDialog, getPaidAmount, getBalance, getPaidAmountForContribution, getBalanceForContribution
   ]);
 
   return (

@@ -16,6 +16,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { COUNTRY_OPTIONS } from '@/lib/countries';
 import type { NewMemberData } from '@/lib/types';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Check, Copy, PartyPopper } from 'lucide-react';
 
 const currentYear = new Date().getFullYear();
 const formSchema = z.object({
@@ -25,7 +27,7 @@ const formSchema = z.object({
   yearOfBirth: z.coerce.number().int().min(1900, 'Invalid year.').max(currentYear, 'Year cannot be in the future.'),
   family: z.string().min(1, 'Family is required.'),
   newFamilyName: z.string().optional(),
-  email: z.string().email('Invalid email address.').optional().or(z.literal('')),
+  email: z.string().email('A valid email is required to send an invitation.'),
   phone: z.string().optional(),
   phoneCountryCode: z.string().optional(),
 }).refine(
@@ -35,10 +37,13 @@ const formSchema = z.object({
 
 export function AddMemberDialog() {
   const {
-    dialogState, closeDialog, addMember, families, addFamily
+    dialogState, closeDialog, inviteMember, families, addFamily
   } = useCommunity();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [hasCopied, setHasCopied] = useState(false);
+
 
   const isOpen = dialogState?.type === 'add-member';
   const familyToAddTo = isOpen && (dialogState as any).family ? (dialogState as any).family as string : undefined;
@@ -63,6 +68,8 @@ export function AddMemberDialog() {
         family: familyToAddTo || '', newFamilyName: '',
         email: '', phone: '', phoneCountryCode: '+234',
       });
+      setInviteLink(null);
+      setHasCopied(false);
     } else {
       setIsSubmitting(false);
     }
@@ -96,24 +103,60 @@ export function AddMemberDialog() {
             phoneCountryCode: values.phoneCountryCode || '',
         };
         
-        const memberSuccess = await addMember(memberData);
-        if(memberSuccess) {
-            handleClose();
+        const link = await inviteMember(memberData);
+        if(link) {
+            setInviteLink(link);
         }
     } catch (error) {
-        console.error("Failed to add member:", error);
+        console.error("Failed to invite member:", error);
     } finally {
         setIsSubmitting(false);
     }
   };
 
+  const copyToClipboard = () => {
+    if (inviteLink) {
+        navigator.clipboard.writeText(inviteLink);
+        setHasCopied(true);
+        setTimeout(() => setHasCopied(false), 2000);
+    }
+  };
+
+  if (inviteLink) {
+    return (
+       <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
+        <DialogContent className="max-w-md">
+            <DialogHeader>
+                <DialogTitle className="flex items-center gap-2"><PartyPopper className="text-primary"/>Invitation Sent!</DialogTitle>
+                <DialogDescription>
+                    The invitation is ready. Copy the link below and share it with the new member.
+                </DialogDescription>
+            </DialogHeader>
+            <Alert>
+                <AlertTitle>Shareable Invite Link</AlertTitle>
+                <AlertDescription className="break-all text-primary">
+                    {inviteLink}
+                </AlertDescription>
+            </Alert>
+            <DialogFooter className="sm:justify-between gap-2">
+                <Button variant="outline" onClick={handleClose}>Done</Button>
+                <Button onClick={copyToClipboard}>
+                    {hasCopied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
+                    {hasCopied ? 'Copied!' : 'Copy Link'}
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+       </Dialog>
+    )
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Add New Member</DialogTitle>
+          <DialogTitle>Invite New Member</DialogTitle>
           <DialogDescription>
-            {familyToAddTo ? `Adding a member to the ${familyToAddTo} family.` : 'Fill in the details to add a new member.'}
+            {familyToAddTo ? `Inviting a member to the ${familyToAddTo} family.` : 'Fill in the details to invite a new member.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -161,7 +204,7 @@ export function AddMemberDialog() {
                 )}
 
                 <FormField name="email" control={form.control} render={({ field }) => (
-                  <FormItem><FormLabel>Email <span className="text-muted-foreground">(optional)</span></FormLabel><FormControl><Input type="email" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                  <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                 )} />
                 
                 <FormItem>
@@ -199,7 +242,7 @@ export function AddMemberDialog() {
             <DialogFooter className="pt-4">
               <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>Cancel</Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Adding Member...' : 'Add Member'}
+                {isSubmitting ? 'Sending Invite...' : 'Invite Member'}
               </Button>
             </DialogFooter>
           </form>

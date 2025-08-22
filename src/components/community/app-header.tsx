@@ -1,7 +1,8 @@
+
 'use client';
 import { Button } from '@/components/ui/button';
 import { useCommunity } from '@/hooks/use-community';
-import { Home, Plus, DollarSign } from 'lucide-react';
+import { Home, UserPlus, DollarSign } from 'lucide-react';
 import Image from 'next/image';
 
 export function AppHeader({ setActiveTab }: { setActiveTab: (tab: string) => void; }) {
@@ -29,8 +30,8 @@ export function AppHeader({ setActiveTab }: { setActiveTab: (tab: string) => voi
               className="bg-gradient-to-r from-primary to-indigo-600 text-white shadow-md hover:opacity-90 transition-opacity"
                size="sm"
             >
-              <Plus className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Add Member</span>
+              <UserPlus className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Invite Member</span>
             </Button>
              <Button
               onClick={() => setActiveTab('payments')}

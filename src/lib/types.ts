@@ -24,7 +24,8 @@ export interface Member {
   payments: Payment[];
   joinDate: string; // ISO date string
   role: 'owner' | 'admin' | 'user';
-  uid: string;
+  status: 'active' | 'invited';
+  uid: string | null; // Firebase Auth UID, null if invited but not yet signed up
 }
 
 export interface Family {
@@ -75,9 +76,24 @@ export interface Community {
     };
 }
 
+export interface Invitation {
+    communityId: string;
+    communityName: string;
+    memberId: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: 'user' | 'admin';
+    status: 'pending' | 'accepted';
+    createdAt: string; // ISO date string
+    createdBy: string; // UID of admin/owner
+    acceptedAt?: string;
+    acceptedByUid?: string;
+}
+
 
 // Data for creating a new document, omitting the ID
-export type NewMemberData = Omit<Member, 'id' | 'name' | 'age' | 'tier' | 'contribution' | 'payments' | 'joinDate' | 'role' | 'uid'>;
+export type NewMemberData = Omit<Member, 'id' | 'name' | 'age' | 'tier' | 'contribution' | 'payments' | 'joinDate' | 'role' | 'uid' | 'status'>;
 export type NewPaymentData = Omit<Payment, 'id'>;
 export type NewCustomContributionData = Omit<CustomContribution, 'id'>;
 

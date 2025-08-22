@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Search, Edit, Trash2, Users, AlertCircle, X, Shield, Crown, User } from 'lucide-react';
+import { Search, Edit, Trash2, Users, AlertCircle, X, Shield, Crown, User, Clock } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Progress } from '../ui/progress';
 import type { Member } from '@/lib/types';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 const roleIcons = {
   owner: <Crown size={14} className="text-amber-500" />,
@@ -172,14 +173,31 @@ export function Members() {
                   const contribution = m.contribution || 0;
                   const tier = m.tier || '';
                   const role = m.role || 'user';
+                  const status = m.status || 'active';
                   const paidAmount = getPaidAmount(m);
                   const balance = getBalance(m);
                   const progress = contribution > 0 ? (paidAmount / contribution) * 100 : 0;
                   const fullPhone = m.phone ? `${m.phoneCountryCode} ${m.phone}` : '';
 
                   return (
-                    <TableRow key={m.id}>
-                      <TableCell className="font-medium">{m.name}</TableCell>
+                    <TableRow key={m.id} className={status === 'invited' ? 'bg-muted/30' : ''}>
+                      <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                             <span>{m.name}</span>
+                             {status === 'invited' && (
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger>
+                                            <Clock size={14} className="text-muted-foreground" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Awaiting user to accept invitation.</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                             )}
+                          </div>
+                      </TableCell>
                       <TableCell className="hidden md:table-cell">{m.family}</TableCell>
                       <TableCell className="hidden lg:table-cell">
                         <Badge variant="outline" className={`capitalize ${roleColors[role]}`}>

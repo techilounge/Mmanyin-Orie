@@ -12,7 +12,7 @@ import {
   UserCredential,
   User as FirebaseUser
 } from 'firebase/auth';
-import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import type { AppUser } from '@/lib/types';
 
 
@@ -48,7 +48,7 @@ export async function completeGoogleRedirect(): Promise<UserCredential | null> {
   return result;
 }
 
-export async function ensureUserDocument(user: FirebaseUser) {
+export async function ensureUserDocument(user: FirebaseUser, extraData?: Partial<AppUser>) {
   const ref = doc(db, 'users', user.uid);
   const snap = await getDoc(ref);
   if (!snap.exists()) {
@@ -57,6 +57,7 @@ export async function ensureUserDocument(user: FirebaseUser) {
       email: user.email,
       photoURL: user.photoURL,
       memberships: [],
+      ...extraData,
     };
     await setDoc(ref, {
         ...newUser,
@@ -64,6 +65,10 @@ export async function ensureUserDocument(user: FirebaseUser) {
         lastLoginAt: serverTimestamp(),
     });
   } else {
-    await setDoc(ref, { lastLoginAt: serverTimestamp() }, { merge: true });
+    const updateData = { 
+        lastLoginAt: serverTimestamp(),
+        ...extraData
+    };
+    await updateDoc(ref, updateData);
   }
 }
