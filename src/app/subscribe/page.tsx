@@ -56,7 +56,7 @@ export default function SubscribePage() {
                     name: `${user.displayName || 'My'} Community`,
                     slug: `${user.uid}-community`,
                     ownerUid: user.uid,
-                    timezone: 'America/New_York', // Added default timezone
+                    timezone: 'America/New_York',
                     createdAt: serverTimestamp(),
                     updatedAt: serverTimestamp(),
                     subscription: {
@@ -66,7 +66,7 @@ export default function SubscribePage() {
                         stripeSubId: null,
                         currentPeriodEnd: null,
                     },
-                } as Omit<Community, 'id'>);
+                });
 
                 // 2. Add the user as a member of the new community
                 const memberRef = doc(db, 'communities', communityRef.id, 'members', user.uid);
