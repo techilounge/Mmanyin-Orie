@@ -54,8 +54,8 @@ export interface AppUser {
     email: string | null;
     photoURL: string | null;
     primaryCommunityId?: string;
-    createdAt: string;
-    lastLoginAt: string;
+    createdAt: any;
+    lastLoginAt: any;
     memberships?: string[]; // Array of communityIds
 }
 
@@ -65,14 +65,14 @@ export interface Community {
     slug: string;
     ownerUid: string;
     timezone: string;
-    createdAt: string;
-    updatedAt: string;
+    createdAt: any;
+    updatedAt: any;
     subscription: {
         status: 'active' | 'trialing' | 'past_due' | 'canceled' | 'incomplete';
         planId: string | null;
         stripeCustomerId: string | null;
         stripeSubId: string | null;
-        currentPeriodEnd: string | null; // ISO date string
+        currentPeriodEnd: any; // Can be null or a timestamp
     };
 }
 
@@ -85,9 +85,9 @@ export interface Invitation {
     lastName: string;
     role: 'user' | 'admin';
     status: 'pending' | 'accepted';
-    createdAt: string; // ISO date string
+    createdAt: any;
     createdBy: string; // UID of admin/owner
-    acceptedAt?: string;
+    acceptedAt?: any;
     acceptedByUid?: string;
 }
 
