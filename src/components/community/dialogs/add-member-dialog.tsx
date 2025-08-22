@@ -23,7 +23,7 @@ const currentYear = new Date().getFullYear();
 const formSchema = z.object({
   firstName: z.string().min(1, 'First name is required.'),
   lastName: z.string().min(1, 'Last name is required.'),
-  middleName: z.string().optional(),
+  middleName: z.string().trim().default(''),
   yearOfBirth: z.coerce.number().int().min(1900, 'Invalid year.').max(currentYear, 'Year cannot be in the future.'),
   family: z.string().min(1, 'Family is required.'),
   newFamilyName: z.string().optional(),

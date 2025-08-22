@@ -26,7 +26,7 @@ const formSchema = z.object({
   id: z.string(),
   firstName: z.string().min(1, 'First name is required.'),
   lastName: z.string().min(1, 'Last name is required.'),
-  middleName: z.string().optional(),
+  middleName: z.string().trim().default(''),
   yearOfBirth: z.coerce.number().int().min(1900, 'Invalid year.').max(currentYear, `Year cannot be in the future.`),
   family: z.string().min(1, 'Family is required.'),
   email: z.string().email('Invalid email address.').optional().or(z.literal('')),
