@@ -56,6 +56,7 @@ export default function SubscribePage() {
                     name: `${user.displayName || 'My'} Community`,
                     slug: `${user.uid}-community`,
                     ownerUid: user.uid,
+                    timezone: 'America/New_York', // Added default timezone
                     createdAt: serverTimestamp(),
                     updatedAt: serverTimestamp(),
                     subscription: {
@@ -74,6 +75,7 @@ export default function SubscribePage() {
                      name: user.displayName,
                      email: user.email,
                      role: 'owner',
+                     status: 'active',
                      joinDate: new Date().toISOString(),
                 });
 
