@@ -66,7 +66,9 @@ export function AddMemberDialog() {
   useEffect(() => {
     if (isOpen) {
       const familyName = familyToAddTo || '';
-      const familyDetails = families.find(f => f.name === familyName);
+      // The family name is "FirstName LastName", so we extract the last name.
+      const lastName = familyName.split(' ').slice(1).join(' ');
+      
       form.reset({
         firstName: '',
         lastName: '',
@@ -82,7 +84,7 @@ export function AddMemberDialog() {
     } else {
       setIsSubmitting(false);
     }
-  }, [isOpen, familyToAddTo, form, families]);
+  }, [isOpen, familyToAddTo, form]);
 
   const handleClose = () => { if(!isSubmitting) closeDialog(); };
 
@@ -168,7 +170,7 @@ export function AddMemberDialog() {
                     <FormItem><FormLabel>First Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
                   <FormField name="lastName" control={form.control} render={({ field }) => (
-                    <FormItem><FormLabel>Last Name</FormLabel><FormControl><Input {...field} readOnly={!!familyToAddTo} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Last Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
                 </div>
 
