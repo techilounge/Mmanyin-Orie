@@ -33,6 +33,7 @@ interface CommunityContextType {
   communityName: string;
   
   inviteMember: (newMemberData: NewMemberData) => Promise<string | null>;
+  getInviteLink: (memberId: string) => Promise<string | null>;
   updateMember: (updatedMemberData: Member) => Promise<void>;
   deleteMember: (id: string) => Promise<void>;
   
@@ -172,7 +173,8 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
   }
 
   const getBalance = (member: Member) => {
-    return member.contribution - getPaidAmount(member);
+    const contribution = member.contribution || 0;
+    return contribution - getPaidAmount(member);
   }
 
   const getPaidAmountForContribution = (member: Member, contributionId: string, month?: number) => {
@@ -270,6 +272,25 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         }
     } else {
       toast({ variant: "destructive", title: "Deletion Failed", description: `Cannot delete family with ${familyMembersSnapshot.size} member(s).` });
+    }
+  };
+
+  const getInviteLink = async (memberId: string): Promise<string | null> => {
+    if (!activeCommunityId) return null;
+    try {
+        const q = query(collection(db, 'invitations'), where('memberId', '==', memberId), where('communityId', '==', activeCommunityId));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+            toast({ variant: "destructive", title: "Not Found", description: "No pending invitation found for this member." });
+            return null;
+        }
+        
+        const inviteId = querySnapshot.docs[0].id;
+        return `${window.location.origin}/auth/accept-invite?token=${inviteId}`;
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "Error", description: "Could not retrieve invitation link."});
+        return null;
     }
   };
 
@@ -533,6 +554,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     communityId: activeCommunityId,
     communityName,
     inviteMember,
+    getInviteLink,
     updateMember,
     deleteMember,
     addFamily,
@@ -558,7 +580,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     getBalanceForContribution,
   }), [
     members, families, settings, customContributions, isLoading, activeCommunityId, communityName, dialogState, 
-    getTier, getContribution, calculateAge, addFamily, inviteMember, updateMember, deleteMember, updateFamily, deleteFamily, updateSettings, recalculateTiers, addCustomContribution, updateCustomContribution, deleteCustomContribution, recordPayment, updatePayment, deletePayment, openDialog, closeDialog, getPaidAmount, getBalance, getPaidAmountForContribution, getBalanceForContribution
+    getTier, getContribution, calculateAge, addFamily, inviteMember, getInviteLink, updateMember, deleteMember, updateFamily, deleteFamily, updateSettings, recalculateTiers, addCustomContribution, updateCustomContribution, deleteCustomContribution, recordPayment, updatePayment, deletePayment, openDialog, closeDialog, getPaidAmount, getBalance, getPaidAmountForContribution, getBalanceForContribution
   ]);
 
   return (

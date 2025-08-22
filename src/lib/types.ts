@@ -103,6 +103,7 @@ export type DialogState =
   | { type: 'edit-family', family: Family }
   | { type: 'add-member', family?: string }
   | { type: 'edit-member', member: Member }
+  | { type: 'resend-invite', member: Member }
   | { type: 'record-payment', member: Member, contribution: CustomContribution, month?: number }
   | { type: 'edit-payment', member: Member, contribution: CustomContribution, payment: Payment }
   | { type: 'add-custom-contribution' }

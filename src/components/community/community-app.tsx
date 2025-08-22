@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -24,6 +25,7 @@ import { Payments } from './payments';
 import { EditCustomContributionDialog } from './dialogs/edit-custom-contribution-dialog';
 import { EditPaymentDialog } from './dialogs/edit-payment-dialog';
 import { EditFamilyDialog } from './dialogs/edit-family-dialog';
+import { ResendInviteDialog } from './dialogs/resend-invite-dialog';
 
 const TABS = [
   { id: 'dashboard', label: 'Dashboard', icon: BarChart2 },
@@ -112,6 +114,7 @@ export function CommunityApp() {
       {dialogState?.type === 'edit-family' && <EditFamilyDialog family={dialogState.family} />}
       <AddMemberDialog />
       {dialogState?.type === 'edit-member' && <EditMemberDialog member={dialogState.member} />}
+      {dialogState?.type === 'resend-invite' && <ResendInviteDialog member={dialogState.member} />}
       {dialogState?.type === 'record-payment' && <RecordPaymentDialog member={dialogState.member} contribution={dialogState.contribution} />}
       {dialogState?.type === 'edit-payment' && <EditPaymentDialog member={dialogState.member} contribution={dialogState.contribution} payment={dialogState.payment} />}
       <AddCustomContributionDialog />

@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Search, Edit, Trash2, Users, AlertCircle, X, Shield, Crown, User, Clock } from 'lucide-react';
+import { Search, Edit, Trash2, Users, AlertCircle, X, Shield, Crown, User, Send } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -185,16 +185,7 @@ export function Members() {
                           <div className="flex items-center gap-2">
                              <span>{m.name}</span>
                              {status === 'invited' && (
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger>
-                                            <Clock size={14} className="text-muted-foreground" />
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p>Awaiting user to accept invitation.</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
+                                <Badge variant="outline" className="text-xs bg-amber-100 text-amber-800 border-amber-200">Invited</Badge>
                              )}
                           </div>
                       </TableCell>
@@ -233,22 +224,61 @@ export function Members() {
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1 justify-end">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openDialog({ type: 'edit-member', member: m })}
-                            aria-label="Edit member"
-                          >
-                            <Edit size={16} className="text-primary" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setMemberToDelete(m)}
-                            aria-label="Delete member"
-                          >
-                            <Trash2 size={16} className="text-destructive" />
-                          </Button>
+                           {status === 'invited' ? (
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => openDialog({ type: 'resend-invite', member: m })}
+                                            aria-label="Resend Invite"
+                                        >
+                                            <Send size={16} className="text-primary" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Resend Invitation</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                           ) : (
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => openDialog({ type: 'edit-member', member: m })}
+                                            aria-label="Edit member"
+                                        >
+                                            <Edit size={16} className="text-primary" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Edit Member</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                           )}
+                           
+                            <TooltipProvider>
+                                <Tooltip>
+                                     <TooltipTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => setMemberToDelete(m)}
+                                            aria-label="Delete member"
+                                        >
+                                            <Trash2 size={16} className="text-destructive" />
+                                        </Button>
+                                     </TooltipTrigger>
+                                     <TooltipContent>
+                                        <p>Delete Member</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
                         </div>
                       </TableCell>
                     </TableRow>
