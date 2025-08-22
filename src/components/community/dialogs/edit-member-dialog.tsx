@@ -32,6 +32,7 @@ const formSchema = z.object({
   email: z.string().email('Invalid email address.').optional().or(z.literal('')),
   phone: z.string().optional(),
   phoneCountryCode: z.string().optional(),
+  role: z.enum(['user', 'admin', 'owner']),
 });
 
 type EditMemberForm = z.infer<typeof formSchema>;
@@ -61,6 +62,7 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
         email: member.email || '',
         phone: member.phone || '',
         phoneCountryCode: member.phoneCountryCode || '+234',
+        role: member.role || 'user',
       });
     }
   }, [member, form]);
@@ -122,6 +124,27 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
                         </FormControl>
                         <SelectContent>
                           {families.map(f => <SelectItem key={f.id} value={f.name}>{f.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <Controller
+                  control={form.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Role</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="user">User</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="owner">Owner</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />

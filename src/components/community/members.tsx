@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -8,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Search, Edit2, Trash2, Users, AlertCircle, X, Receipt } from 'lucide-react';
+import { Search, Edit2, Trash2, Users, AlertCircle, X, Shield, Crown, User } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +22,18 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Progress } from '../ui/progress';
 import { Member } from '@/lib/types';
+
+const roleIcons = {
+  owner: <Crown size={14} className="text-amber-500" />,
+  admin: <Shield size={14} className="text-primary" />,
+  user: <User size={14} className="text-muted-foreground" />,
+};
+
+const roleColors = {
+  owner: 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200',
+  admin: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200',
+  user: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
+};
 
 export function Members() {
   const { members, families, deleteMember, openDialog, getTier, settings, getPaidAmount, getBalance } = useCommunity();
@@ -145,7 +158,7 @@ export function Members() {
                 <TableRow>
                   <TableHead className="w-[150px] sm:w-[200px]">Name</TableHead>
                   <TableHead className="hidden md:table-cell">Family</TableHead>
-                  <TableHead className="hidden lg:table-cell">Age</TableHead>
+                  <TableHead className="hidden lg:table-cell">Role</TableHead>
                   <TableHead>Age Group</TableHead>
                   <TableHead className="hidden sm:table-cell text-right">Contribution</TableHead>
                   <TableHead className="w-[150px] sm:w-[200px]">Payment Status</TableHead>
@@ -158,6 +171,7 @@ export function Members() {
                 {filteredMembers.map((m) => {
                   const contribution = m.contribution || 0;
                   const tier = m.tier || '';
+                  const role = m.role || 'user';
                   const paidAmount = getPaidAmount(m);
                   const balance = getBalance(m);
                   const progress = contribution > 0 ? (paidAmount / contribution) * 100 : 0;
@@ -167,7 +181,12 @@ export function Members() {
                     <TableRow key={m.id}>
                       <TableCell className="font-medium">{m.name}</TableCell>
                       <TableCell className="hidden md:table-cell">{m.family}</TableCell>
-                      <TableCell className="hidden lg:table-cell">{m.age}</TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        <Badge variant="outline" className={`capitalize ${roleColors[role]}`}>
+                           {roleIcons[role]}
+                           <span className="ml-1.5">{role}</span>
+                        </Badge>
+                      </TableCell>
                       <TableCell>
                         <Badge variant={tier.includes('Group 1') ? 'secondary' : tier.includes('Group 2') ? 'outline' : 'default'}  className={`text-xs whitespace-nowrap ${
                         tier.includes('Group 1') ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200' :
