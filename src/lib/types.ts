@@ -17,7 +17,7 @@ export interface Member {
   family: string; // Family name, will be used to group, but not a separate collection
   email: string;
   phone: string;
-  phoneCountryCode: string; // e.g. '+1'
+  phoneCountryCode: string; // e.g., '+1'
   age: number;
   tier: string;
   contribution: number;
