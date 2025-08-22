@@ -32,7 +32,7 @@ export function AddFamilyDialog() {
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { patriarchFirstName: '', familyName: '', yearOfBirth: undefined },
+    defaultValues: { patriarchFirstName: '', familyName: '', yearOfBirth: '' as any },
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {

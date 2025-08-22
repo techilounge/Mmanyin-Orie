@@ -177,7 +177,7 @@ export function AddMemberDialog() {
                 )} />
 
                 <FormField name="yearOfBirth" control={form.control} render={({ field }) => (
-                  <FormItem><FormLabel>Year of Birth</FormLabel><FormControl><Input type="number" placeholder={currentYear.toString()} {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                  <FormItem><FormLabel>Year of Birth</FormLabel><FormControl><Input type="number" placeholder={String(currentYear)} {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                 )} />
 
                 <FormField
