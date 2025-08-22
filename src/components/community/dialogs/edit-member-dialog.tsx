@@ -26,12 +26,12 @@ const formSchema = z.object({
   id: z.string(),
   firstName: z.string().min(1, 'First name is required.'),
   lastName: z.string().min(1, 'Last name is required.'),
-  middleName: z.string().trim().default(''),
+  middleName: z.string().trim().optional().default(''),
   yearOfBirth: z.coerce.number().int().min(1900, 'Invalid year.').max(currentYear, `Year cannot be in the future.`),
   family: z.string().min(1, 'Family is required.'),
   email: z.string().email('Invalid email address.').optional().or(z.literal('')),
-  phone: z.string().optional(),
-  phoneCountryCode: z.string().optional(),
+  phone: z.string().trim().optional().default(''),
+  phoneCountryCode: z.string().trim().optional().default(''),
   role: z.enum(['user', 'admin', 'owner']),
 });
 
@@ -56,12 +56,12 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
         id: member.id,
         firstName: member.firstName,
         lastName: member.lastName,
-        middleName: member.middleName || '',
+        middleName: member.middleName ?? '',
         yearOfBirth: member.yearOfBirth,
-        family: member.family,
-        email: member.email || '',
-        phone: member.phone || '',
-        phoneCountryCode: member.phoneCountryCode || '+234',
+        family: member.family ?? '',
+        email: member.email ?? '',
+        phone: member.phone ?? '',
+        phoneCountryCode: member.phoneCountryCode ?? '+234',
         role: member.role || 'user',
       });
     }
@@ -73,7 +73,7 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
     const memberData: Member = { 
         ...member, 
         ...values,
-        phoneCountryCode: values.phoneCountryCode || '',
+        phoneCountryCode: values.phoneCountryCode,
     };
     updateMember(memberData);
     handleClose();

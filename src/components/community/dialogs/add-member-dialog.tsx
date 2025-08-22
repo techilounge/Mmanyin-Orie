@@ -23,13 +23,13 @@ const currentYear = new Date().getFullYear();
 const formSchema = z.object({
   firstName: z.string().min(1, 'First name is required.'),
   lastName: z.string().min(1, 'Last name is required.'),
-  middleName: z.string().trim().default(''),
+  middleName: z.string().trim().optional().default(''),
   yearOfBirth: z.coerce.number().int().min(1900, 'Invalid year.').max(currentYear, 'Year cannot be in the future.'),
   family: z.string().min(1, 'Family is required.'),
   newFamilyName: z.string().optional(),
   email: z.string().email('A valid email is required to send an invitation.'),
-  phone: z.string().optional(),
-  phoneCountryCode: z.string().optional(),
+  phone: z.string().trim().optional().default(''),
+  phoneCountryCode: z.string().trim().optional().default(''),
 }).refine(
   (data) => data.family !== 'new' || (!!data.newFamilyName && data.newFamilyName.trim().length > 0),
   { message: 'New family name is required.', path: ['newFamilyName'] }
@@ -51,10 +51,15 @@ export function AddMemberDialog() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      firstName: '', lastName: '', middleName: '',
+      firstName: '',
+      lastName: '',
+      middleName: '',
       yearOfBirth: undefined,
-      family: '', newFamilyName: '',
-      email: '', phone: '', phoneCountryCode: '+234',
+      family: '',
+      newFamilyName: '',
+      email: '',
+      phone: '',
+      phoneCountryCode: '+234',
     },
   });
 
@@ -63,10 +68,14 @@ export function AddMemberDialog() {
   useEffect(() => {
     if (isOpen) {
       form.reset({
-        firstName: '', lastName: '', middleName: '',
+        firstName: '',
+        lastName: '',
+        middleName: '',
         yearOfBirth: undefined,
         family: familyToAddTo || '', newFamilyName: '',
-        email: '', phone: '', phoneCountryCode: '+234',
+        email: '',
+        phone: '',
+        phoneCountryCode: '+234',
       });
       setInviteLink(null);
       setHasCopied(false);
@@ -100,7 +109,7 @@ export function AddMemberDialog() {
             family: familyNameToUse,
             email: values.email,
             phone: values.phone,
-            phoneCountryCode: values.phoneCountryCode || '',
+            phoneCountryCode: values.phoneCountryCode,
         };
         
         const link = await inviteMember(memberData);
