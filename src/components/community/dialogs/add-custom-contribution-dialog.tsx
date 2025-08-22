@@ -18,7 +18,16 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
-const TIERS = (settings) => [`Group 1 (${settings.tier1Age}-${settings.tier2Age-1})`, `Group 2 (${settings.tier2Age}+)`, 'Under 18'];
+type AgeSettings = {
+  tier1Age: number;
+  tier2Age: number;
+};
+
+const TIERS = (settings: AgeSettings): string[] => [
+  `Group 1 (${settings.tier1Age}-${settings.tier2Age - 1})`,
+  `Group 2 (${settings.tier2Age}+)`,
+  'Under 18',
+];
 
 const formSchema = z.object({
   name: z.string().min(1, 'Template name is required.'),
