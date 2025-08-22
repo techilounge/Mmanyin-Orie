@@ -3,7 +3,7 @@
 import { useCommunity } from '@/hooks/use-community';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Home, Trash2, Users, DollarSign, Plus, TrendingUp, Edit, ChevronDown } from 'lucide-react';
+import { Home, Trash2, Users, DollarSign, Plus, TrendingUp, Edit, ChevronDown, UserCheck } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
@@ -54,7 +54,10 @@ export function Families() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
       {families.sort((a,b) => a.name.localeCompare(b.name)).map(family => {
-        const familyMembers = members.filter(m => m.family === family.name);
+        const familyMembers = members.filter(m => m.family === family.name && m.gender === 'male');
+        const patriarch = familyMembers.find(m => m.isPatriarch);
+        const children = familyMembers.filter(m => !m.isPatriarch).sort((a, b) => a.name.localeCompare(b.name));
+        
         const familyContribution = familyMembers.reduce((sum, m) => sum + (m.contribution || 0), 0);
         const familyPaid = familyMembers.reduce((sum, m) => sum + getPaidAmount(m), 0);
         
@@ -110,7 +113,21 @@ export function Families() {
                     </div>
 
                   <div className="space-y-2 flex-grow max-h-56 overflow-y-auto pr-2 hide-scrollbar">
-                    {familyMembers.length > 0 ? familyMembers.map(member => {
+                    {patriarch && (
+                        <div className="flex justify-between items-center text-sm p-2 rounded-md bg-primary/10">
+                            <div className="font-medium truncate max-w-[120px] flex items-center gap-2">
+                                <UserCheck className="h-4 w-4 text-primary" />
+                                {patriarch.name}
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Badge variant="default" className="text-xs bg-primary/80">Father</Badge>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDialog({ type: 'edit-member', member: patriarch })} aria-label={`Edit ${patriarch.name}`}>
+                                    <Edit className="h-4 w-4 text-primary" />
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                    {children.length > 0 ? children.map(member => {
                       const tier = member.tier || '';
                       return (
                       <div key={member.id} className="flex justify-between items-center text-sm p-2 rounded-md hover:bg-muted/50">
@@ -130,17 +147,23 @@ export function Families() {
                         </div>
                       </div>
                     )}) : (
-                      <div className="flex flex-col items-center justify-center h-full text-center py-8">
-                         <Users className="h-10 w-10 text-muted-foreground/60 mb-2"/>
-                         <p className="text-sm font-medium text-muted-foreground">No members in this family yet.</p>
-                         <p className="text-xs text-muted-foreground">Click "Add Member" to get started.</p>
-                      </div>
+                      patriarch && children.length === 0 && (
+                        <div className="text-center py-4 text-sm text-muted-foreground">
+                            No male children added yet.
+                        </div>
+                      )
+                    )}
+                    {!patriarch && (
+                         <div className="flex flex-col items-center justify-center h-full text-center py-8">
+                            <Users className="h-10 w-10 text-muted-foreground/60 mb-2"/>
+                            <p className="text-sm font-medium text-muted-foreground">No members in this family yet.</p>
+                         </div>
                     )}
                   </div>
                 </CardContent>
                 <CardFooter className="mt-auto border-t pt-4">
                   <Button onClick={() => openDialog({ type: 'add-member', family: family.name })} className="w-full">
-                    <Plus className="mr-2 h-4 w-4" /> Add Member
+                    <Plus className="mr-2 h-4 w-4" /> Add Male Child
                   </Button>
                 </CardFooter>
               </CollapsibleContent>

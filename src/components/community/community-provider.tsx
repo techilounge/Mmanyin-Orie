@@ -37,7 +37,7 @@ interface CommunityContextType {
   updateMember: (updatedMemberData: Member) => Promise<void>;
   deleteMember: (id: string) => Promise<void>;
   
-  addFamily: (familyName: string) => Promise<boolean>;
+  addFamily: (familyName: string, patriarchFirstName: string, patriarchYearOfBirth: number) => Promise<boolean>;
   updateFamily: (family: Family, newFamilyName: string) => Promise<void>;
   deleteFamily: (family: Family) => Promise<void>;
   
@@ -210,14 +210,14 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     return totalOwedForOneTime - paid;
   }
   
-  const addFamily = async (familyName: string): Promise<boolean> => {
+  const addFamily = async (familyName: string, patriarchFirstName: string, patriarchYearOfBirth: number): Promise<boolean> => {
     if (!activeCommunityId) {
         toast({ variant: 'destructive', title: 'Error', description: 'No community selected.' });
         return false;
     }
     const trimmedName = familyName.trim();
-    if (!trimmedName) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Family name cannot be empty.' });
+    if (!trimmedName || !patriarchFirstName.trim() || !patriarchYearOfBirth) {
+        toast({ variant: 'destructive', title: 'Error', description: 'All fields are required.' });
         return false;
     }
     const familiesQuery = query(collection(db, `communities/${activeCommunityId}/families`), where('name', '==', trimmedName));
@@ -228,8 +228,46 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     }
 
     try {
-        await addDoc(collection(db, `communities/${activeCommunityId}/families`), { name: trimmedName });
-        toast({ title: 'Family Created', description: `The "${trimmedName}" family has been added.` });
+        const batch = writeBatch(db);
+
+        // 1. Create the family document
+        const familyDocRef = doc(collection(db, `communities/${activeCommunityId}/families`));
+        batch.set(familyDocRef, { name: trimmedName });
+
+        // 2. Create the patriarch member document
+        const age = calculateAge(patriarchYearOfBirth);
+        const tier = getTier(age);
+        const fullName = `${patriarchFirstName} ${trimmedName}`;
+        const joinDate = new Date().toISOString();
+
+        const patriarchMemberBase = {
+            name: fullName,
+            firstName: patriarchFirstName,
+            middleName: '',
+            lastName: trimmedName,
+            yearOfBirth: patriarchYearOfBirth,
+            family: trimmedName,
+            gender: 'male' as const,
+            isPatriarch: true,
+            email: '',
+            phone: '',
+            phoneCountryCode: '',
+            age,
+            tier,
+            payments: [],
+            joinDate: joinDate,
+            role: 'user' as const,
+            uid: doc(collection(db, 'dummy')).id, // Placeholder
+        };
+
+        const contribution = getContribution(patriarchMemberBase, customContributions);
+        const patriarchMember = { ...patriarchMemberBase, contribution };
+        
+        const memberDocRef = doc(collection(db, `communities/${activeCommunityId}/members`));
+        batch.set(memberDocRef, patriarchMember);
+
+        await batch.commit();
+        toast({ title: 'Family Created', description: `The "${trimmedName}" family has been added with ${patriarchFirstName} as the head.` });
         return true;
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Error', description: error.message });
@@ -258,7 +296,11 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         const membersQuery = query(collection(db, `communities/${activeCommunityId}/members`), where("family", "==", family.name));
         const membersSnapshot = await getDocs(membersQuery);
         membersSnapshot.forEach(doc => {
-            batch.update(doc.ref, { family: trimmedNewName });
+            const memberData = doc.data() as Member;
+            // Also update last name if it matches the old family name
+            const newLastName = memberData.lastName === family.name ? trimmedNewName : memberData.lastName;
+            const newName = `${memberData.firstName} ${memberData.middleName || ''} ${newLastName}`.replace(/\s+/g, ' ').trim();
+            batch.update(doc.ref, { family: trimmedNewName, lastName: newLastName, name: newName });
         });
 
         await batch.commit();
@@ -424,8 +466,16 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
   const deleteMember = async (id: string) => {
     if (!activeCommunityId) return;
     try {
-        const memberName = members.find(m => m.id === id)?.name || 'Member';
-        await deleteDoc(doc(db, `communities/${activeCommunityId}/members`, id));
+        const memberDocRef = doc(db, `communities/${activeCommunityId}/members`, id);
+        const memberSnap = await getDoc(memberDocRef);
+        const memberData = memberSnap.data();
+        if (memberData?.isPatriarch) {
+            toast({ variant: "destructive", title: "Action Not Allowed", description: "The head of the family cannot be deleted. You must delete the entire family instead." });
+            return;
+        }
+
+        const memberName = memberData?.name || 'Member';
+        await deleteDoc(memberDocRef);
         toast({ title: "Member Deleted", description: `${memberName} has been removed.` });
     } catch(error: any) {
         toast({ variant: "destructive", title: "Error deleting member", description: error.message });

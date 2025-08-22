@@ -31,8 +31,8 @@ const formSchema = z.object({
   phone: z.string().trim().optional().default(''),
   phoneCountryCode: z.string().trim().optional().default(''),
 }).refine(
-  (data) => data.family !== 'new' || (!!data.newFamilyName && data.newFamilyName.trim().length > 0),
-  { message: 'New family name is required.', path: ['newFamilyName'] }
+  (data) => data.family !== 'new', // "new" family creation is deprecated from this dialog
+  { message: 'Please create families from the Families tab.', path: ['family'] }
 );
 
 export function AddMemberDialog() {
@@ -63,10 +63,10 @@ export function AddMemberDialog() {
     },
   });
 
-  const familySelection = form.watch('family');
-
   useEffect(() => {
     if (isOpen) {
+      const familyName = familyToAddTo || '';
+      const familyDetails = families.find(f => f.name === familyName);
       form.reset({
         firstName: '',
         lastName: '',
@@ -82,31 +82,21 @@ export function AddMemberDialog() {
     } else {
       setIsSubmitting(false);
     }
-  }, [isOpen, familyToAddTo, form]);
+  }, [isOpen, familyToAddTo, form, families]);
 
   const handleClose = () => { if(!isSubmitting) closeDialog(); };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
     try {
-        let familyNameToUse = values.family;
-        if (values.family === 'new' && values.newFamilyName) {
-            const newFamilyNameTrimmed = values.newFamilyName.trim();
-            const success = await addFamily(newFamilyNameTrimmed);
-            if (success) {
-                familyNameToUse = newFamilyNameTrimmed;
-            } else {
-                setIsSubmitting(false);
-                return; // Stop if family creation failed
-            }
-        }
-        
         const memberData: NewMemberData = {
             firstName: values.firstName,
             lastName: values.lastName,
             middleName: values.middleName,
             yearOfBirth: values.yearOfBirth,
-            family: familyNameToUse,
+            family: values.family,
+            gender: values.gender,
+            isPatriarch: false, // Only family head can be patriarch
             email: values.email,
             phone: values.phone,
             phoneCountryCode: values.phoneCountryCode,
@@ -178,7 +168,7 @@ export function AddMemberDialog() {
                     <FormItem><FormLabel>First Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
                   <FormField name="lastName" control={form.control} render={({ field }) => (
-                    <FormItem><FormLabel>Last Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Last Name</FormLabel><FormControl><Input {...field} readOnly={!!familyToAddTo} /></FormControl><FormMessage /></FormItem>
                   )} />
                 </div>
 
@@ -190,6 +180,28 @@ export function AddMemberDialog() {
                   <FormItem><FormLabel>Year of Birth</FormLabel><FormControl><Input type="number" placeholder={currentYear.toString()} {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                 )} />
 
+                <FormField
+                  control={form.control}
+                  name="gender"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Gender</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select gender" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="male">Male</SelectItem>
+                          <SelectItem value="female">Female</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 <Controller name="family" control={form.control} render={({ field }) => (
                   <FormItem>
                     <FormLabel>Family</FormLabel>
@@ -199,18 +211,11 @@ export function AddMemberDialog() {
                       </FormControl>
                       <SelectContent>
                         {families.sort((a,b) => a.name.localeCompare(b.name)).map((f) => <SelectItem key={f.id} value={f.name}>{f.name}</SelectItem>)}
-                        <SelectItem value="new">Create new family...</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
                 )} />
-
-                {familySelection === 'new' && !familyToAddTo && (
-                  <FormField name="newFamilyName" control={form.control} render={({ field }) => (
-                    <FormItem><FormLabel>New Family Name</FormLabel><FormControl><Input placeholder="Enter new family name" {...field} /></FormControl><FormMessage /></FormItem>
-                  )} />
-                )}
 
                 <FormField name="email" control={form.control} render={({ field }) => (
                   <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>

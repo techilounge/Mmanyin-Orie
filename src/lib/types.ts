@@ -15,6 +15,8 @@ export interface Member {
   lastName: string;
   yearOfBirth: number;
   family: string; // Family name, will be used to group, but not a separate collection
+  gender: 'male' | 'female';
+  isPatriarch: boolean;
   email: string;
   phone: string;
   phoneCountryCode: string; // e.g., '+1'
