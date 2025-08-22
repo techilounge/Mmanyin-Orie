@@ -16,28 +16,27 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const currentYear = new Date().getFullYear();
 const formSchema = z.object({
   patriarchFirstName: z.string().min(1, "Father's first name is required."),
-  familyName: z.string().min(1, 'Family name is required.'),
+  patriarchLastName: z.string().min(1, 'Family name is required.'),
   yearOfBirth: z.coerce.number().int().min(1900, 'Invalid year.').max(currentYear, 'Year cannot be in the future.'),
 });
 
 
 export function AddFamilyDialog() {
-  const { dialogState, closeDialog, addFamily, families } = useCommunity();
+  const { dialogState, closeDialog, addFamily } = useCommunity();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { patriarchFirstName: '', familyName: '', yearOfBirth: '' as any },
+    defaultValues: { patriarchFirstName: '', patriarchLastName: '', yearOfBirth: '' as any },
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
-    const success = await addFamily(values.familyName.trim(), values.patriarchFirstName.trim(), values.yearOfBirth);
+    const success = await addFamily(values.patriarchFirstName.trim(), values.patriarchLastName.trim(), values.yearOfBirth);
     if (success) {
       handleClose();
     }
@@ -55,7 +54,7 @@ export function AddFamilyDialog() {
         <DialogHeader>
           <DialogTitle>Create New Family</DialogTitle>
           <DialogDescription>
-            Enter the family name and the details for the head of the family (the father).
+            Enter the details for the head of the family (the father). The family will be named after him.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -75,10 +74,10 @@ export function AddFamilyDialog() {
             />
             <FormField
               control={form.control}
-              name="familyName"
+              name="patriarchLastName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Family Name (Last Name)</FormLabel>
+                  <FormLabel>Father's Last Name</FormLabel>
                   <FormControl>
                     <Input placeholder="e.g., Smith" {...field} />
                   </FormControl>

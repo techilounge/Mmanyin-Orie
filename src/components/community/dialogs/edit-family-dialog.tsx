@@ -1,3 +1,4 @@
+
 'use client';
 import { useEffect } from 'react';
 import { useCommunity } from '@/hooks/use-community';
@@ -26,10 +27,7 @@ export function EditFamilyDialog({ family }: EditFamilyDialogProps) {
 
   const formSchema = z.object({
     familyName: z.string()
-      .min(1, 'Family name is required.')
-      .refine(name => name === family.name || !families.some(f => f.name === name.trim()), {
-        message: 'This family name already exists.',
-      }),
+      .min(1, 'Family name is required.'),
   });
   
   const form = useForm<z.infer<typeof formSchema>>({
@@ -61,30 +59,17 @@ export function EditFamilyDialog({ family }: EditFamilyDialogProps) {
         <DialogHeader>
           <DialogTitle>Edit Family Name</DialogTitle>
           <DialogDescription>
-            Update the name for the "{family.name}" family.
+            The family name is based on the father's name. To change it, please edit the details of the family head.
           </DialogDescription>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-            <FormField
-              control={form.control}
-              name="familyName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Family Name</FormLabel>
-                  <FormControl>
-                    <Input {...field} autoFocus />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={handleClose}>Cancel</Button>
-              <Button type="submit">Update Family</Button>
-            </DialogFooter>
-          </form>
-        </Form>
+         <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+                Family Name: <span className="font-medium text-foreground">{family.name}</span>
+            </p>
+         </div>
+        <DialogFooter>
+            <Button type="button" variant="outline" onClick={handleClose}>Close</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
