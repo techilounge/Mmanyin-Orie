@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Search, Edit2, Trash2, Users, AlertCircle, X, Shield, Crown, User } from 'lucide-react';
+import { Search, Edit, Trash2, Users, AlertCircle, X, Shield, Crown, User } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,7 +21,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Progress } from '../ui/progress';
-import { Member } from '@/lib/types';
+import type { Member } from '@/lib/types';
 
 const roleIcons = {
   owner: <Crown size={14} className="text-amber-500" />,
@@ -36,7 +36,7 @@ const roleColors = {
 };
 
 export function Members() {
-  const { members, families, deleteMember, openDialog, getTier, settings, getPaidAmount, getBalance } = useCommunity();
+  const { members, families, deleteMember, openDialog, settings, getPaidAmount, getBalance } = useCommunity();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterFamily, setFilterFamily] = useState('');
@@ -221,7 +221,7 @@ export function Members() {
                             onClick={() => openDialog({ type: 'edit-member', member: m })}
                             aria-label="Edit member"
                           >
-                            <Edit2 size={16} className="text-primary" />
+                            <Edit size={16} className="text-primary" />
                           </Button>
                           <Button
                             variant="ghost"

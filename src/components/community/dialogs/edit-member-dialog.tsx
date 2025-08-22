@@ -18,7 +18,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Member } from '@/lib/types';
+import type { Member } from '@/lib/types';
 import { COUNTRY_OPTIONS } from '@/lib/countries';
 
 const currentYear = new Date().getFullYear();
@@ -69,7 +69,7 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
   
   if (!member) return null;
 
-  const onSubmit = (values: Omit<EditMemberForm, 'id'>) => {
+  const onSubmit = (values: EditMemberForm) => {
     const memberData: Member = { 
         ...member, 
         ...values,
