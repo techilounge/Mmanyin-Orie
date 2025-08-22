@@ -7,7 +7,15 @@ import { Home, Trash2, Users, DollarSign, Plus, TrendingUp, Edit, ChevronDown } 
 import { Badge } from '../ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
-const FamilyStat = ({ icon: Icon, label, value, colorClass, iconColorClass }) => (
+interface FamilyStatProps {
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  label: string;
+  value: string | number;
+  colorClass: string;
+  iconColorClass: string;
+}
+
+const FamilyStat: React.FC<FamilyStatProps> = ({ icon: Icon, label, value, colorClass, iconColorClass }) => (
   <div className="flex items-center gap-3">
     <div className={`p-2 rounded-lg ${colorClass}`}>
       <Icon className={`h-5 w-5 ${iconColorClass}`} />

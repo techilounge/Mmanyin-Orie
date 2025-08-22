@@ -73,6 +73,17 @@ const DEFAULT_SETTINGS: Settings = {
   currency: '₦',
 };
 
+// Helper to generate a random string for the invite code
+const generateInviteCode = (length = 8) => {
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  return result;
+};
+
+
 export function CommunityProvider({ children, communityId: activeCommunityId }: { children: ReactNode, communityId: string | null }) {
   const { user } = useAuth();
   const [members, setMembers] = useState<Member[]>([]);
@@ -343,6 +354,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
             lastName: data.lastName,
             role: 'user',
             status: 'pending',
+            code: generateInviteCode(),
             createdAt: new Date().toISOString(),
             createdBy: user.uid,
         };

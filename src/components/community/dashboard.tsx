@@ -1,3 +1,4 @@
+
 'use client';
 import { useCommunity } from '@/hooks/use-community';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,7 +7,15 @@ import { Badge } from '@/components/ui/badge';
 import { Users, Home, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
 import { Progress } from '../ui/progress';
 
-const StatCard = ({ title, value, icon: Icon, colorClass, iconBgClass }) => (
+interface StatCardProps {
+  title: string;
+  value: string | number;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  colorClass: string;
+  iconBgClass: string;
+}
+
+const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, colorClass, iconBgClass }) => (
   <Card className={`${colorClass} border-0 shadow-sm`}>
     <CardContent className="p-4 sm:p-5">
       <div className="flex items-center">

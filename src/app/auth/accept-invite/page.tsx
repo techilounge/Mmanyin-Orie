@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { useToast } from '@/hooks/use-toast';
 import { Chrome } from 'lucide-react';
 import { signInWithGoogle, completeGoogleRedirect, ensureUserDocument } from '@/lib/google-auth';
-import { doc, getDoc, updateDoc, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, writeBatch, setDoc } from 'firebase/firestore';
 import type { Invitation } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -66,7 +66,19 @@ export default function AcceptInvitePage() {
 
         // 1. Update the member document with the new UID and set status to active
         const memberRef = doc(db, 'communities', invitation.communityId, 'members', invitation.memberId);
-        batch.update(memberRef, { uid: user.uid, status: 'active' });
+        
+        // Per new security rules, pass inviteId and inviteCode when creating membership
+        const memberUpdatePayload = { 
+          uid: user.uid, 
+          status: 'active',
+          inviteId: token,
+          inviteCode: invitation.code
+        };
+
+        // Note: For a brand new member, this is technically a set not an update
+        // But since the inviteMember function already created a stub, we update.
+        // For rules that might not allow update, a `set(..., {merge: true})` would be safer.
+        batch.update(memberRef, memberUpdatePayload);
 
         // 2. Update the invitation to mark it as accepted
         const inviteRef = doc(db, 'invitations', token);

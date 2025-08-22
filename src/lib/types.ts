@@ -26,6 +26,9 @@ export interface Member {
   role: 'owner' | 'admin' | 'user';
   status: 'active' | 'invited';
   uid: string | null; // Firebase Auth UID, null if invited but not yet signed up
+  // The following are added when accepting an invite, to satisfy security rules
+  inviteId?: string;
+  inviteCode?: string;
 }
 
 export interface Family {
@@ -85,6 +88,7 @@ export interface Invitation {
     lastName: string;
     role: 'user' | 'admin';
     status: 'pending' | 'accepted';
+    code: string; // The secret code for this invite
     createdAt: any;
     createdBy: string; // UID of admin/owner
     acceptedAt?: any;
