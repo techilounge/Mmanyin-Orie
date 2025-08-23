@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AppHeader } from "@/components/community/app-header";
+import { ProfileForm } from "@/components/profile/profile-form";
 
 export default function ProfilePage() {
     const { user, appUser, loading } = useAuth();
@@ -33,15 +34,7 @@ export default function ProfilePage() {
                     <TabsTrigger value="account">Account</TabsTrigger>
                 </TabsList>
                 <TabsContent value="profile">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Profile</CardTitle>
-                            <CardDescription>Update your personal details here.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                           <p>Profile form will go here.</p>
-                        </CardContent>
-                    </Card>
+                    <ProfileForm />
                 </TabsContent>
                 <TabsContent value="avatar">
                     <Card>
