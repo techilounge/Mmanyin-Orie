@@ -1,3 +1,4 @@
+
 'use client';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -85,14 +86,11 @@ const howItWorksCarouselImages = ["/fam1.png", "/fam2.png", "/fam3.png", "/fam4.
 
 
 export function LandingPage() {
-    const autoplayPlugin = React.useRef(
-        Autoplay({ delay: 10000, stopOnInteraction: true, stopOnMouseEnter: true })
-    );
-
-  const [api, setApi] = useState<EmblaCarouselType | undefined>();
+  const [api1, setApi1] = useState<EmblaCarouselType | undefined>();
   const [api2, setApi2] = useState<EmblaCarouselType | undefined>();
 
   const onSelect = useCallback((emblaApi: EmblaCarouselType) => {
+    if (!emblaApi) return;
     emblaApi.slideNodes().forEach((slideNode, index) => {
       if (emblaApi.selectedScrollSnap() === index) {
         slideNode.classList.add('is-active');
@@ -103,15 +101,15 @@ export function LandingPage() {
   }, []);
 
   useEffect(() => {
-    if (api) {
-        onSelect(api);
-        api.on('select', onSelect);
-        api.on('reInit', onSelect);
-        if (api.slideNodes().length > 0) {
-            api.slideNodes()[0]?.classList.add('is-active');
+    if (api1) {
+        onSelect(api1);
+        api1.on('select', onSelect);
+        api1.on('reInit', onSelect);
+        if (api1.slideNodes().length > 0) {
+            api1.slideNodes()[0]?.classList.add('is-active');
         }
     }
-  }, [api, onSelect]);
+  }, [api1, onSelect]);
 
    useEffect(() => {
     if (api2) {
@@ -204,11 +202,11 @@ export function LandingPage() {
               </div>
             </section>
 
-             {/* New Carousel Section */}
+             {/* Hero Carousel Section */}
             <section className="w-full py-20 sm:py-32">
                 <div className="container mx-auto px-4">
                      <Carousel
-                        setApi={api}
+                        setApi={setApi1}
                         plugins={[Autoplay({ delay: 10000, stopOnInteraction: true, stopOnMouseEnter: true })]}
                         className="w-full max-w-6xl mx-auto"
                         opts={{ loop: true }}
@@ -244,7 +242,7 @@ export function LandingPage() {
                     <div className="relative flex flex-col lg:flex-row items-center justify-between gap-12">
                        <div className="lg:w-1/2 relative">
                          <Carousel
-                            setApi={api2}
+                            setApi={setApi2}
                             plugins={[Autoplay({ delay: 10000, stopOnInteraction: true, stopOnMouseEnter: true })]}
                             className="w-full max-w-4xl mx-auto"
                             opts={{
@@ -315,3 +313,5 @@ export function LandingPage() {
     </div>
   );
 }
+
+    
