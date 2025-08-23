@@ -1,6 +1,6 @@
 
 'use client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -9,9 +9,14 @@ import { ProfileForm } from "@/components/profile/profile-form";
 import { AvatarUploader } from "@/components/profile/avatar-uploader";
 import { SecuritySettings } from "@/components/profile/security-settings";
 import { CommunityProvider } from "@/components/community/community-provider";
+import { Button } from "@/components/ui/button";
+import { auth } from "@/lib/firebase";
+import { useRouter } from "next/navigation";
+import { LogOut } from "lucide-react";
 
 export default function ProfilePage() {
     const { user, appUser, loading } = useAuth();
+    const router = useRouter();
 
     if (loading || !user || !appUser) {
         return (
@@ -20,6 +25,11 @@ export default function ProfilePage() {
             </div>
         )
     }
+
+    const handleSignOut = async () => {
+        await auth.signOut();
+        router.push('/auth/sign-in');
+    };
 
     const communityId = appUser.primaryCommunityId ?? (appUser.memberships && appUser.memberships[0]) ?? null;
 
@@ -52,11 +62,17 @@ export default function ProfilePage() {
                         <Card>
                             <CardHeader>
                                 <CardTitle>Account</CardTitle>
-                                <CardDescription>Manage account-level settings.</CardDescription>
+                                <CardDescription>Manage account-level settings, like signing out.</CardDescription>
                             </CardHeader>
-                            <CardContent className="space-y-4">
-                                <p>Account settings will go here.</p>
+                            <CardContent>
+                                {/* Placeholder for more account settings */}
                             </CardContent>
+                            <CardFooter>
+                                 <Button variant="outline" onClick={handleSignOut}>
+                                    <LogOut className="mr-2 h-4 w-4" />
+                                    Sign Out
+                                </Button>
+                            </CardFooter>
                         </Card>
                     </TabsContent>
                 </Tabs>
