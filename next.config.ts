@@ -27,8 +27,8 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
-        source: '/app/profile',
-        destination: '/profile',
+        source: '/profile',
+        destination: '/app/profile',
         permanent: true
       }
     ]
