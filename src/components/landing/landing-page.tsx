@@ -80,7 +80,7 @@ const faqs = [
     }
 ]
 
-const carouselImages = ["/trad1.png", "/trad2.png", "/trad3.png"];
+const carouselImages = ["/fam1.png", "/fam2.png", "/fam3.png", "/fam4.png"];
 
 
 export function LandingPage() {
@@ -89,6 +89,7 @@ export function LandingPage() {
     );
 
   const [api, setApi] = useState<EmblaCarouselType | undefined>();
+  const [api2, setApi2] = useState<EmblaCarouselType | undefined>();
 
   const onSelect = useCallback((emblaApi: EmblaCarouselType) => {
     emblaApi.slideNodes().forEach((slideNode, index) => {
@@ -106,9 +107,22 @@ export function LandingPage() {
         api.on('select', onSelect);
         api.on('reInit', onSelect);
         // Set the first slide as active initially
-        api.slideNodes()[0]?.classList.add('is-active');
+        if (api.slideNodes().length > 0) {
+            api.slideNodes()[0]?.classList.add('is-active');
+        }
     }
   }, [api, onSelect]);
+
+   useEffect(() => {
+    if (api2) {
+        onSelect(api2);
+        api2.on('select', onSelect);
+        api2.on('reInit', onSelect);
+        if (api2.slideNodes().length > 0) {
+            api2.slideNodes()[0]?.classList.add('is-active');
+        }
+    }
+  }, [api2, onSelect]);
 
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden bg-background text-foreground">
@@ -187,34 +201,6 @@ export function LandingPage() {
                     </div>
                   ))}
                 </div>
-                 <div className="mt-16">
-                   <Carousel
-                    setApi={setApi}
-                    plugins={[autoplayPlugin.current]}
-                    className="w-full max-w-4xl mx-auto"
-                    opts={{
-                        loop: true,
-                    }}
-                   >
-                     <CarouselContent>
-                       {carouselImages.map((src, index) => (
-                         <CarouselItem key={index} className="embla__slide">
-                           <div className="p-1">
-                             <Image 
-                               src={src} 
-                               alt={`Feature demonstration image ${index + 1}`} 
-                               width={1200} 
-                               height={600} 
-                               className="rounded-xl shadow-2xl mx-auto" 
-                             />
-                           </div>
-                         </CarouselItem>
-                       ))}
-                     </CarouselContent>
-                     <CarouselPrevious />
-                     <CarouselNext />
-                   </Carousel>
-                </div>
               </div>
             </section>
 
@@ -227,7 +213,32 @@ export function LandingPage() {
                     </div>
                     <div className="relative flex flex-col lg:flex-row items-center justify-between gap-12">
                        <div className="lg:w-1/2 relative">
-                         <Image src="/fam1.png" alt="App screenshot showing member management" width={800} height={600} className="rounded-xl shadow-2xl" data-ai-hint="member management"/>
+                         <Carousel
+                            setApi={setApi2}
+                            plugins={[autoplayPlugin.current]}
+                            className="w-full max-w-4xl mx-auto"
+                            opts={{
+                                loop: true,
+                            }}
+                           >
+                             <CarouselContent>
+                               {carouselImages.map((src, index) => (
+                                 <CarouselItem key={index} className="embla__slide">
+                                   <div className="p-1">
+                                     <Image 
+                                       src={src} 
+                                       alt={`Feature demonstration image ${index + 1}`} 
+                                       width={800} 
+                                       height={600} 
+                                       className="rounded-xl shadow-2xl mx-auto" 
+                                     />
+                                   </div>
+                                 </CarouselItem>
+                               ))}
+                             </CarouselContent>
+                             <CarouselPrevious />
+                             <CarouselNext />
+                           </Carousel>
                        </div>
                        <div className="lg:w-1/2 space-y-8">
                         {howItWorks.map((step) => (
