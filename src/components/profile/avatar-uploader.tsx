@@ -3,7 +3,7 @@
 
 import { useState, useRef } from 'react';
 import { useAuth } from '@/lib/auth';
-import { storage, db } from '@/lib/firebase';
+import { storage, db, auth as firebaseAuth } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { updateProfile } from 'firebase/auth';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, User, Upload, Trash2 } from 'lucide-react';
 
 export function AvatarUploader() {
-  const { user } = useAuth();
+  const { user, appUser } = useAuth();
   const { toast } = useToast();
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -56,7 +56,10 @@ export function AvatarUploader() {
       const downloadURL = await getDownloadURL(snapshot.ref);
 
       // Update Firebase Auth profile
-      await updateProfile(user, { photoURL: downloadURL });
+      if (firebaseAuth.currentUser) {
+        await updateProfile(firebaseAuth.currentUser, { photoURL: downloadURL });
+      }
+
 
       // Update Firestore user document
       const userDocRef = doc(db, 'users', user.uid);
@@ -96,7 +99,9 @@ export function AvatarUploader() {
         }
         
         // Update profile and document with null
-        await updateProfile(user, { photoURL: null });
+        if (firebaseAuth.currentUser) {
+            await updateProfile(firebaseAuth.currentUser, { photoURL: null });
+        }
         const userDocRef = doc(db, 'users', user.uid);
         await updateDoc(userDocRef, { photoURL: null });
 
@@ -113,7 +118,7 @@ export function AvatarUploader() {
     return name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
   };
   
-  const currentAvatarSrc = avatarPreview || user?.photoURL;
+  const currentAvatarSrc = avatarPreview || appUser?.photoURL;
 
   return (
     <Card>
@@ -147,7 +152,7 @@ export function AvatarUploader() {
                 {avatarFile ? 'Change Photo' : 'Choose Photo'}
             </Button>
 
-            {user?.photoURL && (
+            {appUser?.photoURL && (
                 <Button 
                     variant="destructive"
                     onClick={handleRemoveAvatar}
