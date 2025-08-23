@@ -3,7 +3,7 @@
 
 import { useState, useRef } from 'react';
 import { useAuth } from '@/lib/auth';
-import { storage, db, auth as firebaseAuth } from '@/lib/firebase';
+import { storage, db } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { updateProfile } from 'firebase/auth';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -56,10 +56,7 @@ export function AvatarUploader() {
       const downloadURL = await getDownloadURL(snapshot.ref);
 
       // Update Firebase Auth profile
-      if (firebaseAuth.currentUser) {
-        await updateProfile(firebaseAuth.currentUser, { photoURL: downloadURL });
-      }
-
+      await updateProfile(user, { photoURL: downloadURL });
 
       // Update Firestore user document
       const userDocRef = doc(db, 'users', user.uid);
@@ -99,9 +96,8 @@ export function AvatarUploader() {
         }
         
         // Update profile and document with null
-        if (firebaseAuth.currentUser) {
-            await updateProfile(firebaseAuth.currentUser, { photoURL: null });
-        }
+        await updateProfile(user, { photoURL: null });
+
         const userDocRef = doc(db, 'users', user.uid);
         await updateDoc(userDocRef, { photoURL: null });
 
