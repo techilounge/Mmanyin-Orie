@@ -406,64 +406,68 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
 
   const updateMember = async (updatedData: Member) => {
     if (!activeCommunityId) return;
-    const age = calculateAge(updatedData.yearOfBirth);
-    const tier = getTier(age);
-    const fullName = [updatedData.firstName, updatedData.middleName, updatedData.lastName]
-      .filter(part => part && part.trim())
-      .join(' ');
-    
-    const tempMemberForCalc = {
-      ...updatedData,
-      name: fullName,
-      age,
-      tier,
-      joinDate: updatedData.joinDate,
-      payments: updatedData.payments || [],
-      email: updatedData.email || '',
-      phone: updatedData.phone || '',
-      phoneCountryCode: updatedData.phoneCountryCode || '',
-      role: updatedData.role,
-      uid: updatedData.uid,
-      status: updatedData.status
-    };
-    const newContribution = getContribution(tempMemberForCalc, customContributions);
+    try {
+      const age = calculateAge(updatedData.yearOfBirth);
+      const tier = getTier(age);
+      const fullName = [updatedData.firstName, updatedData.middleName, updatedData.lastName]
+        .filter(part => part && part.trim())
+        .join(' ');
+      
+      const tempMemberForCalc = {
+        ...updatedData,
+        name: fullName,
+        age,
+        tier,
+        joinDate: updatedData.joinDate,
+        payments: updatedData.payments || [],
+        email: updatedData.email || '',
+        phone: updatedData.phone || '',
+        phoneCountryCode: updatedData.phoneCountryCode || '',
+        role: updatedData.role,
+        uid: updatedData.uid,
+        status: updatedData.status
+      };
+      const newContribution = getContribution(tempMemberForCalc, customContributions);
+  
+      const memberToUpdate = {
+          ...updatedData,
+          name: fullName,
+          age,
+          tier,
+          contribution: newContribution
+      };
 
-        const memberToUpdate = {
-            ...updatedData,
-            name: fullName,
-            age,
-            tier,
-            contribution: newContribution
-        };
-        const { id, ...dataToSend } = memberToUpdate;
-        batch.update(memberDocRef, dataToSend);
+      const batch = writeBatch(db);
+      const memberDocRef = doc(db, `communities/${activeCommunityId}/members`, updatedData.id);
+      const { id, ...dataToSend } = memberToUpdate;
+      batch.update(memberDocRef, dataToSend);
 
-        // If the patriarch's name is changing, update the family name and all members' family field
-        if (updatedData.isPatriarch) {
-            const oldFamilyName = updatedData.family;
-            const newFamilyName = fullName;
+      // If the patriarch's name is changing, update the family name and all members' family field
+      if (updatedData.isPatriarch) {
+          const oldFamilyName = updatedData.family;
+          const newFamilyName = fullName;
 
-            if (oldFamilyName !== newFamilyName) {
-                // Find the family document to update its name
-                const familiesQuery = query(collection(db, `communities/${activeCommunityId}/families`), where("name", "==", oldFamilyName));
-                const familiesSnapshot = await getDocs(familiesQuery);
-                if (!familiesSnapshot.empty) {
-                    const familyDocRef = familiesSnapshot.docs[0].ref;
-                    batch.update(familyDocRef, { name: newFamilyName });
-                }
+          if (oldFamilyName !== newFamilyName) {
+              // Find the family document to update its name
+              const familiesQuery = query(collection(db, `communities/${activeCommunityId}/families`), where("name", "==", oldFamilyName));
+              const familiesSnapshot = await getDocs(familiesQuery);
+              if (!familiesSnapshot.empty) {
+                  const familyDocRef = familiesSnapshot.docs[0].ref;
+                  batch.update(familyDocRef, { name: newFamilyName });
+              }
 
-                // Update all members of the old family to the new family name
-                const membersQuery = query(collection(db, `communities/${activeCommunityId}/members`), where("family", "==", oldFamilyName));
-                const membersSnapshot = await getDocs(membersQuery);
-                membersSnapshot.forEach(memberDoc => {
-                    batch.update(memberDoc.ref, { family: newFamilyName });
-                });
-            }
-        }
+              // Update all members of the old family to the new family name
+              const membersQuery = query(collection(db, `communities/${activeCommunityId}/members`), where("family", "==", oldFamilyName));
+              const membersSnapshot = await getDocs(membersQuery);
+              membersSnapshot.forEach(memberDoc => {
+                  batch.update(memberDoc.ref, { family: newFamilyName });
+              });
+          }
+      }
 
-        await batch.commit();
-        closeDialog();
-        toast({ title: "Member Updated", description: `${fullName}'s details have been updated.` });
+      await batch.commit();
+      closeDialog();
+      toast({ title: "Member Updated", description: `${fullName}'s details have been updated.` });
     } catch (error: any) {
         toast({ variant: "destructive", title: "Error updating member", description: error.message });
     }
@@ -657,3 +661,5 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     </CommunityContext.Provider>
   );
 }
+
+    
