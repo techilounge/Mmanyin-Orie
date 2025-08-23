@@ -227,7 +227,7 @@ export function LandingPage() {
                     </div>
                     <div className="relative flex flex-col lg:flex-row items-center justify-between gap-12">
                        <div className="lg:w-1/2 relative">
-                         <Image src="https://placehold.co/800x600.png" alt="App screenshot showing member management" width={800} height={600} className="rounded-xl shadow-2xl" data-ai-hint="member management"/>
+                         <Image src="/fam1.png" alt="App screenshot showing member management" width={800} height={600} className="rounded-xl shadow-2xl" data-ai-hint="member management"/>
                        </div>
                        <div className="lg:w-1/2 space-y-8">
                         {howItWorks.map((step) => (
