@@ -88,19 +88,10 @@ const howItWorksCarouselImages = ["/fam1.png", "/fam2.png", "/fam3.png", "/fam4.
 export function LandingPage() {
   const [api1, setApi1] = useState<EmblaCarouselType | undefined>();
   const [api2, setApi2] = useState<EmblaCarouselType | undefined>();
+  const autoplayPlugin1 = React.useRef(Autoplay({ delay: 10000, stopOnInteraction: true, stopOnMouseEnter: true }));
+  const autoplayPlugin2 = React.useRef(Autoplay({ delay: 10000, stopOnInteraction: true, stopOnMouseEnter: true }));
 
-  const onSelect1 = useCallback((emblaApi: EmblaCarouselType) => {
-    if (!emblaApi) return;
-    emblaApi.slideNodes().forEach((slideNode, index) => {
-      if (emblaApi.selectedScrollSnap() === index) {
-        slideNode.classList.add('is-active');
-      } else {
-        slideNode.classList.remove('is-active');
-      }
-    });
-  }, []);
-
-  const onSelect2 = useCallback((emblaApi: EmblaCarouselType) => {
+  const onSelect = useCallback((emblaApi: EmblaCarouselType) => {
     if (!emblaApi) return;
     emblaApi.slideNodes().forEach((slideNode, index) => {
       if (emblaApi.selectedScrollSnap() === index) {
@@ -113,25 +104,25 @@ export function LandingPage() {
 
   useEffect(() => {
     if (api1) {
-        onSelect1(api1);
-        api1.on('select', onSelect1);
-        api1.on('reInit', onSelect1);
+        onSelect(api1);
+        api1.on('select', onSelect);
+        api1.on('reInit', onSelect);
         if (api1.slideNodes().length > 0) {
             api1.slideNodes()[0]?.classList.add('is-active');
         }
     }
-  }, [api1, onSelect1]);
+  }, [api1, onSelect]);
 
    useEffect(() => {
     if (api2) {
-        onSelect2(api2);
-        api2.on('select', onSelect2);
-        api2.on('reInit', onSelect2);
+        onSelect(api2);
+        api2.on('select', onSelect);
+        api2.on('reInit', onSelect);
         if (api2.slideNodes().length > 0) {
             api2.slideNodes()[0]?.classList.add('is-active');
         }
     }
-  }, [api2, onSelect2]);
+  }, [api2, onSelect]);
 
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden bg-background text-foreground">
@@ -218,7 +209,7 @@ export function LandingPage() {
                 <div className="container mx-auto px-4">
                      <Carousel
                         setApi={setApi1}
-                        plugins={[Autoplay({ delay: 10000, stopOnInteraction: true, stopOnMouseEnter: true })]}
+                        plugins={[autoplayPlugin1.current]}
                         className="w-full max-w-6xl mx-auto"
                         opts={{ loop: true }}
                      >
@@ -231,7 +222,7 @@ export function LandingPage() {
                                    alt={`Community tradition image ${index + 1}`} 
                                    width={1200} 
                                    height={600} 
-                                   className="rounded-xl shadow-2xl mx-auto aspect-[2/1] object-contain" 
+                                   className="rounded-xl shadow-2xl mx-auto object-contain" 
                                  />
                                </div>
                              </CarouselItem>
@@ -254,7 +245,7 @@ export function LandingPage() {
                        <div className="lg:w-1/2 relative">
                          <Carousel
                             setApi={setApi2}
-                            plugins={[Autoplay({ delay: 10000, stopOnInteraction: true, stopOnMouseEnter: true })]}
+                            plugins={[autoplayPlugin2.current]}
                             className="w-full max-w-4xl mx-auto"
                             opts={{
                                 loop: true,
@@ -324,3 +315,5 @@ export function LandingPage() {
     </div>
   );
 }
+
+    
