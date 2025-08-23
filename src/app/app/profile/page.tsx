@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AppHeader } from "@/components/community/app-header";
 import { ProfileForm } from "@/components/profile/profile-form";
+import { AvatarUploader } from "@/components/profile/avatar-uploader";
 
 export default function ProfilePage() {
     const { user, appUser, loading } = useAuth();
@@ -37,15 +38,7 @@ export default function ProfilePage() {
                     <ProfileForm />
                 </TabsContent>
                 <TabsContent value="avatar">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Avatar</CardTitle>
-                            <CardDescription>Change your profile picture.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                             <p>Avatar uploader will go here.</p>
-                        </CardContent>
-                    </Card>
+                    <AvatarUploader />
                 </TabsContent>
                 <TabsContent value="security">
                      <Card>
