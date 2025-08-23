@@ -8,7 +8,16 @@ import {
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion"
+} from "@/components/ui/accordion";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel"
+import Autoplay from "embla-carousel-autoplay"
+import React from 'react';
 
 const features = [
   {
@@ -70,7 +79,14 @@ const faqs = [
     }
 ]
 
+const carouselImages = ["/trad1.png", "/trad2.png", "/trad3.png"];
+
+
 export function LandingPage() {
+    const autoplayPlugin = React.useRef(
+        Autoplay({ delay: 600000, stopOnInteraction: true, stopOnMouseEnter: true })
+    );
+
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden bg-background text-foreground">
       <div 
@@ -149,7 +165,28 @@ export function LandingPage() {
                   ))}
                 </div>
                  <div className="mt-16">
-                  <Image src="https://placehold.co/1200x600.png" alt="Dashboard Screenshot" width={1200} height={600} className="rounded-xl shadow-2xl mx-auto" data-ai-hint="dashboard screenshot" />
+                   <Carousel
+                    plugins={[autoplayPlugin.current]}
+                    className="w-full max-w-4xl mx-auto"
+                   >
+                     <CarouselContent>
+                       {carouselImages.map((src, index) => (
+                         <CarouselItem key={index}>
+                           <div className="p-1">
+                             <Image 
+                               src={src} 
+                               alt={`Feature demonstration image ${index + 1}`} 
+                               width={1200} 
+                               height={600} 
+                               className="rounded-xl shadow-2xl mx-auto" 
+                             />
+                           </div>
+                         </CarouselItem>
+                       ))}
+                     </CarouselContent>
+                     <CarouselPrevious />
+                     <CarouselNext />
+                   </Carousel>
                 </div>
               </div>
             </section>
