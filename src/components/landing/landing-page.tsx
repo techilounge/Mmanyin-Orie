@@ -17,7 +17,8 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel"
 import Autoplay from "embla-carousel-autoplay"
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import type { EmblaCarouselType } from 'embla-carousel-react';
 
 const features = [
   {
@@ -84,8 +85,30 @@ const carouselImages = ["/trad1.png", "/trad2.png", "/trad3.png"];
 
 export function LandingPage() {
     const autoplayPlugin = React.useRef(
-        Autoplay({ delay: 600000, stopOnInteraction: true, stopOnMouseEnter: true })
+        Autoplay({ delay: 10000, stopOnInteraction: true, stopOnMouseEnter: true })
     );
+
+  const [api, setApi] = useState<EmblaCarouselType | undefined>();
+
+  const onSelect = useCallback((emblaApi: EmblaCarouselType) => {
+    emblaApi.slideNodes().forEach((slideNode, index) => {
+      if (emblaApi.selectedScrollSnap() === index) {
+        slideNode.classList.add('is-active');
+      } else {
+        slideNode.classList.remove('is-active');
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (api) {
+        onSelect(api);
+        api.on('select', onSelect);
+        api.on('reInit', onSelect);
+        // Set the first slide as active initially
+        api.slideNodes()[0]?.classList.add('is-active');
+    }
+  }, [api, onSelect]);
 
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden bg-background text-foreground">
@@ -166,12 +189,16 @@ export function LandingPage() {
                 </div>
                  <div className="mt-16">
                    <Carousel
+                    setApi={setApi}
                     plugins={[autoplayPlugin.current]}
                     className="w-full max-w-4xl mx-auto"
+                    opts={{
+                        loop: true,
+                    }}
                    >
                      <CarouselContent>
                        {carouselImages.map((src, index) => (
-                         <CarouselItem key={index}>
+                         <CarouselItem key={index} className="embla__slide">
                            <div className="p-1">
                              <Image 
                                src={src} 
