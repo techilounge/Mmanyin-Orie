@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AppHeader } from "@/components/community/app-header";
 import { ProfileForm } from "@/components/profile/profile-form";
 import { AvatarUploader } from "@/components/profile/avatar-uploader";
+import { SecuritySettings } from "@/components/profile/security-settings";
 
 export default function ProfilePage() {
     const { user, appUser, loading } = useAuth();
@@ -41,15 +42,7 @@ export default function ProfilePage() {
                     <AvatarUploader />
                 </TabsContent>
                 <TabsContent value="security">
-                     <Card>
-                        <CardHeader>
-                            <CardTitle>Security</CardTitle>
-                            <CardDescription>Manage your password and account security.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                             <p>Security settings will go here.</p>
-                        </CardContent>
-                    </Card>
+                     <SecuritySettings />
                 </TabsContent>
                 <TabsContent value="account">
                      <Card>
