@@ -26,6 +26,11 @@ const nextConfig: NextConfig = {
         destination: '/app',
         permanent: true,
       },
+      {
+        source: '/app/profile',
+        destination: '/profile',
+        permanent: true
+      }
     ]
   },
   async headers() {

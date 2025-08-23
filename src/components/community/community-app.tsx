@@ -8,6 +8,7 @@ import {
   Home,
   Settings,
   DollarSign,
+  User,
 } from 'lucide-react';
 import { useCommunity } from '@/hooks/use-community';
 import { AppHeader } from './app-header';
@@ -26,18 +27,23 @@ import { EditCustomContributionDialog } from './dialogs/edit-custom-contribution
 import { EditPaymentDialog } from './dialogs/edit-payment-dialog';
 import { EditFamilyDialog } from './dialogs/edit-family-dialog';
 import { ResendInviteDialog } from './dialogs/resend-invite-dialog';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 const TABS = [
-  { id: 'dashboard', label: 'Dashboard', icon: BarChart2 },
-  { id: 'members', label: 'Members', icon: Users },
-  { id: 'families', label: 'Families', icon: Home },
-  { id: 'payments', label: 'Payments', icon: DollarSign },
-  { id: 'settings', label: 'Settings', icon: Settings },
+  { id: 'dashboard', label: 'Dashboard', icon: BarChart2, href: '' },
+  { id: 'members', label: 'Members', icon: Users, href: '' },
+  { id: 'families', label: 'Families', icon: Home, href: '' },
+  { id: 'payments', label: 'Payments', icon: DollarSign, href: '' },
+  { id: 'settings', label: 'Settings', icon: Settings, href: '' },
+  { id: 'profile', label: 'Account', icon: User, href: '/profile' },
 ];
 
 export function CommunityApp() {
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const { isLoading, dialogState } = useCommunity();
+  const pathname = usePathname();
+  const initialTab = TABS.find(tab => pathname.includes(tab.id))?.id || 'dashboard';
+  const [activeTab, setActiveTab] = useState(initialTab);
+  const { isLoading, dialogState, communityId } = useCommunity();
 
   const renderContent = () => {
     switch (activeTab) {
@@ -87,21 +93,24 @@ export function CommunityApp() {
       <nav className="bg-card shadow-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex overflow-x-auto py-2 space-x-8 hide-scrollbar">
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`py-3 px-1 flex items-center gap-2 font-medium text-sm whitespace-nowrap transition-colors border-b-2 ${
-                  activeTab === tab.id
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
-                }`}
-                aria-current={activeTab === tab.id ? 'page' : undefined}
-              >
-                <tab.icon size={18} />
-                <span>{tab.label}</span>
-              </button>
-            ))}
+            {TABS.map((tab) => {
+              const button = (
+                 <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`py-3 px-1 flex items-center gap-2 font-medium text-sm whitespace-nowrap transition-colors border-b-2 ${
+                    activeTab === tab.id
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-muted-foreground hover:text-foreground'
+                  }`}
+                  aria-current={activeTab === tab.id ? 'page' : undefined}
+                >
+                  <tab.icon size={18} />
+                  <span>{tab.label}</span>
+                </button>
+              );
+              return tab.href ? <Link href={`/app${tab.href}`} key={tab.id}>{button}</Link> : button;
+            })}
           </div>
         </div>
       </nav>
