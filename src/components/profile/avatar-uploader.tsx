@@ -3,7 +3,7 @@
 
 import { useState, useRef } from 'react';
 import { useAuth } from '@/lib/auth';
-import { storage, db, auth } from '@/lib/firebase';
+import { storage, db } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { updateProfile } from 'firebase/auth';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -45,21 +45,21 @@ export function AvatarUploader() {
   };
 
   const handleUpload = async () => {
-    if (!auth.currentUser || !avatarFile) return;
+    if (!user || !avatarFile) return;
 
     setIsUploading(true);
     try {
-      const storageRef = ref(storage, `avatars/${auth.currentUser.uid}/profile.png`);
+      const storageRef = ref(storage, `avatars/${user.uid}/profile.png`);
       
       // Upload the new file
       const snapshot = await uploadBytes(storageRef, avatarFile);
       const downloadURL = await getDownloadURL(snapshot.ref);
 
       // Update Firebase Auth profile
-      await updateProfile(auth.currentUser, { photoURL: downloadURL });
+      await updateProfile(user, { photoURL: downloadURL });
 
       // Update Firestore user document
-      const userDocRef = doc(db, 'users', auth.currentUser.uid);
+      const userDocRef = doc(db, 'users', user.uid);
       await updateDoc(userDocRef, { photoURL: downloadURL });
 
       toast({
@@ -80,10 +80,10 @@ export function AvatarUploader() {
   };
 
   const handleRemoveAvatar = async () => {
-      if (!auth.currentUser) return;
+      if (!user) return;
       setIsUploading(true);
       try {
-        const storageRef = ref(storage, `avatars/${auth.currentUser.uid}/profile.png`);
+        const storageRef = ref(storage, `avatars/${user.uid}/profile.png`);
         
         // Attempt to delete from storage
         try {
@@ -96,8 +96,8 @@ export function AvatarUploader() {
         }
         
         // Update profile and document with null
-        await updateProfile(auth.currentUser, { photoURL: null });
-        const userDocRef = doc(db, 'users', auth.currentUser.uid);
+        await updateProfile(user, { photoURL: null });
+        const userDocRef = doc(db, 'users', user.uid);
         await updateDoc(userDocRef, { photoURL: null });
 
         toast({ title: 'Avatar Removed', description: 'Your profile picture has been removed.' });
