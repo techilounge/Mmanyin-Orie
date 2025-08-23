@@ -89,7 +89,18 @@ export function LandingPage() {
   const [api1, setApi1] = useState<EmblaCarouselType | undefined>();
   const [api2, setApi2] = useState<EmblaCarouselType | undefined>();
 
-  const onSelect = useCallback((emblaApi: EmblaCarouselType) => {
+  const onSelect1 = useCallback((emblaApi: EmblaCarouselType) => {
+    if (!emblaApi) return;
+    emblaApi.slideNodes().forEach((slideNode, index) => {
+      if (emblaApi.selectedScrollSnap() === index) {
+        slideNode.classList.add('is-active');
+      } else {
+        slideNode.classList.remove('is-active');
+      }
+    });
+  }, []);
+
+  const onSelect2 = useCallback((emblaApi: EmblaCarouselType) => {
     if (!emblaApi) return;
     emblaApi.slideNodes().forEach((slideNode, index) => {
       if (emblaApi.selectedScrollSnap() === index) {
@@ -102,25 +113,25 @@ export function LandingPage() {
 
   useEffect(() => {
     if (api1) {
-        onSelect(api1);
-        api1.on('select', onSelect);
-        api1.on('reInit', onSelect);
+        onSelect1(api1);
+        api1.on('select', onSelect1);
+        api1.on('reInit', onSelect1);
         if (api1.slideNodes().length > 0) {
             api1.slideNodes()[0]?.classList.add('is-active');
         }
     }
-  }, [api1, onSelect]);
+  }, [api1, onSelect1]);
 
    useEffect(() => {
     if (api2) {
-        onSelect(api2);
-        api2.on('select', onSelect);
-        api2.on('reInit', onSelect);
+        onSelect2(api2);
+        api2.on('select', onSelect2);
+        api2.on('reInit', onSelect2);
         if (api2.slideNodes().length > 0) {
             api2.slideNodes()[0]?.classList.add('is-active');
         }
     }
-  }, [api2, onSelect]);
+  }, [api2, onSelect2]);
 
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden bg-background text-foreground">
@@ -220,7 +231,7 @@ export function LandingPage() {
                                    alt={`Community tradition image ${index + 1}`} 
                                    width={1200} 
                                    height={600} 
-                                   className="rounded-xl shadow-2xl mx-auto aspect-[2/1] object-cover" 
+                                   className="rounded-xl shadow-2xl mx-auto aspect-[2/1] object-contain" 
                                  />
                                </div>
                              </CarouselItem>
@@ -258,7 +269,7 @@ export function LandingPage() {
                                        alt={`Feature demonstration image ${index + 1}`} 
                                        width={800} 
                                        height={600} 
-                                       className="rounded-xl shadow-2xl mx-auto" 
+                                       className="rounded-xl shadow-2xl mx-auto object-contain" 
                                      />
                                    </div>
                                  </CarouselItem>
@@ -313,5 +324,3 @@ export function LandingPage() {
     </div>
   );
 }
-
-    
