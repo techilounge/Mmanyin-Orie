@@ -82,15 +82,26 @@ export default function AcceptInvitePage() {
         batch.update(inviteRef, { status: 'accepted', acceptedByUid: user.uid, acceptedAt: new Date().toISOString() });
         
         // 3. Ensure the user document is created and add the new membership
-        await ensureUserDocument(user, {
-            primaryCommunityId: invitation.communityId,
-            memberships: [invitation.communityId]
-        });
+        const userDocRef = doc(db, 'users', user.uid);
+        const userSnap = await getDoc(userDocRef);
+
+        if (userSnap.exists()) {
+             batch.update(userDocRef, {
+                primaryCommunityId: invitation.communityId,
+                memberships: [...(userSnap.data().memberships || []), invitation.communityId]
+             });
+        } else {
+             await ensureUserDocument(user, {
+                primaryCommunityId: invitation.communityId,
+                memberships: [invitation.communityId]
+            });
+        }
 
         await batch.commit();
         router.push(`/app/${invitation.communityId}`);
 
     } catch (error: any) {
+        console.error("Error processing invite:", error);
         toast({ variant: 'destructive', title: 'Error', description: 'Failed to process your invitation. Please contact support.' });
         setIsProcessingInvite(false);
     }
