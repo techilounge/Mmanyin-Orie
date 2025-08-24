@@ -17,7 +17,7 @@ import { Members } from './members';
 import { Families } from './families';
 import { AppSettings } from './app-settings';
 import { AddFamilyDialog } from './dialogs/add-family-dialog';
-import { AddMemberDialog } from './dialogs/add-member-dialog';
+import { AddMemberDialog } from './add-member-dialog';
 import { EditMemberDialog } from './dialogs/edit-member-dialog';
 import { AddCustomContributionDialog } from './dialogs/add-custom-contribution-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -122,14 +122,14 @@ export function CommunityApp() {
         {renderContent()}
       </main>
 
-      <AddFamilyDialog />
+      {dialogState?.type === 'add-family' && <AddFamilyDialog />}
       {dialogState?.type === 'edit-family' && <EditFamilyDialog family={dialogState.family} />}
-      <AddMemberDialog />
+      {dialogState?.type === 'add-member' && <AddMemberDialog />}
       {dialogState?.type === 'edit-member' && <EditMemberDialog member={dialogState.member} />}
       {dialogState?.type === 'resend-invite' && <ResendInviteDialog member={dialogState.member} />}
       {dialogState?.type === 'record-payment' && <RecordPaymentDialog member={dialogState.member} contribution={dialogState.contribution} month={dialogState.month} />}
       {dialogState?.type === 'edit-payment' && <EditPaymentDialog member={dialogState.member} contribution={dialogState.contribution} payment={dialogState.payment} />}
-      <AddCustomContributionDialog />
+      {dialogState?.type === 'add-custom-contribution' && <AddCustomContributionDialog />}
       {dialogState?.type === 'edit-custom-contribution' && <EditCustomContributionDialog contribution={dialogState.contribution} />}
     </div>
   );
