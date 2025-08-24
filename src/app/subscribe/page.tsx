@@ -52,7 +52,7 @@ export default function SubscribePage() {
         if (priceId === 'free') {
             setIsCreatingCommunity(true);
             try {
-                // 1. Create the community document (must include ownerUid)
+                // 1. Create the community document (must include ownerUid or createdBy)
                 const communityRef = await addDoc(collection(db, 'communities'), {
                     name: `${user.displayName || 'My'} Community`,
                     slug: `${user.uid}-community`,
