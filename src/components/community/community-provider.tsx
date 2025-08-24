@@ -358,6 +358,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
             email: data.email,
             phone: data.phone || '',
             phoneCountryCode: data.phoneCountryCode || '',
+            gender: data.gender,
             age,
             tier,
             payments: [],
@@ -365,6 +366,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
             role: 'user' as const,
             status: 'invited' as const,
             uid: null,
+            isPatriarch: data.isPatriarch,
         };
         
         const contribution = getContribution(newMemberBase, customContributions);
@@ -499,12 +501,18 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         const memberSnapshot = await getDoc(memberDocRef);
         if (memberSnapshot.exists()) {
             const memberData = memberSnapshot.data() as Member;
-            const newPayment: Payment = { 
+            const newPayment: Partial<Payment> = { 
                 id: doc(collection(db, 'dummy')).id, // Generate a client-side ID
-                contributionId, 
-                ...paymentData 
+                contributionId,
+                amount: paymentData.amount,
+                date: paymentData.date,
             };
-            const updatedPayments = [...(memberData.payments || []), newPayment];
+
+            if (paymentData.month !== undefined) {
+                newPayment.month = paymentData.month;
+            }
+
+            const updatedPayments = [...(memberData.payments || []), newPayment as Payment];
             await updateDoc(memberDocRef, { payments: updatedPayments });
             
             const memberName = memberData.name || 'Member';
