@@ -67,17 +67,14 @@ export default function AcceptInvitePage() {
         // 1. Update the member document with the new UID and set status to active
         const memberRef = doc(db, 'communities', invitation.communityId, 'members', invitation.memberId);
         
-        // Per new security rules, pass inviteId and inviteCode when creating membership
+        // Pass inviteId and inviteCode to satisfy security rules
         const memberUpdatePayload = { 
           uid: user.uid, 
           status: 'active',
-          inviteId: token,
-          inviteCode: invitation.code
+          inviteId: token, // This is the invitation document ID
+          inviteCode: invitation.code // This is the secret code from the invitation
         };
 
-        // Note: For a brand new member, this is technically a set not an update
-        // But since the inviteMember function already created a stub, we update.
-        // For rules that might not allow update, a `set(..., {merge: true})` would be safer.
         batch.update(memberRef, memberUpdatePayload);
 
         // 2. Update the invitation to mark it as accepted
@@ -197,3 +194,5 @@ export default function AcceptInvitePage() {
     </Card>
   );
 }
+
+    
