@@ -102,8 +102,11 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
 
   // Set up Firestore listeners
   useEffect(() => {
-    if (!activeCommunityId) {
-        setIsLoading(!user); // still loading if user exists but communityId not yet fetched
+    // If there's no active community or no authenticated user, don't set up listeners.
+    // This is the key fix: it ensures that on logout (when user becomes null),
+    // the cleanup function from the previous render is called, unsubscribing the listeners.
+    if (!activeCommunityId || !user) {
+        setIsLoading(!user); 
         setMembers([]);
         setFamilies([]);
         setCustomContributions([]);
@@ -120,14 +123,20 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
       onSnapshot(collection(communityDocRef, 'members'), (snapshot) => {
         const fetchedMembers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
         setMembers(fetchedMembers);
+      }, (error) => {
+        console.error("Error in 'members' listener:", error);
       }),
       onSnapshot(collection(communityDocRef, 'families'), (snapshot) => {
         const fetchedFamilies = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Family));
         setFamilies(fetchedFamilies);
+      }, (error) => {
+        console.error("Error in 'families' listener:", error);
       }),
       onSnapshot(collection(communityDocRef, 'contributions'), (snapshot) => {
         const fetchedContributions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CustomContribution));
         setCustomContributions(fetchedContributions);
+      }, (error) => {
+        console.error("Error in 'contributions' listener:", error);
       }),
       onSnapshot(communityDocRef, (snapshot) => {
         if (snapshot.exists()) {
@@ -139,17 +148,21 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
             });
             setCommunityName(communityData.name || '');
         }
+      }, (error) => {
+        console.error("Error in 'community' listener:", error);
       })
     ];
     
     const timer = setTimeout(() => setIsLoading(false), 300);
 
+    // This cleanup function is crucial. It runs when the component unmounts
+    // or when the dependencies (activeCommunityId, user) change.
     return () => {
         unsubscribes.forEach(unsub => unsub());
         clearTimeout(timer);
     };
 
-  }, [activeCommunityId, user]);
+  }, [activeCommunityId, user]); // Adding `user` to the dependency array is the fix.
 
 
   const calculateAge = useCallback((yearOfBirth: number) => new Date().getFullYear() - yearOfBirth, []);
