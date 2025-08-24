@@ -34,10 +34,10 @@ const nextConfig: NextConfig = {
 
     const csp = [
       "default-src 'self'",
-      "img-src 'self' data: https:",
+      "img-src 'self' data: https: https://firebasestorage.googleapis.com",
       "style-src 'self' 'unsafe-inline'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://apis.google.com https://accounts.google.com",
-      "connect-src 'self' https://*.firebaseio.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://apis.google.com https://accounts.google.com https://*.cloudworkstations.dev",
+      "connect-src 'self' https://*.firebaseio.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://apis.google.com https://accounts.google.com https://*.cloudworkstations.dev https://firebasestorage.googleapis.com",
       "frame-src 'self' https://accounts.google.com https://*.firebaseapp.com https://*.cloudworkstations.dev",
     ].join('; ');
 
