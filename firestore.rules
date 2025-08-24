@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -90,7 +91,7 @@ service cloud.firestore {
         // CREATE:
         //  1) Initial bootstrap: the owner may create THEIR OWN membership with role 'owner'
         //  2) Admins may create any membership with a valid role
-        //  3) (Optional) Self-join with a valid invitation (role must be 'user')
+        //  3) Self-join with a valid invitation (role must be 'user')
         allow create: if
           ( isOwner(communityId) && isSelf(memberId) && request.resource.data.role == 'owner' )
           ||

@@ -44,18 +44,20 @@ export default function SubscribePage() {
     const [isCreatingCommunity, setIsCreatingCommunity] = useState(false);
 
     const handleSelectPlan = async (priceId: string) => {
+        if (!user) {
+            toast({ variant: 'destructive', title: 'Error', description: 'You must be signed in.' });
+            return;
+        }
+
         if (priceId === 'free') {
-            if (!user) {
-                toast({ variant: 'destructive', title: 'Error', description: 'You must be signed in.' });
-                return;
-            }
             setIsCreatingCommunity(true);
             try {
-                // 1. Create a new community document
-                const communityRef = await addDoc(collection(db, 'communities'), {
+                // 1. Create the community document with ownerUid
+                const communityRef = doc(collection(db, 'communities'));
+                await setDoc(communityRef, {
                     name: `${user.displayName || 'My'} Community`,
                     slug: `${user.uid}-community`,
-                    ownerUid: user.uid,
+                    ownerUid: user.uid, // Required by security rules
                     timezone: 'America/New_York',
                     createdAt: serverTimestamp(),
                     updatedAt: serverTimestamp(),
@@ -68,7 +70,7 @@ export default function SubscribePage() {
                     },
                 });
 
-                // 2. Add the user as a member of the new community
+                // 2. Create the owner's membership document AFTER the community exists
                 const memberRef = doc(db, 'communities', communityRef.id, 'members', user.uid);
                 await setDoc(memberRef, {
                      uid: user.uid,
@@ -86,7 +88,7 @@ export default function SubscribePage() {
                     memberships: [communityRef.id]
                 });
                 
-                // 4. Redirect to onboarding/app
+                // 4. Redirect to onboarding
                 router.push(`/onboarding/${communityRef.id}`);
 
             } catch (error: any) {
