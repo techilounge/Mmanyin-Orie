@@ -89,7 +89,6 @@ export function CommunityApp() {
   const renderTab = (tab: (typeof TABS)[0]) => {
     const isLink = !!tab.href;
     const commonProps = {
-      key: tab.id,
       className: `py-3 px-1 flex items-center gap-2 font-medium text-sm whitespace-nowrap transition-colors border-b-2 ${
         activeTab === tab.id
           ? 'border-primary text-primary'
@@ -106,11 +105,11 @@ export function CommunityApp() {
     );
 
     if (isLink) {
-        return <Link href={tab.href!} {...commonProps}>{content}</Link>
+        return <Link key={tab.id} href={tab.href!} {...commonProps}>{content}</Link>
     }
 
     return (
-        <button onClick={() => setActiveTab(tab.id)} {...commonProps}>
+        <button key={tab.id} onClick={() => setActiveTab(tab.id)} {...commonProps}>
             {content}
         </button>
     );
