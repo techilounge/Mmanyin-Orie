@@ -18,18 +18,39 @@ export default function ProfilePage() {
     const { user, appUser, loading } = useAuth();
     const router = useRouter();
 
-    if (loading || !user || !appUser) {
-        return (
-            <div className="p-8">
-                <Skeleton className="h-96 w-full" />
-            </div>
-        )
-    }
-
     const handleSignOut = async () => {
         await auth.signOut();
         router.push('/auth/sign-in');
     };
+    
+    // Display a loading skeleton while user data is being fetched
+    if (loading || !user || !appUser) {
+        return (
+            <div className="min-h-screen bg-background">
+                 <header className="bg-card shadow-sm">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex justify-between items-center py-4">
+                        <div className="flex items-center space-x-3">
+                            <Skeleton className="h-10 w-10 rounded-lg" />
+                            <Skeleton className="h-8 w-48 rounded-md" />
+                        </div>
+                        <div className="flex gap-3">
+                            <Skeleton className="h-10 w-36 rounded-lg" />
+                            <Skeleton className="h-10 w-36 rounded-lg" />
+                        </div>
+                        </div>
+                    </div>
+                </header>
+                <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                    <div className="mb-8">
+                        <Skeleton className="h-10 w-1/2 mb-2" />
+                        <Skeleton className="h-4 w-3/4" />
+                    </div>
+                    <Skeleton className="h-96 w-full" />
+                </main>
+            </div>
+        )
+    }
 
     const communityId = appUser.primaryCommunityId ?? (appUser.memberships && appUser.memberships[0]) ?? null;
 
