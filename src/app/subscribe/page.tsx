@@ -52,12 +52,12 @@ export default function SubscribePage() {
         if (priceId === 'free') {
             setIsCreatingCommunity(true);
             try {
-                // 1. Create the community document with ownerUid to satisfy security rules
-                const communityRef = doc(collection(db, 'communities'));
-                await setDoc(communityRef, {
+                // 1. Create the community document (must include ownerUid)
+                const communityRef = await addDoc(collection(db, 'communities'), {
                     name: `${user.displayName || 'My'} Community`,
                     slug: `${user.uid}-community`,
                     ownerUid: user.uid, // Required by security rules
+                    createdBy: user.uid, // Also accepted by rules
                     timezone: 'America/New_York',
                     createdAt: serverTimestamp(),
                     updatedAt: serverTimestamp(),
@@ -135,7 +135,7 @@ export default function SubscribePage() {
                         <CardFooter>
                             <Button 
                                 className="w-full" 
-                                onClick={() => handleSelectPlan(plan.priceId)}
+                                onClick={() => handleSelectPlan(plan.priceId as 'free' | 'community')}
                                 disabled={isCreatingCommunity && plan.priceId === 'free'}
                                 variant={plan.name === 'Community Plan' ? 'default' : 'outline'}
                             >

@@ -1,4 +1,3 @@
-
 rules_version = '2';
 
 service cloud.firestore {
@@ -27,7 +26,6 @@ service cloud.firestore {
     }
 
     function isAdmin(communityId) {
-      // Guard .data access with exists()
       return isMember(communityId) &&
              memberRef(communityId, request.auth.uid).data.role in ['owner','admin'];
     }
@@ -36,7 +34,6 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/invitations/$(inviteId));
     }
 
-    // Optional: safer invite check for self-join flows
     function hasValidInvite(inviteId, communityId, code) {
       let inv = inviteRef(inviteId);
       return inv.exists() &&
@@ -52,46 +49,42 @@ service cloud.firestore {
 
     // ---------- Invitations ----------
     match /invitations/{inviteId} {
-      // Signed-in users can read only if they own/are targeted by the invite, or are admins
-      allow read: if (inviteRef(inviteId).exists() &&
-                      (
-                        (inviteRef(inviteId).data.createdBy != null &&
-                         inviteRef(inviteId).data.createdBy == request.auth.uid) ||
-                        (inviteRef(inviteId).data.email != null &&
-                         inviteRef(inviteId).data.email == request.auth.token.email) ||
-                        isAdmin(inviteRef(inviteId).data.communityId)
-                      ));
-
+      allow read: if inviteRef(inviteId).exists() && (
+                    (inviteRef(inviteId).data.createdBy != null &&
+                     inviteRef(inviteId).data.createdBy == request.auth.uid) ||
+                    (inviteRef(inviteId).data.email != null &&
+                     inviteRef(inviteId).data.email == request.auth.token.email) ||
+                    isAdmin(inviteRef(inviteId).data.communityId)
+                  );
       allow create: if isAuth() && isAdmin(request.resource.data.communityId);
-
-      // Accept/mark used: must match code on the stored invite
       allow update: if isAuth() &&
-                    request.auth.uid == request.resource.data.acceptedByUid &&
                     inviteRef(inviteId).exists() &&
+                    request.resource.data.acceptedByUid == request.auth.uid &&
                     request.resource.data.code == inviteRef(inviteId).data.code;
     }
 
     // ---------- Communities ----------
     match /communities/{communityId} {
 
-      // Allow the owner to read even before membership doc exists
+      // owner or member can read
       allow read: if isAuth() && (isMember(communityId) || isOwner(communityId));
 
-      // Anyone can create a community for themselves as owner
-      allow create: if isAuth() && request.resource.data.ownerUid == request.auth.uid;
+      // FIX: accept either ownerUid or createdBy from the client
+      allow create: if isAuth() && (
+        (('ownerUid' in request.resource.data) && request.resource.data.ownerUid == request.auth.uid) ||
+        (('createdBy' in request.resource.data) && request.resource.data.createdBy == request.auth.uid)
+      );
 
-      // Admins or owner can update the community
-      allow update: if isAuth() && (isOwner(communityId) || isAdmin(communityId));
+      allow update: if isAuth() && ( isOwner(communityId) || isAdmin(communityId) );
 
       // ----- Members -----
       match /members/{memberId} {
-        // Members and owner can read the roster
         allow read: if isAuth() && (isMember(communityId) || isOwner(communityId));
 
-        // CREATE:
-        //  1) Initial bootstrap: the owner may create THEIR OWN membership with role 'owner'
-        //  2) Admins may create any membership with a valid role
-        //  3) Self-join with a valid invitation (role must be 'user')
+        // Create:
+        //  a) Owner bootstraps THEIR OWN membership as 'owner' (must be separate request after community create)
+        //  b) Admins can create any membership with valid role
+        //  c) Self-join via valid invite as 'user'
         allow create: if
           ( isOwner(communityId) && isSelf(memberId) && request.resource.data.role == 'owner' )
           ||
@@ -101,15 +94,12 @@ service cloud.firestore {
             hasValidInvite(request.resource.data.inviteId, communityId, request.resource.data.inviteCode) &&
             request.resource.data.role == 'user' );
 
-        // UPDATE:
-        //  Admins may update any (role must remain valid);
-        //  A user may update their own doc only if role does not change
+        // Update: admins can change role; user can edit own doc if role unchanged
         allow update: if
           ( isAdmin(communityId) && request.resource.data.role in ['owner','admin','user'] )
           ||
           ( isSelf(memberId) && request.resource.data.role == resource.data.role );
 
-        // DELETE:
         allow delete: if isAdmin(communityId) || isOwner(communityId);
       }
 
@@ -124,6 +114,13 @@ service cloud.firestore {
         allow read: if isAuth() && (isMember(communityId) || isOwner(communityId));
         allow create, update, delete: if isAuth() && (isAdmin(communityId) || isOwner(communityId));
       }
+    }
+
+    // (Optional) Subscriptions owned by the user
+    match /subscriptions/{subId} {
+      allow read: if isAuth() && resource.data.uid == request.auth.uid;
+      allow create: if isAuth() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
     }
   }
 }
