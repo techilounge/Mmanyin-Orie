@@ -1,6 +1,7 @@
+
 'use client';
 import { useCommunity } from '@/hooks/use-community';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -21,14 +22,19 @@ const CURRENCIES = [
 ];
 
 export function AppSettings() {
-  const { settings, updateSettings, recalculateTiers, customContributions, openDialog, deleteCustomContribution } = useCommunity();
+  const { settings, updateSettings, recalculateTiers, customContributions, openDialog, deleteCustomContribution, communityName, updateCommunityName } = useCommunity();
   
   const [localSettings, setLocalSettings] = useState(settings);
+  const [localCommunityName, setLocalCommunityName] = useState(communityName);
   const [debouncedSettings] = useDebounce(localSettings, 500);
 
   useEffect(() => {
     setLocalSettings(settings);
   }, [settings]);
+
+  useEffect(() => {
+    setLocalCommunityName(communityName);
+  }, [communityName]);
 
   useEffect(() => {
     if (JSON.stringify(debouncedSettings) !== JSON.stringify(settings)) {
@@ -43,6 +49,12 @@ export function AppSettings() {
 
   const handleCurrencyChange = (value: string) => {
     setLocalSettings(prev => ({ ...prev, currency: value }));
+  };
+
+  const handleSaveCommunityName = () => {
+    if (localCommunityName !== communityName) {
+      updateCommunityName(localCommunityName);
+    }
   };
   
   return (
@@ -123,7 +135,15 @@ export function AppSettings() {
               Manage global settings for the application.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+             <div className="space-y-2">
+                <Label htmlFor="community-name">Community Name</Label>
+                <Input 
+                  id="community-name" 
+                  value={localCommunityName}
+                  onChange={(e) => setLocalCommunityName(e.target.value)}
+                />
+             </div>
              <div className="space-y-2">
                 <Label htmlFor="currency">Currency</Label>
                 <Select value={localSettings.currency} onValueChange={handleCurrencyChange}>
@@ -138,6 +158,9 @@ export function AppSettings() {
                 </Select>
               </div>
           </CardContent>
+          <CardFooter>
+            <Button onClick={handleSaveCommunityName}>Save Changes</Button>
+          </CardFooter>
         </Card>
         
         <Card>

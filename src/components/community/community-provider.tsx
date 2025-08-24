@@ -31,6 +31,7 @@ interface CommunityContextType {
   isLoading: boolean;
   communityId: string | null;
   communityName: string;
+  updateCommunityName: (newName: string) => Promise<void>;
   
   inviteMember: (newMemberData: NewMemberData) => Promise<string | null>;
   getInviteLink: (memberId: string) => Promise<string | null>;
@@ -569,6 +570,17 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     }
   }
 
+  const updateCommunityName = async (newName: string) => {
+    if (!activeCommunityId || !newName.trim()) return;
+    try {
+        const communityDocRef = doc(db, 'communities', activeCommunityId);
+        await updateDoc(communityDocRef, { name: newName.trim() });
+        toast({ title: "Community Name Updated", description: "Your community name has been saved." });
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "Error updating name", description: error.message });
+    }
+  };
+
   const recalculateTiers = async () => {
     if (!activeCommunityId) return;
     try {
@@ -633,6 +645,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     isLoading,
     communityId: activeCommunityId,
     communityName,
+    updateCommunityName,
     inviteMember,
     getInviteLink,
     updateMember,
@@ -660,7 +673,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     getBalanceForContribution,
   }), [
     members, families, settings, customContributions, isLoading, activeCommunityId, communityName, dialogState, 
-    getTier, getContribution, calculateAge, addFamily, inviteMember, getInviteLink, updateMember, deleteMember, updateFamily, deleteFamily, updateSettings, recalculateTiers, addCustomContribution, updateCustomContribution, deleteCustomContribution, recordPayment, updatePayment, deletePayment, openDialog, closeDialog, getPaidAmount, getBalance, getPaidAmountForContribution, getBalanceForContribution
+    getTier, getContribution, calculateAge, addFamily, inviteMember, getInviteLink, updateMember, deleteMember, updateFamily, deleteFamily, updateSettings, updateCommunityName, recalculateTiers, addCustomContribution, updateCustomContribution, deleteCustomContribution, recordPayment, updatePayment, deletePayment, openDialog, closeDialog, getPaidAmount, getBalance, getPaidAmountForContribution, getBalanceForContribution
   ]);
 
   return (
