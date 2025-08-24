@@ -30,31 +30,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const pathname = usePathname();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
-      if (user) {
-        const userDocRef = doc(db, 'users', user.uid);
-        const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
-             if (docSnap.exists()) {
-                setAppUser({ uid: docSnap.id, ...docSnap.data() } as AppUser);
-            } else {
-                setAppUser(null);
-            }
-            setLoading(false);
-        }, (error) => {
-            console.error("Error listening to user document:", error);
-            setAppUser(null);
-            setLoading(false);
-        });
-        return () => unsubscribeUser();
-      } else {
+    // This outer listener handles Firebase Auth state changes.
+    const unsubscribeAuth = onAuthStateChanged(auth, setUser);
+    // The cleanup function for the auth state listener.
+    return () => unsubscribeAuth();
+  }, []);
+
+  useEffect(() => {
+    // This effect hook handles the Firestore user document listener.
+    // It runs whenever the authenticated user changes.
+    if (user) {
+      setLoading(true);
+      const userDocRef = doc(db, 'users', user.uid);
+      const unsubscribeUserDoc = onSnapshot(userDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          setAppUser({ uid: docSnap.id, ...docSnap.data() } as AppUser);
+        } else {
+          setAppUser(null);
+        }
+        setLoading(false);
+      }, (error) => {
+        console.error("Error listening to user document:", error);
         setAppUser(null);
         setLoading(false);
-      }
-    });
+      });
 
-    return () => unsubscribe();
-  }, []);
+      // When the user changes (or logs out), this cleanup function is called.
+      return () => unsubscribeUserDoc();
+    } else {
+      // If there is no user, clear the app user state and stop loading.
+      setAppUser(null);
+      setLoading(false);
+    }
+  }, [user]);
 
   useEffect(() => {
     setMounted(true);
