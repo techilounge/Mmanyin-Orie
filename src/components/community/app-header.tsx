@@ -2,11 +2,19 @@
 'use client';
 import { Button } from '@/components/ui/button';
 import { useCommunity } from '@/hooks/use-community';
-import { Home, UserPlus, DollarSign } from 'lucide-react';
+import { Home, UserPlus, DollarSign, LogOut } from 'lucide-react';
 import Image from 'next/image';
+import { auth } from '@/lib/firebase';
+import { useRouter } from 'next/navigation';
 
 export function AppHeader({ setActiveTab }: { setActiveTab: (tab: string) => void; }) {
   const { openDialog, communityName } = useCommunity();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    await auth.signOut();
+    router.push('/auth/sign-in');
+  };
   
   return (
     <header className="bg-card shadow-sm">
@@ -43,6 +51,14 @@ export function AppHeader({ setActiveTab }: { setActiveTab: (tab: string) => voi
             >
               <DollarSign className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Record Payment</span>
+            </Button>
+            <Button
+              onClick={handleSignOut}
+              variant="outline"
+              size="sm"
+            >
+              <LogOut className="h-4 w-4 sm:mr-2" />
+               <span className="hidden sm:inline">Sign Out</span>
             </Button>
           </div>
         </div>
