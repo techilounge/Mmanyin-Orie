@@ -36,7 +36,6 @@ const TABS = [
   { id: 'families', label: 'Families', icon: Home },
   { id: 'payments', label: 'Payments', icon: DollarSign },
   { id: 'settings', label: 'Settings', icon: Settings },
-  { id: 'profile', label: 'Account', icon: User, href: '/profile' },
 ];
 
 export function CommunityApp() {
@@ -86,34 +85,9 @@ export function CommunityApp() {
     );
   }
   
-  const renderTab = (tab: (typeof TABS)[0]) => {
-    const isLink = !!tab.href;
-    const commonProps = {
-      className: `py-3 px-1 flex items-center gap-2 font-medium text-sm whitespace-nowrap transition-colors border-b-2 ${
-        activeTab === tab.id
-          ? 'border-primary text-primary'
-          : 'border-transparent text-muted-foreground hover:text-foreground'
-      }`,
-      'aria-current': activeTab === tab.id ? 'page' : undefined,
-    };
-    
-    const content = (
-      <>
-        <tab.icon size={18} />
-        <span>{tab.label}</span>
-      </>
-    );
-
-    if (isLink) {
-        return <Link key={tab.id} href={tab.href!} {...commonProps}>{content}</Link>
-    }
-
-    return (
-        <button key={tab.id} onClick={() => setActiveTab(tab.id)} {...commonProps}>
-            {content}
-        </button>
-    );
-  }
+  const navItemClasses = "py-3 px-1 flex items-center gap-2 font-medium text-sm whitespace-nowrap transition-colors border-b-2";
+  const activeNavItemClasses = "border-primary text-primary";
+  const inactiveNavItemClasses = "border-transparent text-muted-foreground hover:text-foreground";
 
   return (
     <div className="min-h-screen bg-background">
@@ -122,7 +96,24 @@ export function CommunityApp() {
       <nav className="bg-card shadow-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex overflow-x-auto py-2 space-x-8 hide-scrollbar">
-            {TABS.map(renderTab)}
+            {TABS.map((tab) => (
+                <button 
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`${navItemClasses} ${activeTab === tab.id ? activeNavItemClasses : inactiveNavItemClasses}`}
+                  aria-current={activeTab === tab.id ? 'page' : undefined}
+                >
+                    <tab.icon size={18} />
+                    <span>{tab.label}</span>
+                </button>
+            ))}
+             <Link 
+              href="/app/profile"
+              className={`${navItemClasses} ${pathname === '/app/profile' ? activeNavItemClasses : inactiveNavItemClasses}`}
+             >
+                <User size={18} />
+                <span>Account</span>
+            </Link>
           </div>
         </div>
       </nav>
@@ -136,7 +127,7 @@ export function CommunityApp() {
       <AddMemberDialog />
       {dialogState?.type === 'edit-member' && <EditMemberDialog member={dialogState.member} />}
       {dialogState?.type === 'resend-invite' && <ResendInviteDialog member={dialogState.member} />}
-      {dialogState?.type === 'record-payment' && <RecordPaymentDialog member={dialogState.member} contribution={dialogState.contribution} />}
+      {dialogState?.type === 'record-payment' && <RecordPaymentDialog member={dialogState.member} contribution={dialogState.contribution} month={dialogState.month} />}
       {dialogState?.type === 'edit-payment' && <EditPaymentDialog member={dialogState.member} contribution={dialogState.contribution} payment={dialogState.payment} />}
       <AddCustomContributionDialog />
       {dialogState?.type === 'edit-custom-contribution' && <EditCustomContributionDialog contribution={dialogState.contribution} />}
