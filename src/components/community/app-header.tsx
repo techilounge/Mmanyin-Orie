@@ -6,7 +6,7 @@ import { Home, UserPlus, DollarSign } from 'lucide-react';
 import Image from 'next/image';
 
 export function AppHeader({ setActiveTab }: { setActiveTab: (tab: string) => void; }) {
-  const { openDialog } = useCommunity();
+  const { openDialog, communityName } = useCommunity();
   
   return (
     <header className="bg-card shadow-sm">
@@ -14,7 +14,10 @@ export function AppHeader({ setActiveTab }: { setActiveTab: (tab: string) => voi
         <div className="flex justify-between items-center py-3 md:py-4">
           <div className="flex items-center space-x-2 md:space-x-3">
             <Image src="/logo.png" alt="Mmanyin Orie Logo" width={40} height={40} className="rounded-lg" />
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground font-headline">Mmanyin Orie</h1>
+            <div>
+              <h1 className="text-sm font-bold text-foreground font-headline">Mmanyin Orie</h1>
+              <p className="text-lg text-muted-foreground font-semibold">{communityName}</p>
+            </div>
           </div>
           <div className="flex gap-2 sm:gap-3">
             <Button
