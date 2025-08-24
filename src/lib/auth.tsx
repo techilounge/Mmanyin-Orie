@@ -88,14 +88,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      const isAppEntryPoint = pathname === '/app' || pathname === '/dashboard';
-      if(isAppEntryPoint) {
+      // This is the key change: redirect from the abstract /app to a concrete community page
+      if (pathname === '/app') {
         const communityId = appUser.primaryCommunityId || memberships[0];
         if (!communityId) {
           router.push('/subscribe');
           return;
         }
-        router.push(`/app/${communityId}`);
+        router.replace(`/app/${communityId}`);
       }
     } else if (user && !appUser && !isAuthPage && !isSubscribePage(pathname)) {
         router.push('/auth/sign-in');
