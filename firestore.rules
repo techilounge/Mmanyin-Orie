@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -7,13 +8,21 @@ service cloud.firestore {
     function isAuth()       { return request.auth != null; }
     function isSelf(uid)    { return isAuth() && request.auth.uid == uid; }
 
+    function communityData() {
+      return request.resource.data;
+    }
+
     function communityRef(communityId) {
       return get(/databases/$(database)/documents/communities/$(communityId));
     }
 
     function isOwner(communityId) {
-      let c = communityRef(communityId);
-      return isAuth() && c.exists() && c.data.ownerUid == request.auth.uid;
+      let community = communityRef(communityId);
+      // Check both existing data (for reads/updates) and incoming data (for creates)
+      return isAuth() && (
+        (community.exists() && community.data.ownerUid == request.auth.uid) ||
+        ('ownerUid' in communityData() && communityData().ownerUid == request.auth.uid)
+      );
     }
 
     function memberRef(communityId, uid) {
@@ -66,53 +75,54 @@ service cloud.firestore {
     // ---------- Communities ----------
     match /communities/{communityId} {
 
-      // owner or member can read
+      // FIX: owner or member can read
       allow read: if isAuth() && (isMember(communityId) || isOwner(communityId));
-
-      // FIX: accept either ownerUid or createdBy from the client
+      
       allow create: if isAuth() && (
         (('ownerUid' in request.resource.data) && request.resource.data.ownerUid == request.auth.uid) ||
         (('createdBy' in request.resource.data) && request.resource.data.createdBy == request.auth.uid)
       );
-
-      allow update: if isAuth() && ( isOwner(communityId) || isAdmin(communityId) );
+      
+      allow update: if isAuth() && ( isAdmin(communityId) );
 
       // ----- Members -----
       match /members/{memberId} {
-        allow read: if isAuth() && (isMember(communityId) || isOwner(communityId));
+        allow read: if isAuth() && (isMember(communityId));
 
         // Create:
         //  a) Owner bootstraps THEIR OWN membership as 'owner' (must be separate request after community create)
         //  b) Admins can create any membership with valid role
         //  c) Self-join via valid invite as 'user'
-        allow create: if
+        allow create: if isAuth() && (
           ( isOwner(communityId) && isSelf(memberId) && request.resource.data.role == 'owner' )
           ||
           ( isAdmin(communityId) && request.resource.data.role in ['owner','admin','user'] )
           ||
           ( isSelf(memberId) &&
             hasValidInvite(request.resource.data.inviteId, communityId, request.resource.data.inviteCode) &&
-            request.resource.data.role == 'user' );
+            request.resource.data.role == 'user' )
+        );
 
         // Update: admins can change role; user can edit own doc if role unchanged
-        allow update: if
+        allow update: if isAuth() && (
           ( isAdmin(communityId) && request.resource.data.role in ['owner','admin','user'] )
           ||
-          ( isSelf(memberId) && request.resource.data.role == resource.data.role );
+          ( isSelf(memberId) && request.resource.data.role == resource.data.role )
+        );
 
-        allow delete: if isAdmin(communityId) || isOwner(communityId);
+        allow delete: if isAdmin(communityId);
       }
 
       // ----- Families -----
       match /families/{familyId} {
-        allow read: if isAuth() && (isMember(communityId) || isOwner(communityId));
-        allow create, update, delete: if isAuth() && (isAdmin(communityId) || isOwner(communityId));
+        allow read: if isAuth() && (isMember(communityId));
+        allow create, update, delete: if isAuth() && (isAdmin(communityId));
       }
 
       // ----- Contributions -----
       match /contributions/{contributionId} {
-        allow read: if isAuth() && (isMember(communityId) || isOwner(communityId));
-        allow create, update, delete: if isAuth() && (isAdmin(communityId) || isOwner(communityId));
+        allow read: if isAuth() && (isMember(communityId));
+        allow create, update, delete: if isAuth() && (isAdmin(communityId));
       }
     }
 
