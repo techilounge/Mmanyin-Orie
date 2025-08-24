@@ -91,7 +91,9 @@ export default function AcceptInvitePage() {
                 memberships: [...(userSnap.data().memberships || []), invitation.communityId]
              });
         } else {
-             await ensureUserDocument(user, {
+            // Because batch writes can't read, we have to do this outside the batch.
+            // This is acceptable because ensureUserDocument is idempotent.
+            await ensureUserDocument(user, {
                 primaryCommunityId: invitation.communityId,
                 memberships: [invitation.communityId]
             });
