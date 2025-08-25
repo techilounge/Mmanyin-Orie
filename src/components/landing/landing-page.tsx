@@ -1,8 +1,9 @@
+
 'use client';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, BarChart2, Users, Home, Settings, ChevronDown } from 'lucide-react';
+import { ArrowRight, BarChart2, Users, Home, Settings, ChevronDown, Menu } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
@@ -19,6 +20,7 @@ import {
 } from "@/components/ui/carousel"
 import Autoplay from "embla-carousel-autoplay"
 import React, { useCallback, useEffect, useState } from 'react';
+import { Sheet, SheetContent, SheetTrigger } from '../ui/sheet';
 
 const features = [
   {
@@ -123,6 +125,14 @@ export function LandingPage() {
     }
   }, [api2, onSelect]);
 
+  const navLinks = (
+    <>
+      <Link href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Features</Link>
+      <Link href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">How it Works</Link>
+      <Link href="#faq" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">FAQ</Link>
+    </>
+  );
+
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden bg-background text-foreground">
       <div 
@@ -140,17 +150,42 @@ export function LandingPage() {
                 <Image src="/logo.png" alt="Mmanyin Orie Logo" width={40} height={40} className="rounded-lg" />
                 <h1 className="text-xl sm:text-2xl font-bold text-foreground">Mmanyin Orie</h1>
             </div>
+            <nav className="hidden md:flex items-center gap-6">
+                {navLinks}
+            </nav>
             <div className="flex items-center gap-2">
-               <Link href="/auth/sign-in">
+               <Link href="/auth/sign-in" className="hidden sm:inline-flex">
                   <Button variant="ghost">
                       Sign In
                   </Button>
               </Link>
-              <Link href="/auth/sign-up">
+              <Link href="/auth/sign-up" className="hidden sm:inline-flex">
                   <Button>
                       Sign Up
                   </Button>
               </Link>
+               <div className="md:hidden">
+                    <Sheet>
+                        <SheetTrigger asChild>
+                            <Button variant="outline" size="icon">
+                                <Menu className="h-6 w-6" />
+                                <span className="sr-only">Open menu</span>
+                            </Button>
+                        </SheetTrigger>
+                        <SheetContent side="right">
+                            <div className="flex flex-col gap-6 pt-12">
+                               {navLinks}
+                               <hr />
+                               <Link href="/auth/sign-in">
+                                  <Button variant="outline" className="w-full">Sign In</Button>
+                               </Link>
+                               <Link href="/auth/sign-up">
+                                  <Button className="w-full">Sign Up</Button>
+                               </Link>
+                            </div>
+                        </SheetContent>
+                    </Sheet>
+               </div>
             </div>
         </header>
 
@@ -314,4 +349,6 @@ export function LandingPage() {
     </div>
   );
 }
+    
+
     
