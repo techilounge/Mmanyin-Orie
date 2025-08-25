@@ -18,8 +18,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({ user: null, appUser: null, loading: true });
 
-const publicPaths = ['/', '/auth/sign-in', '/auth/sign-up', '/auth/accept-invite'];
-const isSubscribePage = (path: string) => path === '/subscribe';
+const publicPaths = ['/', '/auth/sign-in', '/auth/sign-up', '/auth/accept-invite', '/subscribe'];
+const isAuthPage = (path: string) => path.startsWith('/auth');
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -71,27 +71,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (!mounted || loading) return;
 
-    const pathIsPublic = publicPaths.some(p => pathname === p || (p !== '/' && pathname.startsWith(p)));
-    const isAuthPage = pathname.startsWith('/auth');
+    const pathIsPublic = publicPaths.some(p => pathname.startsWith(p));
 
-    if (!user && !pathIsPublic && !isSubscribePage(pathname)) {
+    // If user is not logged in and not on a public page, redirect to sign-in
+    if (!user && !pathIsPublic) {
       router.push('/auth/sign-in');
       return;
     }
     
+    // If user is logged in
     if (user && appUser) {
-      if (isAuthPage && !pathname.startsWith('/auth/accept-invite')) {
+      const memberships = appUser.memberships || [];
+      const hasCommunity = memberships.length > 0;
+
+      // If on an auth page (but not accept-invite), redirect to app
+      if (isAuthPage(pathname) && !pathname.startsWith('/auth/accept-invite')) {
         router.push('/app');
         return;
       }
       
-      const memberships = appUser.memberships || [];
-      if (memberships.length === 0 && !isSubscribePage(pathname) && !pathname.startsWith('/auth/accept-invite')) {
+      // If user has no community and tries to access a protected page, redirect to subscribe
+      if (!hasCommunity && !pathIsPublic) {
         router.push('/subscribe');
         return;
       }
 
-      if (memberships.length > 0 && isSubscribePage(pathname)) {
+      // If user has a community but lands on subscribe page, redirect to app
+      if (hasCommunity && pathname === '/subscribe') {
         router.push('/app');
         return;
       }
@@ -100,13 +106,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (pathname === '/app') {
         const communityId = appUser.primaryCommunityId || memberships[0];
         if (!communityId) {
-          router.push('/subscribe');
+          router.push('/subscribe'); // Should be rare, but a safe fallback
           return;
         }
         router.replace(`/app/${communityId}`);
       }
-    } else if (user && !appUser && !isAuthPage && !isSubscribePage(pathname)) {
-        router.push('/auth/sign-in');
+    } else if (user && !appUser && !isAuthPage(pathname)) {
+        // This case handles a logged-in Firebase user whose appUser doc is still loading or missing
+        // It's safer to keep them on public pages or wait, rather than redirecting prematurely
+        if (!pathIsPublic) {
+          // You might want a loading screen here, but for now we prevent redirection loops
+        }
     }
 
   }, [user, appUser, loading, router, pathname, mounted]);
@@ -115,9 +125,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return null;
   }
   
-  const pathIsPublicOrSubscribe = publicPaths.some(p => pathname === p || (p !== '/' && pathname.startsWith(p))) || isSubscribePage(pathname);
+  const pathIsPublic = publicPaths.some(p => pathname.startsWith(p));
 
-  if (loading && !pathIsPublicOrSubscribe) {
+  if (loading && !pathIsPublic) {
      return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="p-8 space-y-4 w-full max-w-md">
