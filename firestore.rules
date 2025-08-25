@@ -1,88 +1,84 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
     // Helper functions
-    function isSignedIn() {
-      return request.auth != null;
+    function isUser(uid) {
+      return request.auth != null && request.auth.uid == uid;
     }
 
-    function isUser(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-    
     function communityData() {
       return request.resource.data;
     }
     
     function isMemberOf(communityId) {
-      return isSignedIn() && exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid));
+      return exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid));
     }
     
-    function getRole(communityId) {
-      return get(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)).data.role;
-    }
-
     function isOwner(communityId) {
-      return getRole(communityId) == 'owner';
+        return request.auth.uid == get(/databases/$(database)/documents/communities/$(communityId)).data.ownerUid;
+    }
+
+    function isAdmin(communityId) {
+        let role = get(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)).data.role;
+        return role == 'admin' || role == 'owner';
     }
     
-    function isAdmin(communityId) {
-      let role = getRole(communityId);
-      return role == 'admin' || role == 'owner';
-    }
-
-    // ===== Rules =====
-
-    // Users can only read/write their own user document
+    // USERS
+    // Users can only manage their own documents.
     match /users/{userId} {
-      allow read, update: if isUser(userId);
-      allow create: if isSignedIn();
+      allow read, update, delete: if isUser(userId);
+      allow create: if isUser(userId);
+    }
+    
+    // INVITATIONS
+    // Only admins/owners of a community can create invites for it.
+    // The user accepting the invite can read it.
+    // The user accepting the invite can update it (as part of a batch write).
+    match /invitations/{inviteId} {
+        allow read: if request.auth.uid == resource.data.acceptedByUid || request.auth.uid == resource.data.createdBy;
+        allow create: if isAdmin(request.resource.data.communityId);
+        allow update: if request.auth.uid == resource.data.acceptedByUid || isAdmin(resource.data.communityId);
+        allow delete: if isAdmin(resource.data.communityId);
     }
 
-    // Communities can be created by any signed-in user.
-    // The client-side code will prevent duplicates.
-    // They can be read by the owner OR a member.
-    // They can only be updated by an admin/owner of that community.
+    // COMMUNITIES
     match /communities/{communityId} {
-      allow create: if isSignedIn() && isUser(communityData().ownerUid);
-      allow read: if isUser(resource.data.ownerUid) || isMemberOf(communityId);
-      allow update: if isAdmin(communityId);
-      // Disallow deletion for safety
-      allow delete: if false;
+      // A user can create a community if they are logged in and are the owner.
+      // The client-side logic will prevent creating more than one.
+      allow create: if isUser(communityData().ownerUid);
 
-      // Members can be managed by admins.
-      // Members can read their own member document.
+      // Users can read a community doc if they are the owner OR a member.
+      allow read: if isUser(resource.data.ownerUid) || isMemberOf(communityId);
+      
+      // Only owners/admins can update community-level settings.
+      allow update: if isAdmin(communityId);
+      
+      // Deletion might be disabled for safety in a real app, but for now only owner can delete.
+      allow delete: if isOwner(communityId);
+
+      // MEMBERS
+      // A user can be added if the person adding them is an admin/owner of the community,
+      // OR if the user is the owner creating their own initial member document.
       match /members/{memberId} {
-        allow read: if isUser(memberId) || isAdmin(communityId);
-        allow create, update: if isAdmin(communityId);
+        allow create: if isOwner(communityId) || isAdmin(communityId);
+        allow read, list: if isMemberOf(communityId);
+        allow update: if isAdmin(communityId) || isUser(memberId);
         allow delete: if isAdmin(communityId);
       }
       
-      // Families can be managed by admins.
-      match /families/{familyId} {
-        allow read: if isMemberOf(communityId);
+      // CONTRIBUTIONS (Payment Templates)
+      match /contributions/{contributionId} {
+        allow read, list: if isMemberOf(communityId);
         allow create, update, delete: if isAdmin(communityId);
       }
-
-      // Contributions can be read by members and managed by admins.
-      match /contributions/{contributionId} {
-         allow read: if isMemberOf(communityId);
-         allow create, update, delete: if isAdmin(communityId);
+      
+      // FAMILIES
+      match /families/{familyId} {
+        allow read, list: if isMemberOf(communityId);
+        allow create, update, delete: if isAdmin(communityId);
       }
-    }
-    
-    // Invitations can be read by the user who created them or the user they are intended for (once uid is known).
-    // They can only be created by an authenticated user.
-    match /invitations/{inviteId} {
-        allow read: if isUser(resource.data.createdBy) || isUser(resource.data.acceptedByUid);
-        allow create: if isSignedIn();
-        // The member document update logic handles 'accepting' an invite.
-        // This rule allows the client to mark the invite as 'accepted'.
-        allow update: if request.resource.data.status == 'accepted' && isUser(request.resource.data.acceptedByUid);
-        allow delete: if false;
     }
   }
 }
