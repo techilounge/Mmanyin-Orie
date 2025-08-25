@@ -16,7 +16,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import type { CustomContribution } from '@/lib/types';
+import type { CustomContribution, Settings } from '@/lib/types';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
@@ -24,7 +24,11 @@ interface EditCustomContributionDialogProps {
   contribution: CustomContribution;
 }
 
-const TIERS = (settings) => [`Group 1 (${settings.tier1Age}-${settings.tier2Age-1})`, `Group 2 (${settings.tier2Age}+)`, 'Under 18'];
+const TIERS = (settings: Settings): string[] => [
+  `Group 1 (${settings.tier1Age}-${settings.tier2Age - 1})`,
+  `Group 2 (${settings.tier2Age}+)`,
+  'Under 18',
+];
 
 const formSchema = z.object({
   id: z.string(),
