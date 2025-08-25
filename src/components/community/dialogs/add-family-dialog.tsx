@@ -50,7 +50,7 @@ export function AddFamilyDialog() {
 
   return (
     <Dialog open={dialogState?.type === 'add-family'} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-lg">
         <DialogHeader>
           <DialogTitle>Create New Family</DialogTitle>
           <DialogDescription>
@@ -59,32 +59,34 @@ export function AddFamilyDialog() {
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-            <FormField
-              control={form.control}
-              name="patriarchFirstName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Father's First Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., John" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="patriarchLastName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Father's Last Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., Smith" {...field} />
-                  </FormControl>
-                   <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="patriarchFirstName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Father's First Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., John" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="patriarchLastName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Father's Last Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Smith" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <FormField
               control={form.control}
               name="yearOfBirth"

@@ -40,14 +40,14 @@ export function Members() {
   const { members, families, deleteMember, openDialog, settings, getPaidAmount, getBalance } = useCommunity();
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterFamily, setFilterFamily] = useState('');
-  const [filterTier, setFilterTier] = useState('');
+  const [filterFamily, setFilterFamily] = useState('all');
+  const [filterTier, setFilterTier] = useState('all');
   const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
 
   const clearFilters = () => {
     setSearchTerm('');
-    setFilterFamily('');
-    setFilterTier('');
+    setFilterFamily('all');
+    setFilterTier('all');
   };
 
   const filteredMembers = useMemo(() => {
@@ -62,8 +62,8 @@ export function Members() {
         (m.email ?? '').toLowerCase().includes(q) ||
         fullPhone.includes(q);
 
-      const matchesFamily = !filterFamily || m.family === filterFamily;
-      const matchesTier = !filterTier || tier === filterTier;
+      const matchesFamily = filterFamily === 'all' || m.family === filterFamily;
+      const matchesTier = filterTier === 'all' || tier === filterTier;
 
       return matchesSearch && matchesFamily && matchesTier;
     });
@@ -100,54 +100,45 @@ export function Members() {
     <div className="space-y-6">
       <Card>
         <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 min-w-0">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder="Search members..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10"
-                />
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="relative lg:col-span-2">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search members..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10"
+              />
             </div>
 
-            <div className="flex flex-wrap gap-3">
-              <Select value={filterFamily} onValueChange={setFilterFamily}>
-                <SelectTrigger className="w-full sm:w-[180px]">
-                  <SelectValue placeholder="All Families" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Families</SelectItem>
-                  {families.sort((a, b) => a.name.localeCompare(b.name)).map((f) => (
-                    <SelectItem key={f.id} value={f.name}>
-                      {f.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <Select value={filterFamily} onValueChange={setFilterFamily}>
+              <SelectTrigger>
+                <SelectValue placeholder="All Families" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Families</SelectItem>
+                {families.sort((a, b) => a.name.localeCompare(b.name)).map((f) => (
+                  <SelectItem key={f.id} value={f.name}>
+                    {f.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-              <Select value={filterTier} onValueChange={setFilterTier}>
-                <SelectTrigger className="w-full sm:w-[180px]">
-                  <SelectValue placeholder="All Age Groups" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Age Groups</SelectItem>
-                  {tierOptions.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {t}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Button variant="outline" onClick={clearFilters}>
-                <X size={16} />
-                <span className="hidden sm:inline ml-1">Clear</span>
-              </Button>
-            </div>
+            <Select value={filterTier} onValueChange={setFilterTier}>
+              <SelectTrigger>
+                <SelectValue placeholder="All Age Groups" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Age Groups</SelectItem>
+                {tierOptions.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {t}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>

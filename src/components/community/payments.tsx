@@ -1,3 +1,4 @@
+
 'use client';
 import { useState } from 'react';
 import { useCommunity } from '@/hooks/use-community';
@@ -261,7 +262,7 @@ export function Payments() {
         </div>
       )}
        <AlertDialog open={paymentToDelete !== null} onOpenChange={(open) => !open && setPaymentToDelete(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[calc(100vw-2rem)] max-w-lg">
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>

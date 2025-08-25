@@ -1,3 +1,4 @@
+
 'use client';
 import { useCommunity } from '@/hooks/use-community';
 import { Button } from '@/components/ui/button';
@@ -63,7 +64,7 @@ export function AddCustomContributionDialog() {
 
   return (
     <Dialog open={dialogState?.type === 'add-custom-contribution'} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-lg sm:max-w-xl md:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Add Custom Contribution Template</DialogTitle>
           <DialogDescription>
@@ -112,7 +113,7 @@ export function AddCustomContributionDialog() {
                     <RadioGroup
                       onValueChange={field.onChange}
                       defaultValue={field.value}
-                      className="flex space-x-4"
+                      className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4"
                     >
                       <FormItem className="flex items-center space-x-2 space-y-0">
                         <FormControl>

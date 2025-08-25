@@ -1,3 +1,4 @@
+
 'use client';
 import { useEffect } from 'react';
 import { useCommunity } from '@/hooks/use-community';
@@ -74,7 +75,7 @@ export function RecordPaymentDialog({ member, contribution, month }: RecordPayme
 
   return (
     <Dialog open={dialogState?.type === 'record-payment'} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-lg">
         <DialogHeader>
           <DialogTitle>Record Payment for {member.name}</DialogTitle>
           <DialogDescription asChild>

@@ -86,7 +86,7 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
   
   return (
     <Dialog open={dialogState?.type === 'edit-member'} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-lg sm:max-w-xl md:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Edit Member</DialogTitle>
           <DialogDescription>
@@ -97,7 +97,7 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <ScrollArea className="h-[60vh] pr-6">
               <div className="space-y-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField control={form.control} name="firstName" render={({ field }) => (
                     <FormItem><FormLabel>First Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
@@ -157,9 +157,9 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
                 )} />
                 <FormItem>
                   <FormLabel>Phone <span className="text-muted-foreground">(optional)</span></FormLabel>
-                  <div className="flex gap-2">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                      <FormField name="phoneCountryCode" control={form.control} render={({ field }) => (
-                        <FormItem className="w-1/3">
+                        <FormItem className="w-full">
                           <Select value={field.value} onValueChange={field.onChange}>
                             <FormControl>
                               <SelectTrigger><SelectValue placeholder="Code" /></SelectTrigger>
@@ -176,7 +176,7 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
                         </FormItem>
                      )} />
                     <FormField name="phone" control={form.control} render={({ field }) => (
-                      <FormItem className="flex-1">
+                      <FormItem className="md:col-span-2">
                         <FormControl><Input type="tel" {...field} value={field.value ?? ''} /></FormControl>
                         <FormMessage />
                       </FormItem>

@@ -29,6 +29,9 @@ import { EditFamilyDialog } from './dialogs/edit-family-dialog';
 import { ResendInviteDialog } from './dialogs/resend-invite-dialog';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import AppShellLite from '../layout/AppShellLite';
+import MobileTabs from '../layout/MobileTabs';
+import { defaultNav } from '@/config/nav';
 
 const TABS = [
   { id: 'dashboard', label: 'Dashboard', icon: BarChart2 },
@@ -90,47 +93,44 @@ export function CommunityApp() {
   const inactiveNavItemClasses = "border-transparent text-muted-foreground hover:text-foreground";
 
   return (
-    <div className="min-h-screen bg-background">
-      <AppHeader setActiveTab={setActiveTab} />
-
-      <nav className="bg-card shadow-sm sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex overflow-x-auto py-2 space-x-8 hide-scrollbar">
-            {TABS.map((tab) => (
-                <button 
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`${navItemClasses} ${activeTab === tab.id ? activeNavItemClasses : inactiveNavItemClasses}`}
-                  aria-current={activeTab === tab.id ? 'page' : undefined}
+    <AppShellLite header={<AppHeader setActiveTab={setActiveTab} />}>
+        <nav className="bg-card shadow-sm sticky top-0 z-10 -mx-4 sm:-mx-6 md:mx-0 mb-6">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex overflow-x-auto py-2 space-x-8 hide-scrollbar">
+                {TABS.map((tab) => (
+                    <button 
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`${navItemClasses} ${activeTab === tab.id ? activeNavItemClasses : inactiveNavItemClasses}`}
+                    aria-current={activeTab === tab.id ? 'page' : undefined}
+                    >
+                        <tab.icon size={18} />
+                        <span>{tab.label}</span>
+                    </button>
+                ))}
+                <Link 
+                href="/app/profile"
+                className={`${navItemClasses} ${pathname === '/app/profile' ? activeNavItemClasses : inactiveNavItemClasses}`}
                 >
-                    <tab.icon size={18} />
-                    <span>{tab.label}</span>
-                </button>
-            ))}
-             <Link 
-              href="/app/profile"
-              className={`${navItemClasses} ${pathname === '/app/profile' ? activeNavItemClasses : inactiveNavItemClasses}`}
-             >
-                <User size={18} />
-                <span>Account</span>
-            </Link>
-          </div>
-        </div>
-      </nav>
+                    <User size={18} />
+                    <span>Account</span>
+                </Link>
+            </div>
+            </div>
+        </nav>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {renderContent()}
-      </main>
 
-      {dialogState?.type === 'add-family' && <AddFamilyDialog />}
-      {dialogState?.type === 'edit-family' && <EditFamilyDialog family={dialogState.family} />}
-      {dialogState?.type === 'add-member' && <AddMemberDialog />}
-      {dialogState?.type === 'edit-member' && <EditMemberDialog member={dialogState.member} />}
-      {dialogState?.type === 'resend-invite' && <ResendInviteDialog member={dialogState.member} />}
-      {dialogState?.type === 'record-payment' && <RecordPaymentDialog member={dialogState.member} contribution={dialogState.contribution} month={dialogState.month} />}
-      {dialogState?.type === 'edit-payment' && <EditPaymentDialog member={dialogState.member} contribution={dialogState.contribution} payment={dialogState.payment} />}
-      {dialogState?.type === 'add-custom-contribution' && <AddCustomContributionDialog />}
-      {dialogState?.type === 'edit-custom-contribution' && <EditCustomContributionDialog contribution={dialogState.contribution} />}
-    </div>
+        {dialogState?.type === 'add-family' && <AddFamilyDialog />}
+        {dialogState?.type === 'edit-family' && <EditFamilyDialog family={dialogState.family} />}
+        {dialogState?.type === 'add-member' && <AddMemberDialog />}
+        {dialogState?.type === 'edit-member' && <EditMemberDialog member={dialogState.member} />}
+        {dialogState?.type === 'resend-invite' && <ResendInviteDialog member={dialogState.member} />}
+        {dialogState?.type === 'record-payment' && <RecordPaymentDialog member={dialogState.member} contribution={dialogState.contribution} month={dialogState.month} />}
+        {dialogState?.type === 'edit-payment' && <EditPaymentDialog member={dialogState.member} contribution={dialogState.contribution} payment={dialogState.payment} />}
+        {dialogState?.type === 'add-custom-contribution' && <AddCustomContributionDialog />}
+        {dialogState?.type === 'edit-custom-contribution' && <EditCustomContributionDialog contribution={dialogState.contribution} />}
+    </AppShellLite>
   );
 }
+
