@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   title: 'Mmanyin Orie',
   description: 'Community Registry Application',
   icons: {
-    icon: '/logo.png',
+    icon: '/Mmanyin-Orie-favicon.svg',
   },
 };
 
