@@ -1,10 +1,10 @@
 
-export type NavItem = { href: string; label: string };
+export type NavItem = { id: string; label: string };
 
 export const defaultNav: NavItem[] = [
-  { href: "/dashboard", label: "Home" },
-  { href: "/members", label: "Members" },
-  { href: "/families", label: "Families" },
-  { href: "/payments", label: "Payments" },
-  { href: "/settings", label: "Settings" },
+  { id: "dashboard", label: "Dashboard" },
+  { id: "members", label: "Members" },
+  { id: "families", label: "Families" },
+  { id: "payments", label: "Payments" },
+  { id: "settings", label: "Settings" },
 ];

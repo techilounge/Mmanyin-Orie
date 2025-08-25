@@ -9,6 +9,8 @@ type Props = React.PropsWithChildren<{
   nav?: NavItem[];
   hideTabsOn?: string[]; // e.g. ['/subscribe','/auth','/onboarding']
   header?: React.ReactNode; // optional top header area
+  activeTab?: string;
+  onTabChange?: (tabId: string) => void;
 }>;
 
 /**
@@ -22,6 +24,8 @@ export default function AppShellLite({
   hideTabsOn = ["/subscribe", "/auth", "/onboarding", "/app/profile"],
   header,
   children,
+  activeTab,
+  onTabChange,
 }: Props) {
   return (
     <div className="min-h-dvh bg-background text-foreground">
@@ -38,7 +42,7 @@ export default function AppShellLite({
       </main>
 
       {/* Bottom tabs on mobile only */}
-      <MobileTabs nav={nav} hiddenOn={hideTabsOn} />
+      <MobileTabs nav={nav} hiddenOn={hideTabsOn} activeTab={activeTab} onTabChange={onTabChange} />
     </div>
   );
 }

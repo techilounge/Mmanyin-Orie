@@ -1,7 +1,6 @@
 
 'use client';
 
-import { useState } from 'react';
 import {
   BarChart2,
   Users,
@@ -40,10 +39,13 @@ const TABS = [
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
-export function CommunityApp() {
+interface CommunityAppProps {
+    activeTab: string;
+    setActiveTab: (tab: string) => void;
+}
+
+export function CommunityApp({ activeTab, setActiveTab }: CommunityAppProps) {
   const pathname = usePathname();
-  const initialTab = TABS.find(tab => pathname.includes(tab.id))?.id || 'dashboard';
-  const [activeTab, setActiveTab] = useState(initialTab);
   const { isLoading, dialogState } = useCommunity();
 
   const renderContent = () => {
@@ -92,7 +94,7 @@ export function CommunityApp() {
   const inactiveNavItemClasses = "border-transparent text-muted-foreground hover:text-foreground";
 
   return (
-    <AppShellLite header={<AppHeader setActiveTab={setActiveTab} />} nav={defaultNav}>
+    <AppShellLite header={<AppHeader setActiveTab={setActiveTab} />} nav={defaultNav} activeTab={activeTab} onTabChange={setActiveTab}>
         <div className="hidden md:block">
             <nav className="bg-card shadow-sm sticky top-0 z-10 -mx-4 sm:-mx-6 md:mx-0 mb-6">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
