@@ -173,7 +173,7 @@ export function LandingPage() {
                         </h1>
                     </div>
                     <p className="max-w-2xl text-lg text-muted-foreground sm:text-xl">
-                        Mmanyin Orie is an online home for Igbo kindreds—keeping lineage, community, and tradition alive anywhere. Create and manage your kindred association, organize Umu Nna meetings, create families and age groups, track dues and levies, share announcements, and coordinate events and Community projects. Whether you’re in the village or the diaspora, Mmanyin Orie makes it simple to stay connected, accountable, and proud of your roots—so the family name and traditions continue from generation to generation. – ‘Onye Aghala Nwanneya’
+                        Mmanyin Orie is an online home for Igbo kindreds—preserving lineage, community, and tradition anywhere. Create and manage your kindred, organize Umu Nna meetings, track dues, share updates, and coordinate events or projects. Whether in the village or diaspora, Mmanyin Orie keeps families connected, accountable, and proud of their roots—ensuring traditions live on for generations. - ‘Onye Aghala Nwanneya’
                     </p>
                     <Link href="/auth/sign-up">
                         <Button size="lg" className="group bg-primary text-primary-foreground hover:bg-primary/90">
