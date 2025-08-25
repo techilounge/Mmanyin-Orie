@@ -143,8 +143,8 @@ export function Members() {
         </CardContent>
       </Card>
       
-      <Card>
-        <div className="overflow-x-auto">
+      <div className="overflow-x-auto -mx-4 md:mx-0">
+        <Card>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -285,8 +285,8 @@ export function Members() {
                 <p className="mt-1 text-sm text-muted-foreground">Try adjusting your search or filter criteria.</p>
               </div>
             )}
-        </div>
-      </Card>
+        </Card>
+      </div>
 
       <AlertDialog open={memberToDelete !== null} onOpenChange={(open) => !open && setMemberToDelete(null)}>
         <AlertDialogContent>

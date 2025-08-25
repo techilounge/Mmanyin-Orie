@@ -60,4 +60,3 @@ export default function MobileTabs({ nav = [], hiddenOn = [] }: Props) {
     </div>
   );
 }
-
