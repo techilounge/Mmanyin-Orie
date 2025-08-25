@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Check, Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/firebase";
-import { addDoc, collection, doc, serverTimestamp, updateDoc, setDoc } from "firebase/firestore";
+import { addDoc, collection, doc, serverTimestamp, updateDoc, setDoc, query, where, getDocs } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import type { Community } from "@/lib/types";
@@ -52,6 +52,18 @@ export default function SubscribePage() {
         if (priceId === 'free') {
             setIsCreatingCommunity(true);
             try {
+                // Check if user already owns a community
+                const q = query(collection(db, 'communities'), where('ownerUid', '==', user.uid));
+                const querySnapshot = await getDocs(q);
+
+                if (!querySnapshot.empty) {
+                    toast({ title: 'Community Found', description: 'Redirecting you to your existing community.' });
+                    const communityId = querySnapshot.docs[0].id;
+                    router.push(`/app/${communityId}`);
+                    return;
+                }
+
+
                 // 1. Create the community document (must include ownerUid or createdBy)
                 const communityRef = await addDoc(collection(db, 'communities'), {
                     name: `${user.displayName || 'My'} Community`,
