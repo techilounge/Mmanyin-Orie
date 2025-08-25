@@ -1,98 +1,83 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
+  
     // Helper functions
-    function isAuth() {
-      return request.auth != null && request.auth.uid != null;
+    function isUser(uid) {
+      return request.auth != null && request.auth.uid == uid;
     }
-    function isOwner(uid) {
-      return isAuth() && request.auth.uid == uid;
+    
+    function userOwnsACommunity() {
+      // Correct way to query within rules. Checks if a community doc exists for the user.
+      return get(/databases/$(database)/documents/communities?where("ownerUid", "==", request.auth.uid)).size() > 0;
     }
-    function communityExists(communityId) {
-        return exists(/databases/$(database)/documents/communities/$(communityId));
-    }
+    
     function isCommunityOwner(communityId) {
-        let community = get(/databases/$(database)/documents/communities/$(communityId));
-        return isOwner(community.data.ownerUid);
+      return get(/databases/$(database)/documents/communities/$(communityId)).data.ownerUid == request.auth.uid;
     }
-    function isCommunityAdmin(communityId) {
-        let member = get(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid));
-        return member.data.role in ['admin', 'owner'];
+    
+    function isCommunityMember(communityId) {
+      return exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid));
     }
-     function isCommunityMember(communityId) {
-        return exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid));
+    
+    function communityData() {
+      return request.resource != null && request.resource.data != null ? request.resource.data : {};
     }
-    function userHasNoCommunity() {
-      return !exists(/databases/$(database)/documents/communities/{communityId} where communityId in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.memberships);
-    }
-    function userOwnsNoCommunity() {
-        return size(get(/databases/$(database)/documents/communities).where('ownerUid', '==', request.auth.uid)) == 0;
+    
+    function getInvite(inviteId) {
+        return get(/databases/$(database)/documents/invitations/$(inviteId));
     }
 
-    // Rules for the 'users' collection
-    match /users/{userId} {
-      // A user can create their own document.
-      allow create: if isOwner(userId);
-      // A user can read and update their own document.
-      allow read, update: if isOwner(userId);
-      // Users cannot be deleted for now to maintain record integrity.
-      allow delete: if false;
+    function isPendingInvite(inviteId) {
+        return getInvite(inviteId).data.status == 'pending';
     }
 
-    // Rules for the 'communities' collection
+    function inviteMatchesMemberUpdate(memberData) {
+        let invite = getInvite(memberData.inviteId);
+        return invite.data.code == memberData.inviteCode &&
+               invite.data.email == request.auth.token.email;
+    }
+
+    // Rules for collections
     match /communities/{communityId} {
-      // Allow creation only if the user is authenticated and doesn't already own a community.
-      allow create: if isAuth() && userOwnsNoCommunity() && request.resource.data.ownerUid == request.auth.uid;
+      allow read: if isCommunityMember(communityId);
+      allow create: if isUser(communityData().ownerUid) && !userOwnsACommunity();
+      allow update: if isCommunityOwner(communityId);
       
-      // Allow read if the user is a member of that community.
-      allow read: if isAuth() && isCommunityMember(communityId);
-      
-      // Allow updates only by the community owner or an admin.
-      allow update: if isAuth() && isCommunityAdmin(communityId);
-      
-      // Only the owner can delete their community.
-      allow delete: if isAuth() && isCommunityOwner(communityId);
-
-      // Rules for subcollections within a community
       match /members/{memberId} {
-        // Anyone can be added to a community (via invite), but only by an admin/owner.
-        // For accepting an invite, specific checks are needed.
-        allow create: if isAuth() && isCommunityAdmin(communityId);
-        
-        // Members can read their own data. Admins/owners can read all members' data.
-        allow read: if (isAuth() && isOwner(memberId)) || isCommunityAdmin(communityId);
-        
-        // A user can update their own info. Admins/owners can update any member.
-        allow update: if (isAuth() && isOwner(memberId)) || isCommunityAdmin(communityId) || 
-                       // Special rule for accepting an invite
-                       (request.resource.data.uid == request.auth.uid && request.resource.data.inviteId == resource.data.inviteId);
-        
-        // Admins/owners can delete members, but not the owner themselves.
-        allow delete: if isAuth() && isCommunityAdmin(communityId) && resource.data.role != 'owner';
+        allow read: if isCommunityMember(communityId);
+        allow create: if isCommunityOwner(communityId);
+        // Allow member update if:
+        // 1. User is the community owner
+        // 2. User is updating their own member document
+        // 3. A new user is accepting a pending invitation
+        allow update: if isCommunityOwner(communityId) || 
+                         (isUser(memberId) && isCommunityMember(communityId)) || 
+                         (isPendingInvite(request.resource.data.inviteId) && inviteMatchesMemberUpdate(request.resource.data));
+        allow delete: if isCommunityOwner(communityId);
       }
-
+      
       match /families/{familyId} {
-        allow read, list: if isAuth() && isCommunityMember(communityId);
-        allow create, update, delete: if isAuth() && isCommunityAdmin(communityId);
+        allow read, create, update, delete: if isCommunityOwner(communityId);
       }
       
       match /contributions/{contributionId} {
-         allow read, list: if isAuth() && isCommunityMember(communityId);
-         allow create, update, delete: if isAuth() && isCommunityAdmin(communityId);
+        allow read, create, update, delete: if isCommunityOwner(communityId);
       }
     }
     
-    // Rules for 'invitations' collection
+    match /users/{userId} {
+      allow read, update, create: if isUser(userId);
+    }
+
     match /invitations/{inviteId} {
-      allow create: if isAuth() && isCommunityAdmin(request.resource.data.communityId);
-      // The invited user can read their own invite before accepting it. Admins can read invites.
-      allow read: if isAuth() && (isOwner(request.resource.data.acceptedByUid) || isCommunityAdmin(request.resource.data.communityId));
-      // Only the invited user can update the invite (by accepting it).
-      allow update: if isAuth() && resource.data.email == request.auth.token.email;
-      allow delete: if isAuth() && isCommunityAdmin(resource.data.communityId);
+        allow read: if isUser(getInvite(inviteId).data.createdBy);
+        allow create: if isUser(communityData().createdBy);
+        // Allow update if:
+        // 1. The user accepting the invite is changing status from pending
+        // 2. The community owner is managing invites
+        allow update: if (isUser(request.auth.uid) && isPendingInvite(inviteId)) || isCommunityOwner(getInvite(inviteId).data.communityId);
     }
   }
 }
