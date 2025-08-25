@@ -21,6 +21,7 @@ import {
 import Autoplay from "embla-carousel-autoplay"
 import React, { useCallback, useEffect, useState } from 'react';
 import { Sheet, SheetContent, SheetTrigger } from '../ui/sheet';
+import { cn } from '@/lib/utils';
 
 const features = [
   {
@@ -89,6 +90,8 @@ const howItWorksCarouselImages = ["/fam1.png", "/fam2.png", "/fam3.png", "/fam4.
 export function LandingPage() {
   const [api1, setApi1] = useState<CarouselApi | undefined>();
   const [api2, setApi2] = useState<CarouselApi | undefined>();
+  const [activeLink, setActiveLink] = useState('');
+
   const autoplayPlugin1 = React.useRef(Autoplay({ delay: 10000, stopOnInteraction: true, stopOnMouseEnter: true }));
   const autoplayPlugin2 = React.useRef(Autoplay({ delay: 10000, stopOnInteraction: true, stopOnMouseEnter: true }));
 
@@ -125,11 +128,44 @@ export function LandingPage() {
     }
   }, [api2, onSelect]);
 
+  useEffect(() => {
+    const sections = ['features', 'how-it-works', 'faq'];
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY + window.innerHeight / 2;
+      let currentSection = '';
+      for (const id of sections) {
+        const section = document.getElementById(id);
+        if (section && section.offsetTop <= scrollPosition) {
+          currentSection = id;
+        }
+      }
+      setActiveLink(currentSection);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const navItems = [
+      { href: '#features', label: 'Features' },
+      { href: '#how-it-works', label: 'How it Works' },
+      { href: '#faq', label: 'FAQ' },
+  ]
+
   const navLinks = (
     <>
-      <Link href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Features</Link>
-      <Link href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">How it Works</Link>
-      <Link href="#faq" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">FAQ</Link>
+      {navItems.map(item => (
+        <Link 
+            key={item.href}
+            href={item.href} 
+            className={cn(
+                "text-sm font-medium transition-colors hover:text-primary",
+                activeLink === item.href.substring(1) ? "text-primary" : "text-muted-foreground"
+            )}
+        >
+            {item.label}
+        </Link>
+      ))}
     </>
   );
 
