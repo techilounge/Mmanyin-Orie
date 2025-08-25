@@ -273,6 +273,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
             payments: [],
             joinDate: joinDate,
             role: 'user' as const,
+            status: 'active' as const,
             uid: doc(collection(db, 'dummy')).id, // Placeholder
         };
 
