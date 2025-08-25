@@ -16,15 +16,15 @@ interface StatCardProps {
 }
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, colorClass, iconBgClass }) => (
-  <Card className={`${colorClass} border-0 shadow-sm flex`}>
-    <CardContent className="p-4 sm:p-5 flex-1">
-      <div className="flex items-center">
+  <Card className={`${colorClass} border-0 shadow-sm`}>
+    <CardContent className="p-4">
+      <div className="flex items-center gap-4">
         <div className={`p-3 rounded-lg ${iconBgClass}`}>
-          <Icon className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
+          <Icon className="h-5 w-5 text-primary" />
         </div>
-        <div className="ml-3 flex-1">
-          <p className="text-sm font-medium text-muted-foreground whitespace-normal">{title}</p>
-          <p className="text-xl sm:text-2xl font-bold text-foreground whitespace-normal">{value}</p>
+        <div className="flex-1">
+          <p className="text-xs font-medium text-muted-foreground">{title}</p>
+          <p className="text-xl font-bold text-foreground">{value}</p>
         </div>
       </div>
     </CardContent>
@@ -55,7 +55,7 @@ export function Dashboard() {
   
   return (
     <div className="space-y-6 md:space-y-8">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard title="Total Members" value={stats.totalMembers} icon={Users} colorClass="bg-blue-100 dark:bg-blue-900/20" iconBgClass="bg-white/50 text-blue-600 dark:text-blue-400" />
         <StatCard title="Total Families" value={stats.totalFamilies} icon={Home} colorClass="bg-indigo-100 dark:bg-indigo-900/20" iconBgClass="bg-white/50 text-indigo-600 dark:text-indigo-400" />
         <StatCard title="Expected Contributions" value={`${settings.currency}${stats.totalContributions.toLocaleString()}`} icon={DollarSign} colorClass="bg-yellow-100 dark:bg-yellow-900/20" iconBgClass="bg-white/50 text-yellow-600 dark:text-yellow-400" />
