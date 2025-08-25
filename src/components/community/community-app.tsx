@@ -30,7 +30,6 @@ import { ResendInviteDialog } from './dialogs/resend-invite-dialog';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import AppShellLite from '../layout/AppShellLite';
-import MobileTabs from '../layout/MobileTabs';
 import { defaultNav } from '@/config/nav';
 
 const TABS = [
@@ -93,31 +92,33 @@ export function CommunityApp() {
   const inactiveNavItemClasses = "border-transparent text-muted-foreground hover:text-foreground";
 
   return (
-    <AppShellLite header={<AppHeader setActiveTab={setActiveTab} />}>
-        <nav className="bg-card shadow-sm sticky top-0 z-10 -mx-4 sm:-mx-6 md:mx-0 mb-6">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex overflow-x-auto py-2 space-x-8 hide-scrollbar">
-                {TABS.map((tab) => (
-                    <button 
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`${navItemClasses} ${activeTab === tab.id ? activeNavItemClasses : inactiveNavItemClasses}`}
-                    aria-current={activeTab === tab.id ? 'page' : undefined}
+    <AppShellLite header={<AppHeader setActiveTab={setActiveTab} />} nav={defaultNav}>
+        <div className="hidden md:block">
+            <nav className="bg-card shadow-sm sticky top-0 z-10 -mx-4 sm:-mx-6 md:mx-0 mb-6">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex overflow-x-auto py-2 space-x-8 hide-scrollbar">
+                    {TABS.map((tab) => (
+                        <button 
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`${navItemClasses} ${activeTab === tab.id ? activeNavItemClasses : inactiveNavItemClasses}`}
+                        aria-current={activeTab === tab.id ? 'page' : undefined}
+                        >
+                            <tab.icon size={18} />
+                            <span>{tab.label}</span>
+                        </button>
+                    ))}
+                    <Link 
+                    href="/app/profile"
+                    className={`${navItemClasses} ${pathname === '/app/profile' ? activeNavItemClasses : inactiveNavItemClasses}`}
                     >
-                        <tab.icon size={18} />
-                        <span>{tab.label}</span>
-                    </button>
-                ))}
-                <Link 
-                href="/app/profile"
-                className={`${navItemClasses} ${pathname === '/app/profile' ? activeNavItemClasses : inactiveNavItemClasses}`}
-                >
-                    <User size={18} />
-                    <span>Account</span>
-                </Link>
-            </div>
-            </div>
-        </nav>
+                        <User size={18} />
+                        <span>Account</span>
+                    </Link>
+                </div>
+                </div>
+            </nav>
+        </div>
 
         {renderContent()}
 
