@@ -83,7 +83,7 @@ const faqs = [
     }
 ]
 
-const heroCarouselImages = ["/trad1.png", "/trad2.png", "/trad3.png"];
+const heroCarouselImages = ["/trad1.png", "/trad2.png", "/trad3.png", "/trad4.png"];
 const howItWorksCarouselImages = ["/fam1.png", "/fam2.png", "/fam3.png", "/fam4.png"];
 
 
@@ -388,3 +388,4 @@ export function LandingPage() {
     
 
     
+
