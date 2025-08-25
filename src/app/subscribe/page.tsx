@@ -6,10 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Check, Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/firebase";
-import { addDoc, collection, doc, serverTimestamp, updateDoc, setDoc, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import type { Community } from "@/lib/types";
 
 const plans = [
     {
@@ -41,7 +40,7 @@ export default function SubscribePage() {
     const { user } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
-    const [isCreatingCommunity, setIsCreatingCommunity] = useState(false);
+    const [isChecking, setIsChecking] = useState(false);
 
     const handleSelectPlan = async (priceId: string) => {
         if (!user) {
@@ -50,9 +49,9 @@ export default function SubscribePage() {
         }
 
         if (priceId === 'free') {
-            setIsCreatingCommunity(true);
+            setIsChecking(true);
             try {
-                // Check if user already owns a community
+                // Check if user already owns a community to prevent re-entry to this flow
                 const q = query(collection(db, 'communities'), where('ownerUid', '==', user.uid));
                 const querySnapshot = await getDocs(q);
 
@@ -62,52 +61,15 @@ export default function SubscribePage() {
                     router.push(`/app/${communityId}`);
                     return;
                 }
-
-
-                // 1. Create the community document (must include ownerUid or createdBy)
-                const communityRef = await addDoc(collection(db, 'communities'), {
-                    name: `${user.displayName || 'My'} Community`,
-                    slug: `${user.uid}-community`,
-                    ownerUid: user.uid, // Required by security rules
-                    createdBy: user.uid, // Also accepted by rules
-                    timezone: 'America/New_York',
-                    createdAt: serverTimestamp(),
-                    updatedAt: serverTimestamp(),
-                    subscription: {
-                        status: 'trialing', // or 'free'
-                        planId: 'free',
-                        stripeCustomerId: null,
-                        stripeSubId: null,
-                        currentPeriodEnd: null,
-                    },
-                });
-
-                // 2. Create the owner's membership document AFTER the community exists
-                const memberRef = doc(db, 'communities', communityRef.id, 'members', user.uid);
-                await setDoc(memberRef, {
-                     uid: user.uid,
-                     name: user.displayName,
-                     email: user.email,
-                     role: 'owner',
-                     status: 'active',
-                     joinDate: new Date().toISOString(),
-                });
-
-                // 3. Update the user's document with the new membership
-                const userDocRef = doc(db, 'users', user.uid);
-                await updateDoc(userDocRef, {
-                    primaryCommunityId: communityRef.id,
-                    memberships: [communityRef.id]
-                });
                 
-                // 4. Redirect to onboarding
-                router.push(`/onboarding/${communityRef.id}`);
+                // Redirect to the dedicated creation page instead of creating here
+                router.push('/create-community');
 
             } catch (error: any) {
-                console.error("Failed to create community:", error);
-                toast({ variant: 'destructive', title: 'Error', description: 'Could not create your community. Please try again.' });
+                console.error("Failed to check for community:", error);
+                toast({ variant: 'destructive', title: 'Error', description: 'Could not proceed. Please try again.' });
             } finally {
-                setIsCreatingCommunity(false);
+                setIsChecking(false);
             }
 
         } else {
@@ -148,13 +110,13 @@ export default function SubscribePage() {
                             <Button 
                                 className="w-full" 
                                 onClick={() => handleSelectPlan(plan.priceId as 'free' | 'community')}
-                                disabled={isCreatingCommunity && plan.priceId === 'free'}
+                                disabled={isChecking && plan.priceId === 'free'}
                                 variant={plan.name === 'Community Plan' ? 'default' : 'outline'}
                             >
-                                {isCreatingCommunity && plan.priceId === 'free' ? (
+                                {isChecking && plan.priceId === 'free' ? (
                                     <>
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Creating Community...
+                                        Please wait...
                                     </>
                                 ) : plan.cta}
                             </Button>

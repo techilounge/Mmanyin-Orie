@@ -81,7 +81,7 @@ export default function SignUpPage() {
       <CardContent className="space-y-4">
         <form onSubmit={handleSignUp} className="space-y-4">
            <div className="space-y-2">
-            <Label htmlFor="displayName">Your Name</Label>
+            <Label htmlFor="displayName">Your Full Name</Label>
             <Input id="displayName" type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} required />
           </div>
           <div className="space-y-2">

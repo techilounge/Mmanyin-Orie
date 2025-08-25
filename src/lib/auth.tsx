@@ -18,7 +18,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({ user: null, appUser: null, loading: true });
 
-const publicPaths = ['/', '/auth/sign-in', '/auth/sign-up', '/auth/accept-invite', '/subscribe'];
+const publicPaths = ['/', '/auth/sign-in', '/auth/sign-up', '/auth/accept-invite', '/subscribe', '/create-community'];
 const isAuthPage = (path: string) => path.startsWith('/auth');
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -96,8 +96,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // If user has a community but lands on subscribe page, redirect to app
-      if (hasCommunity && pathname === '/subscribe') {
+      // If user has a community but lands on subscribe or create-community page, redirect to app
+      if (hasCommunity && (pathname === '/subscribe' || pathname === '/create-community')) {
         router.push('/app');
         return;
       }
