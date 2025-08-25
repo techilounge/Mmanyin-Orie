@@ -1,4 +1,3 @@
-
 'use client';
 import { useCommunity } from '@/hooks/use-community';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,11 +19,11 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, colorClas
     <CardContent className="p-4 sm:p-5">
       <div className="flex items-center">
         <div className={`p-3 rounded-lg ${iconBgClass}`}>
-          <Icon className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+          <Icon className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
         </div>
-        <div className="ml-4">
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <p className="text-xl sm:text-2xl font-bold text-foreground">{value}</p>
+        <div className="ml-3 flex-1 min-w-0">
+          <p className="text-sm font-medium text-muted-foreground truncate">{title}</p>
+          <p className="text-xl sm:text-2xl font-bold text-foreground truncate">{value}</p>
         </div>
       </div>
     </CardContent>
