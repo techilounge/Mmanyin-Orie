@@ -16,10 +16,10 @@ import {
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
+  type CarouselApi,
 } from "@/components/ui/carousel"
 import Autoplay from "embla-carousel-autoplay"
 import React, { useCallback, useEffect, useState } from 'react';
-import type { EmblaCarouselType } from 'embla-carousel-react';
 
 const features = [
   {
@@ -86,12 +86,12 @@ const howItWorksCarouselImages = ["/fam1.png", "/fam2.png", "/fam3.png", "/fam4.
 
 
 export function LandingPage() {
-  const [api1, setApi1] = useState<EmblaCarouselType | undefined>();
-  const [api2, setApi2] = useState<EmblaCarouselType | undefined>();
+  const [api1, setApi1] = useState<CarouselApi | undefined>();
+  const [api2, setApi2] = useState<CarouselApi | undefined>();
   const autoplayPlugin1 = React.useRef(Autoplay({ delay: 10000, stopOnInteraction: true, stopOnMouseEnter: true }));
   const autoplayPlugin2 = React.useRef(Autoplay({ delay: 10000, stopOnInteraction: true, stopOnMouseEnter: true }));
 
-  const onSelect = useCallback((emblaApi: EmblaCarouselType) => {
+  const onSelect = useCallback((emblaApi: CarouselApi) => {
     if (!emblaApi) return;
     emblaApi.slideNodes().forEach((slideNode, index) => {
       if (emblaApi.selectedScrollSnap() === index) {
@@ -315,5 +315,4 @@ export function LandingPage() {
     </div>
   );
 }
-
     
