@@ -34,6 +34,7 @@ const nextConfig: NextConfig = {
 
     const csp = [
       "default-src 'self'",
+      "font-src 'self' data:",
       "img-src 'self' data: https: https://firebasestorage.googleapis.com",
       "style-src 'self' 'unsafe-inline'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://apis.google.com https://accounts.google.com",

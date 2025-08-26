@@ -6,5 +6,6 @@ export const defaultNav: NavItem[] = [
   { id: "members", label: "Members" },
   { id: "families", label: "Families" },
   { id: "payments", label: "Payments" },
+  { id: "reports", label: "Reports" },
   { id: "settings", label: "Settings" },
 ];

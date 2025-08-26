@@ -3,7 +3,7 @@
 import * as React from "react";
 import { usePathname } from "next/navigation";
 import type { NavItem } from "@/config/nav";
-import { Home, Users, Settings, DollarSign } from 'lucide-react';
+import { Home, Users, Settings, DollarSign, FileText } from 'lucide-react';
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +12,7 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
     Members: Users,
     Families: Home,
     Payments: DollarSign,
+    Reports: FileText,
     Settings,
 };
 

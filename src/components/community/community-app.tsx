@@ -8,6 +8,7 @@ import {
   Settings,
   DollarSign,
   User,
+  FileText,
 } from 'lucide-react';
 import { useCommunity } from '@/hooks/use-community';
 import { AppHeader } from './app-header';
@@ -30,12 +31,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import AppShellLite from '../layout/AppShellLite';
 import { defaultNav } from '@/config/nav';
+import { Reports } from './reports';
 
 const TABS = [
   { id: 'dashboard', label: 'Dashboard', icon: BarChart2 },
   { id: 'members', label: 'Members', icon: Users },
   { id: 'families', label: 'Families', icon: Home },
   { id: 'payments', label: 'Payments', icon: DollarSign },
+  { id: 'reports', label: 'Reports', icon: FileText },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
@@ -58,6 +61,8 @@ export function CommunityApp({ activeTab, setActiveTab }: CommunityAppProps) {
         return <Families />;
       case 'payments':
         return <Payments />;
+      case 'reports':
+        return <Reports />;
       case 'settings':
         return <AppSettings />;
       default:
