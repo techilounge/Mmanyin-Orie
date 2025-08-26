@@ -20,14 +20,14 @@ export function AppHeader({ setActiveTab }: { setActiveTab: (tab: string) => voi
     <header className="bg-card">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-3 md:py-4">
-          <div className="flex items-center space-x-2 md:space-x-3">
-            <Image src="/logo.png" alt="Mmanyin Orie Logo" width={40} height={40} className="rounded-lg" />
-            <div>
-              <h1 className="text-sm font-bold text-foreground font-headline">Mmanyin Orie</h1>
-              <p className="text-lg text-muted-foreground font-semibold">{communityName}</p>
+          <div className="flex items-center space-x-2 md:space-x-3 flex-shrink min-w-0">
+            <Image src="/logo.png" alt="Mmanyin Orie Logo" width={40} height={40} className="rounded-lg flex-shrink-0" />
+            <div className="min-w-0">
+              <h1 className="text-sm font-bold text-foreground font-headline truncate">Mmanyin Orie</h1>
+              <p className="text-lg text-muted-foreground font-semibold truncate">{communityName}</p>
             </div>
           </div>
-          <div className="flex gap-2 sm:gap-3">
+          <div className="flex gap-2 sm:gap-3 flex-shrink-0">
             <Button
               onClick={() => openDialog({ type: 'add-family' })}
               className="bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-md hover:opacity-90 transition-opacity"
