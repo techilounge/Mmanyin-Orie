@@ -31,8 +31,8 @@ export default function AppShellLite({
     <div className="min-h-dvh bg-background text-foreground">
       {/* Optional simple header (desktop/tablet only) */}
       {header ? (
-        <div className="sticky top-0 z-30 hidden md:block border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="mx-auto max-w-7xl px-6 py-3">{header}</div>
+        <div className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          {header}
         </div>
       ) : null}
 
@@ -42,7 +42,7 @@ export default function AppShellLite({
       </main>
 
       {/* Bottom tabs on mobile only */}
-      <MobileTabs nav={nav} hiddenOn={hideTabsOn} activeTab={activeTab} onTabChange={onTabChange} />
+      <MobileTabs nav={nav} hiddenOn={hiddenOn} activeTab={activeTab} onTabChange={onTabChange} />
     </div>
   );
 }
