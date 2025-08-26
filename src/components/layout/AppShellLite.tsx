@@ -42,7 +42,7 @@ export default function AppShellLite({
       </main>
 
       {/* Bottom tabs on mobile only */}
-      <MobileTabs nav={nav} hiddenOn={hiddenOn} activeTab={activeTab} onTabChange={onTabChange} />
+      <MobileTabs nav={nav} hiddenOn={hideTabsOn} activeTab={activeTab} onTabChange={onTabChange} />
     </div>
   );
 }
