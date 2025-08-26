@@ -46,7 +46,7 @@ interface CommunityAppProps {
 
 export function CommunityApp({ activeTab, setActiveTab }: CommunityAppProps) {
   const pathname = usePathname();
-  const { isLoading, dialogState } = useCommunity();
+  const { isLoading, dialogState, communityName } = useCommunity();
 
   const renderContent = () => {
     switch (activeTab) {
@@ -95,32 +95,35 @@ export function CommunityApp({ activeTab, setActiveTab }: CommunityAppProps) {
 
   return (
     <AppShellLite header={<AppHeader setActiveTab={setActiveTab} />} nav={defaultNav} activeTab={activeTab} onTabChange={setActiveTab}>
-        <div className="hidden md:block">
-            <nav className="bg-card shadow-sm sticky top-0 z-10 -mx-4 sm:-mx-6 md:mx-0 mb-6">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex overflow-x-auto py-2 space-x-8 hide-scrollbar">
-                    {TABS.map((tab) => (
-                        <button 
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`${navItemClasses} ${activeTab === tab.id ? activeNavItemClasses : inactiveNavItemClasses}`}
-                        aria-current={activeTab === tab.id ? 'page' : undefined}
-                        >
-                            <tab.icon size={18} />
-                            <span>{tab.label}</span>
-                        </button>
-                    ))}
-                    <Link 
-                    href="/app/profile"
-                    className={`${navItemClasses} ${pathname === '/app/profile' ? activeNavItemClasses : inactiveNavItemClasses}`}
+      <div className="text-center py-4">
+        <h2 className="text-2xl font-bold tracking-tight text-foreground">{communityName}</h2>
+      </div>
+      <div className="hidden md:block">
+        <nav className="bg-card shadow-sm sticky top-0 z-10 -mx-4 sm:-mx-6 md:mx-0 mb-6">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex overflow-x-auto py-2 space-x-8 hide-scrollbar">
+                {TABS.map((tab) => (
+                    <button 
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`${navItemClasses} ${activeTab === tab.id ? activeNavItemClasses : inactiveNavItemClasses}`}
+                    aria-current={activeTab === tab.id ? 'page' : undefined}
                     >
-                        <User size={18} />
-                        <span>Account</span>
-                    </Link>
-                </div>
-                </div>
-            </nav>
-        </div>
+                        <tab.icon size={18} />
+                        <span>{tab.label}</span>
+                    </button>
+                ))}
+                <Link 
+                href="/app/profile"
+                className={`${navItemClasses} ${pathname === '/app/profile' ? activeNavItemClasses : inactiveNavItemClasses}`}
+                >
+                    <User size={18} />
+                    <span>Account</span>
+                </Link>
+            </div>
+            </div>
+        </nav>
+      </div>
 
         {renderContent()}
 
