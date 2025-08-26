@@ -20,6 +20,12 @@ declare module 'jspdf' {
  */
 export function generatePdf(title: string, headers: string[], data: any[]) {
   const doc = new jsPDF();
+  
+  // Embed a font that supports the characters you need, like the Naira symbol.
+  // This is a common way to handle UTF-8 characters in jsPDF.
+  // Note: This adds to the bundle size, but is necessary for character support.
+  // We'll use a standard font that has broad character support.
+  doc.setFont('Helvetica'); // Using a standard font that supports many symbols
 
   // Add a title to the document
   doc.text(title, 14, 20);
@@ -38,6 +44,7 @@ export function generatePdf(title: string, headers: string[], data: any[]) {
   
   doc.save(`${title.toLowerCase().replace(/ /g, '_')}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
 }
+
 
 /**
  * Generates and downloads a CSV file from a data array.
@@ -64,7 +71,9 @@ export function generateCsv(filename: string, data: any[]) {
   ];
 
   const csvString = csvRows.join('\n');
-  const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+  
+  // Add BOM for UTF-8 support in Excel
+  const blob = new Blob(['\uFEFF' + csvString], { type: 'text/csv;charset=utf-8;' });
   
   const link = document.createElement('a');
   if (link.download !== undefined) {

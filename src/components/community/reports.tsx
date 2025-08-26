@@ -7,68 +7,119 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, Download, FileText } from 'lucide-react';
+import { CalendarIcon, Download, FileText, Loader2 } from 'lucide-react';
 import { format, startOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { generatePdf, generateCsv } from '@/lib/report-utils';
 import { DateRange } from 'react-day-picker';
+import { useToast } from '@/hooks/use-toast';
+import { CustomContribution } from '@/lib/types';
 
 const reportTypes = [
   { value: 'member-list', label: 'Member List' },
   { value: 'payment-report', label: 'Payment Report' },
+  { value: 'contribution-summary', label: 'Contribution Summary' },
 ];
 
 export function Reports() {
-  const { members, settings, families } = useCommunity();
+  const { members, settings, families, customContributions, getPaidAmountForContribution } = useCommunity();
   const [reportType, setReportType] = useState('member-list');
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: startOfMonth(new Date()),
     to: new Date(),
   });
   const [isGenerating, setIsGenerating] = useState(false);
+  const { toast } = useToast();
 
-  const handleDownload = async (format: 'pdf' | 'csv') => {
+  const handleDownload = async (formatType: 'pdf' | 'csv') => {
     setIsGenerating(true);
     try {
-      if (reportType === 'member-list') {
-        const data = members.map(m => ({
-          'Name': m.name,
-          'Family': m.family,
-          'Age Group': m.tier,
-          'Email': m.email,
-          'Phone': `${m.phoneCountryCode || ''} ${m.phone || ''}`.trim(),
-          'Contribution': `${settings.currency}${m.contribution.toLocaleString()}`
-        }));
-        if (format === 'pdf') {
-          generatePdf('Member List', ['Name', 'Family', 'Age Group', 'Email', 'Phone', 'Contribution'], data);
-        } else {
-          generateCsv('member_list.csv', data);
-        }
-      } else if (reportType === 'payment-report') {
-        const data = members.flatMap(m => 
-          (m.payments || [])
-            .filter(p => {
-              const paymentDate = new Date(p.date);
-              const from = dateRange?.from;
-              const to = dateRange?.to;
-              return (!from || paymentDate >= from) && (!to || paymentDate <= to);
-            })
-            .map(p => ({
-              'Member Name': m.name,
-              'Family': m.family,
-              'Payment Date': format(new Date(p.date), 'PPP'),
-              'Amount': `${settings.currency}${p.amount.toLocaleString()}`
-            }))
-        );
+      let data: any[] = [];
+      let headers: string[] = [];
+      let filename = `${reportType}_${new Date().toISOString().split('T')[0]}`;
+      let title = reportTypes.find(rt => rt.value === reportType)?.label || 'Report';
 
-        if (format === 'pdf') {
-          generatePdf('Payment Report', ['Member Name', 'Family', 'Payment Date', 'Amount'], data);
-        } else {
-          generateCsv('payment_report.csv', data);
-        }
+      switch(reportType) {
+        case 'member-list':
+          headers = ['Name', 'Family', 'Age Group', 'Email', 'Phone', 'Total Owed'];
+          data = members.map(m => ({
+            'Name': m.name,
+            'Family': m.family,
+            'Age Group': m.tier,
+            'Email': m.email,
+            'Phone': `${m.phoneCountryCode || ''} ${m.phone || ''}`.trim(),
+            'Total Owed': `${settings.currency}${m.contribution.toLocaleString()}`
+          }));
+          break;
+        
+        case 'payment-report':
+           headers = ['Member Name', 'Family', 'Contribution', 'Payment Date', 'Amount'];
+           title = `Payment Report (${format(dateRange?.from!, 'LLL dd')} - ${format(dateRange?.to!, 'LLL dd, y')})`
+           data = members.flatMap(m => 
+              (m.payments || [])
+                .filter(p => {
+                  const paymentDate = new Date(p.date);
+                  const from = dateRange?.from;
+                  const to = dateRange?.to;
+                  return (!from || paymentDate >= from) && (!to || paymentDate <= to);
+                })
+                .map(p => {
+                  const contribution = customContributions.find(c => c.id === p.contributionId);
+                  return {
+                    'Member Name': m.name,
+                    'Family': m.family,
+                    'Contribution': contribution?.name || 'N/A',
+                    'Payment Date': format(new Date(p.date), 'PPP'),
+                    'Amount': `${settings.currency}${p.amount.toLocaleString()}`
+                  }
+                })
+            );
+          break;
+        
+        case 'contribution-summary':
+            headers = ['Contribution', 'Total Expected', 'Total Paid', 'Total Outstanding'];
+            data = customContributions.map((c: CustomContribution) => {
+                let totalExpected = 0;
+                let totalPaid = 0;
+                
+                members.forEach(m => {
+                    if (c.tiers.includes(m.tier)) {
+                       totalExpected += c.amount;
+                       totalPaid += getPaidAmountForContribution(m, c.id);
+                    }
+                });
+
+                return {
+                    'Contribution': c.name,
+                    'Total Expected': `${settings.currency}${totalExpected.toLocaleString()}`,
+                    'Total Paid': `${settings.currency}${totalPaid.toLocaleString()}`,
+                    'Total Outstanding': `${settings.currency}${(totalExpected - totalPaid).toLocaleString()}`,
+                }
+            });
+          break;
+      }
+
+      if (data.length === 0) {
+        toast({
+          variant: "default",
+          title: "No Data",
+          description: "There is no data to export for the selected criteria.",
+        });
+        return;
+      }
+
+      if (formatType === 'pdf') {
+        generatePdf(title, headers, data);
+      } else {
+        generateCsv(`${filename}.csv`, data);
       }
     } catch (error) {
       console.error('Failed to generate report:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to generate the report. Please try again.",
+      })
     } finally {
       setIsGenerating(false);
     }
@@ -139,12 +190,12 @@ export function Reports() {
         </CardContent>
         <CardFooter className="gap-4">
           <Button onClick={() => handleDownload('pdf')} disabled={isGenerating}>
-            <Download className="mr-2 h-4 w-4" />
-            {isGenerating ? 'Generating PDF...' : 'Download as PDF'}
+            {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+            Download as PDF
           </Button>
           <Button onClick={() => handleDownload('csv')} variant="outline" disabled={isGenerating}>
-            <Download className="mr-2 h-4 w-4" />
-            {isGenerating ? 'Generating CSV...' : 'Download as CSV'}
+            {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+            Download as CSV
           </Button>
         </CardFooter>
       </Card>
