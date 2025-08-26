@@ -58,11 +58,11 @@ export function Members() {
       const matchesSearch =
         !q ||
         m.name.toLowerCase().includes(q) ||
-        m.family.toLowerCase().includes(q) ||
+        (m.family || '').toLowerCase().includes(q) ||
         (m.email ?? '').toLowerCase().includes(q) ||
         fullPhone.includes(q);
 
-      const matchesFamily = filterFamily === 'all' || m.family === filterFamily;
+      const matchesFamily = filterFamily === 'all' || (m.family || '') === filterFamily;
       const matchesTier = filterTier === 'all' || tier === filterTier;
 
       return matchesSearch && matchesFamily && matchesTier;
@@ -308,3 +308,5 @@ export function Members() {
     </div>
   );
 }
+
+    
