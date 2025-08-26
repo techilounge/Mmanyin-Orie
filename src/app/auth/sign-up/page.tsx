@@ -96,7 +96,7 @@ export default function SignUpPage() {
             {isLoading ? 'Creating Account...' : 'Create Account'}
           </Button>
         </form>
-         <div className="relative">
+         <div className="relative hidden md:block">
           <div className="absolute inset-0 flex items-center">
             <span className="w-full border-t" />
           </div>
@@ -106,7 +106,7 @@ export default function SignUpPage() {
             </span>
           </div>
         </div>
-        <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isGoogleLoading}>
+        <Button variant="outline" className="w-full hidden md:inline-flex" onClick={handleGoogleSignIn} disabled={isGoogleLoading}>
           <Chrome className="mr-2 h-4 w-4" />
           {isGoogleLoading ? 'Signing Up...' : 'Sign up with Google'}
         </Button>
