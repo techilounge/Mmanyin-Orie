@@ -1,3 +1,4 @@
+
 // This module must be client-side
 'use client';
 import jsPDF from 'jspdf';
@@ -34,24 +35,35 @@ function replaceCurrencySymbolsForPdf(text: string | number | null | undefined):
  * @param title The title of the report.
  * @param headers An array of strings for the table headers.
  * @param data An array of objects, where each object represents a row.
+ * @param summaryLine An optional line of text to display below the title.
  */
-export function generatePdf(title: string, headers: string[], data: any[]) {
+export function generatePdf(title: string, headers: string[], data: any[], summaryLine?: string) {
   // Determine orientation based on number of columns.
   const orientation = headers.length > 5 ? 'landscape' : 'portrait';
   const doc = new jsPDF({ orientation });
   
   doc.setFont('Helvetica');
+  let finalY = 20;
 
-  doc.text(title, 14, 20);
+  doc.text(title, 14, finalY);
+  finalY += 8;
+
   doc.setFontSize(12);
-  doc.text(`Generated on: ${format(new Date(), 'PPP p')}`, 14, 28);
+  doc.text(`Generated on: ${format(new Date(), 'PPP p')}`, 14, finalY);
+  finalY += 8;
+
+  if (summaryLine) {
+    doc.text(replaceCurrencySymbolsForPdf(summaryLine), 14, finalY);
+    finalY += 8;
+  }
+
 
   const tableData = data.map(row => 
     headers.map(header => replaceCurrencySymbolsForPdf(row[header]))
   );
   
   doc.autoTable({
-    startY: 35,
+    startY: finalY,
     head: [headers.map(h => replaceCurrencySymbolsForPdf(h))],
     body: tableData,
     theme: 'striped',
@@ -66,17 +78,25 @@ export function generatePdf(title: string, headers: string[], data: any[]) {
  * Generates and downloads a CSV file from a data array.
  * @param filename The name of the file to download.
  * @param data An array of objects, where each object represents a row.
+ * @param summaryLine An optional line of text to prepend to the CSV content.
  */
-export function generateCsv(filename: string, data: any[]) {
+export function generateCsv(filename: string, data: any[], summaryLine?: string) {
   if (data.length === 0) {
     alert('No data to export.');
     return;
   }
   
   const headers = Object.keys(data[0]);
-  const csvRows = [
-    headers.join(','), // header row
-    ...data.map(row => 
+  const csvRows = [];
+  
+  if(summaryLine) {
+      csvRows.push(summaryLine);
+      csvRows.push(''); // Add a blank line for spacing
+  }
+
+  csvRows.push(headers.join(',')); // header row
+  
+  csvRows.push(...data.map(row => 
       headers.map(fieldName => {
         const value = String(row[fieldName] || '');
         // Escape commas and quotes
@@ -84,7 +104,7 @@ export function generateCsv(filename: string, data: any[]) {
         return `"${escaped}"`;
       }).join(',')
     )
-  ];
+  );
 
   const csvString = csvRows.join('\n');
   
@@ -102,3 +122,5 @@ export function generateCsv(filename: string, data: any[]) {
     document.body.removeChild(link);
   }
 }
+
+    

@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon, Download, FileText, Loader2 } from 'lucide-react';
-import { format, startOfMonth } from 'date-fns';
+import { format, startOfMonth, getYear, getMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { generatePdf, generateCsv } from '@/lib/report-utils';
 import { DateRange } from 'react-day-picker';
@@ -19,10 +19,11 @@ const reportTypes = [
   { value: 'member-list', label: 'Member List' },
   { value: 'payment-report', label: 'Payment Report' },
   { value: 'contribution-summary', label: 'Contribution Summary' },
+  { value: 'detailed-member-report', label: 'Detailed Member Report' },
 ];
 
 export function Reports() {
-  const { members, settings, families, customContributions, getPaidAmountForContribution } = useCommunity();
+  const { members, settings, families, customContributions, getPaidAmountForContribution, getBalanceForContribution, getPaidAmount, getBalance } = useCommunity();
   const [reportType, setReportType] = useState('member-list');
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: startOfMonth(new Date()),
@@ -38,6 +39,7 @@ export function Reports() {
       let headers: string[] = [];
       let filename = `${reportType}_${new Date().toISOString().split('T')[0]}`;
       let title = reportTypes.find(rt => rt.value === reportType)?.label || 'Report';
+      let summaryLine = '';
 
       switch(reportType) {
         case 'member-list':
@@ -97,6 +99,49 @@ export function Reports() {
                 }
             });
           break;
+        
+        case 'detailed-member-report':
+            headers = ['Member Name', 'Contribution', 'Total Due', 'Paid', 'Balance'];
+            data = members.flatMap(m => {
+                const applicableContributions = customContributions.filter(c => c.tiers.includes(m.tier));
+                return applicableContributions.map(c => {
+                     if (c.frequency === 'monthly') {
+                        const joinDate = new Date(m.joinDate);
+                        const now = new Date();
+                        let months = 0;
+                        if (getYear(now) > getYear(joinDate)) {
+                            months = (getYear(now) - getYear(joinDate) - 1) * 12 + (12 - getMonth(joinDate)) + (getMonth(now) + 1);
+                        } else {
+                            months = getMonth(now) - getMonth(joinDate) + 1;
+                        }
+                        const totalDue = c.amount * Math.max(0, months);
+                        const totalPaid = (m.payments || []).filter(p => p.contributionId === c.id).reduce((sum, p) => sum + p.amount, 0);
+
+                        return {
+                            'Member Name': m.name,
+                            'Contribution': `${c.name} (Monthly)`,
+                            'Total Due': `${settings.currency}${totalDue.toLocaleString()}`,
+                            'Paid': `${settings.currency}${totalPaid.toLocaleString()}`,
+                            'Balance': `${settings.currency}${(totalDue - totalPaid).toLocaleString()}`
+                        };
+                    } else {
+                        const balance = getBalanceForContribution(m, c);
+                        return {
+                            'Member Name': m.name,
+                            'Contribution': c.name,
+                            'Total Due': `${settings.currency}${c.amount.toLocaleString()}`,
+                            'Paid': `${settings.currency}${(c.amount - balance).toLocaleString()}`,
+                            'Balance': `${settings.currency}${balance.toLocaleString()}`
+                        };
+                    }
+                });
+            });
+
+            const totalOwed = members.reduce((sum, m) => sum + (m.contribution || 0), 0);
+            const totalPaid = members.reduce((sum, m) => sum + getPaidAmount(m), 0);
+            summaryLine = `Total Paid: ${settings.currency}${totalPaid.toLocaleString()} / Total Owed: ${settings.currency}${totalOwed.toLocaleString()}`;
+
+            break;
       }
 
       if (data.length === 0) {
@@ -109,9 +154,9 @@ export function Reports() {
       }
 
       if (formatType === 'pdf') {
-        generatePdf(title, headers, data);
+        generatePdf(title, headers, data, summaryLine);
       } else {
-        generateCsv(`${filename}.csv`, data);
+        generateCsv(`${filename}.csv`, data, summaryLine);
       }
     } catch (error) {
       console.error('Failed to generate report:', error);
@@ -202,3 +247,5 @@ export function Reports() {
     </div>
   );
 }
+
+    

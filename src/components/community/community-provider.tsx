@@ -192,15 +192,15 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     }, 0);
   }, []);
 
-  const getPaidAmount = (member: Member) => {
+  const getPaidAmount = useCallback((member: Member) => {
     if (!member.payments) return 0;
     return member.payments.reduce((sum, p) => sum + p.amount, 0);
-  }
+  }, []);
 
-  const getBalance = (member: Member) => {
+  const getBalance = useCallback((member: Member) => {
     const contribution = member.contribution || 0;
     return contribution - getPaidAmount(member);
-  }
+  }, [getPaidAmount]);
 
   const getPaidAmountForContribution = (member: Member, contributionId: string, month?: number) => {
     if (!member.payments) return 0;
@@ -696,5 +696,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     </CommunityContext.Provider>
   );
 }
+
+    
 
     
