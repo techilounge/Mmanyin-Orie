@@ -1,4 +1,3 @@
-
 // This module must be client-side
 'use client';
 import jsPDF from 'jspdf';
@@ -13,30 +12,47 @@ declare module 'jspdf' {
 }
 
 /**
+ * Replaces known currency symbols with their respective codes for PDF compatibility.
+ * @param text The text to process.
+ * @returns The text with currency symbols replaced.
+ */
+function replaceCurrencySymbolsForPdf(text: string | number | null | undefined): string {
+    if (text === null || text === undefined) return '';
+    const str = String(text);
+    // Add more currency mappings here as needed
+    return str
+      .replace(/₦/g, 'NGN ')
+      .replace(/€/g, 'EUR ')
+      .replace(/£/g, 'GBP ')
+      .replace(/¥/g, 'JPY ')
+      .replace(/\$/g, 'USD '); // Note: basic dollar sign is often supported, but this ensures consistency
+}
+
+
+/**
  * Generates and downloads a PDF document from a data array.
  * @param title The title of the report.
  * @param headers An array of strings for the table headers.
  * @param data An array of objects, where each object represents a row.
  */
 export function generatePdf(title: string, headers: string[], data: any[]) {
-  const doc = new jsPDF();
+  // Determine orientation based on number of columns.
+  const orientation = headers.length > 5 ? 'landscape' : 'portrait';
+  const doc = new jsPDF({ orientation });
   
-  // Embed a font that supports the characters you need, like the Naira symbol.
-  // This is a common way to handle UTF-8 characters in jsPDF.
-  // Note: This adds to the bundle size, but is necessary for character support.
-  // We'll use a standard font that has broad character support.
-  doc.setFont('Helvetica'); // Using a standard font that supports many symbols
+  doc.setFont('Helvetica');
 
-  // Add a title to the document
   doc.text(title, 14, 20);
   doc.setFontSize(12);
   doc.text(`Generated on: ${format(new Date(), 'PPP p')}`, 14, 28);
 
-  const tableData = data.map(row => headers.map(header => row[header]));
+  const tableData = data.map(row => 
+    headers.map(header => replaceCurrencySymbolsForPdf(row[header]))
+  );
   
   doc.autoTable({
     startY: 35,
-    head: [headers],
+    head: [headers.map(h => replaceCurrencySymbolsForPdf(h))],
     body: tableData,
     theme: 'striped',
     headStyles: { fillColor: [79, 70, 229] }, // Indigo primary color
