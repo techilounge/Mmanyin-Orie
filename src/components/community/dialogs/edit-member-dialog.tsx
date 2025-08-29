@@ -94,7 +94,7 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
-            <ScrollArea className="h-[60vh] pr-6">
+            <ScrollArea className="h-[60vh] px-6">
               <div className="space-y-4 py-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField control={form.control} name="firstName" render={({ field }) => (
