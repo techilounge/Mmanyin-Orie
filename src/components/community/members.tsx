@@ -43,6 +43,7 @@ export function Members() {
   const [filterFamily, setFilterFamily] = useState('all');
   const [filterTier, setFilterTier] = useState('all');
   const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
 
   const clearFilters = () => {
     setSearchTerm('');
@@ -70,9 +71,10 @@ export function Members() {
   }, [members, searchTerm, filterFamily, filterTier]);
 
   const confirmDelete = () => {
-    if (memberToDelete !== null) {
+    if (memberToDelete !== null && deleteConfirmation === 'DELETE') {
       deleteMember(memberToDelete.id);
       setMemberToDelete(null);
+      setDeleteConfirmation('');
     }
   };
 
@@ -288,18 +290,29 @@ export function Members() {
         </Card>
       </div>
 
-      <AlertDialog open={memberToDelete !== null} onOpenChange={(open) => !open && setMemberToDelete(null)}>
+      <AlertDialog open={memberToDelete !== null} onOpenChange={(open) => {
+          if (!open) {
+              setMemberToDelete(null);
+              setDeleteConfirmation('');
+          }
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2"><AlertCircle className="text-destructive"/>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete "
-              {memberToDelete?.name}" from the registry.
+              {memberToDelete?.name}" from the registry. Please type <strong className="text-foreground">DELETE</strong> to confirm.
             </AlertDialogDescription>
           </AlertDialogHeader>
+           <Input
+                value={deleteConfirmation}
+                onChange={(e) => setDeleteConfirmation(e.target.value)}
+                placeholder="Type DELETE to confirm"
+                className="my-2"
+            />
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
+            <AlertDialogAction onClick={confirmDelete} disabled={deleteConfirmation !== 'DELETE'} className="bg-destructive hover:bg-destructive/90">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
