@@ -104,6 +104,7 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
                     <FormItem><FormLabel>Last Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
                 </div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField control={form.control} name="middleName" render={({ field }) => (
                         <FormItem><FormLabel>Middle Name <span className="text-muted-foreground">(optional)</span></FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
@@ -115,43 +116,42 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Controller
-                    control={form.control}
-                    name="family"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Family</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                            <SelectTrigger><SelectValue placeholder="Select a family" /></SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                            {families.map(f => <SelectItem key={f.id} value={f.name}>{f.name}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                        </FormItem>
-                    )}
+                        control={form.control}
+                        name="family"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Family</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                <SelectTrigger><SelectValue placeholder="Select a family" /></SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                {families.map(f => <SelectItem key={f.id} value={f.name}>{f.name}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                            </FormItem>
+                        )}
                     />
-
                     <Controller
-                    control={form.control}
-                    name="role"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Role</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                            <SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                            <SelectItem value="user">User</SelectItem>
-                            <SelectItem value="admin">Admin</SelectItem>
-                            <SelectItem value="owner">Owner</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                        </FormItem>
-                    )}
+                        control={form.control}
+                        name="role"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Role</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                <SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                <SelectItem value="user">User</SelectItem>
+                                <SelectItem value="admin">Admin</SelectItem>
+                                <SelectItem value="owner">Owner</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                            </FormItem>
+                        )}
                     />
                 </div>
                 
