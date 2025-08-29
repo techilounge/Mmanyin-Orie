@@ -313,18 +313,39 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
 
   const deleteFamily = async (family: Family) => {
     if (!activeCommunityId) return;
-    const familyMembersQuery = query(collection(db, `communities/${activeCommunityId}/members`), where("family", "==", family.name));
-    const familyMembersSnapshot = await getDocs(familyMembersQuery);
-
-    if (familyMembersSnapshot.empty) {
-        try {
-            await deleteDoc(doc(db, `communities/${activeCommunityId}/families`, family.id));
-            toast({ title: "Family Deleted", description: `The "${family.name}" family has been removed.` });
-        } catch (error: any) {
-            toast({ variant: "destructive", title: "Deletion Failed", description: error.message });
-        }
-    } else {
-      toast({ variant: "destructive", title: "Deletion Failed", description: `Cannot delete family with ${familyMembersSnapshot.size} member(s).` });
+    const batch = writeBatch(db);
+  
+    try {
+      // 1. Query for all members of the family
+      const membersQuery = query(
+        collection(db, `communities/${activeCommunityId}/members`),
+        where("family", "==", family.name)
+      );
+      const membersSnapshot = await getDocs(membersQuery);
+  
+      // 2. Delete each member in the family
+      membersSnapshot.forEach((memberDoc) => {
+        batch.delete(memberDoc.ref);
+      });
+  
+      // 3. Delete the family document itself
+      const familyDocRef = doc(db, `communities/${activeCommunityId}/families`, family.id);
+      batch.delete(familyDocRef);
+  
+      // 4. Commit all batched writes
+      await batch.commit();
+      
+      toast({
+        title: "Family Deleted",
+        description: `The "${family.name}" family and all its members have been removed.`,
+      });
+    } catch (error: any) {
+      console.error("Failed to delete family:", error);
+      toast({
+        variant: "destructive",
+        title: "Deletion Failed",
+        description: `Could not delete the family. ${error.message}`,
+      });
     }
   };
 
@@ -703,7 +724,3 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     </CommunityContext.Provider>
   );
 }
-
-    
-
-    
