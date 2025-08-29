@@ -1,5 +1,5 @@
 'use client';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useCommunity } from '@/hooks/use-community';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,11 +28,21 @@ const formSchema = z.object({
   middleName: z.string().trim().optional().default(''),
   yearOfBirth: z.coerce.number().int().min(1900, `Invalid year.`).max(currentYear, `Year cannot be in the future.`),
   family: z.string().min(1, 'Family is required.'),
+  newFamilyName: z.string().optional(),
   email: z.string().email('Invalid email address.').optional().or(z.literal('')).default(''),
   phone: z.string().trim().optional().default(''),
   phoneCountryCode: z.string().trim().optional().default(''),
   role: z.enum(['user', 'admin', 'owner']),
+}).refine(data => {
+    if (data.family === 'new') {
+        return !!data.newFamilyName && data.newFamilyName.trim().length > 0;
+    }
+    return true;
+}, {
+    message: "New family name is required.",
+    path: ["newFamilyName"],
 });
+
 
 type EditMemberForm = z.infer<typeof formSchema>;
 
@@ -48,6 +58,8 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
   const form = useForm<EditMemberForm>({
     resolver: zodResolver(formSchema),
   });
+
+  const familyValue = form.watch('family');
   
   useEffect(() => {
     if (member) {
@@ -58,6 +70,7 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
         middleName: member.middleName ?? '',
         yearOfBirth: member.yearOfBirth,
         family: member.family ?? '',
+        newFamilyName: '',
         email: member.email ?? '',
         phone: member.phone ?? '',
         phoneCountryCode: member.phoneCountryCode ?? '+234',
@@ -73,6 +86,7 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
         ...member, 
         ...values,
         phoneCountryCode: values.phoneCountryCode,
+        family: values.family === 'new' ? values.newFamilyName! : values.family
     };
     updateMember(memberData);
     handleClose();
@@ -105,35 +119,15 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
                   )} />
                 </div>
                 
+                <FormField control={form.control} name="middleName" render={({ field }) => (
+                    <FormItem><FormLabel>Middle Name <span className="text-muted-foreground">(optional)</span></FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                )} />
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField control={form.control} name="middleName" render={({ field }) => (
-                        <FormItem><FormLabel>Middle Name <span className="text-muted-foreground">(optional)</span></FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                    )} />
                     <FormField control={form.control} name="yearOfBirth" render={({ field }) => (
                         <FormItem><FormLabel>Year of Birth</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Controller
-                        control={form.control}
-                        name="family"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Family</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                <SelectTrigger><SelectValue placeholder="Select a family" /></SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                {families.map(f => <SelectItem key={f.id} value={f.name}>{f.name}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <Controller
+                     <Controller
                         control={form.control}
                         name="role"
                         render={({ field }) => (
@@ -153,6 +147,42 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
                             </FormItem>
                         )}
                     />
+                </div>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Controller
+                        control={form.control}
+                        name="family"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Family</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                <SelectTrigger><SelectValue placeholder="Select a family" /></SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                {families.sort((a,b) => a.name.localeCompare(b.name)).map(f => <SelectItem key={f.id} value={f.name}>{f.name}</SelectItem>)}
+                                 <SelectItem value="new" className="font-bold text-primary">Create new family...</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                     {familyValue === 'new' && (
+                        <FormField
+                            control={form.control}
+                            name="newFamilyName"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>New Family Name</FormLabel>
+                                    <FormControl>
+                                        <Input {...field} placeholder="Enter family name" />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    )}
                 </div>
                 
                 <FormField control={form.control} name="email" render={({ field }) => (

@@ -455,6 +455,13 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
       };
 
       const batch = writeBatch(db);
+
+       // If creating a new family, add it to the families collection first
+      if (updatedData.family && !families.find(f => f.name === updatedData.family)) {
+        const familyDocRef = doc(collection(db, `communities/${activeCommunityId}/families`));
+        batch.set(familyDocRef, { name: updatedData.family });
+      }
+
       const memberDocRef = doc(db, `communities/${activeCommunityId}/members`, updatedData.id);
       const { id, ...dataToSend } = memberToUpdate;
       batch.update(memberDocRef, dataToSend);
