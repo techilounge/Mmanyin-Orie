@@ -198,73 +198,69 @@ export function AddMemberDialog() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <ScrollArea className="h-[60vh]">
-              <div className="space-y-4 py-4 px-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField name="firstName" control={form.control} render={({ field }) => (
-                    <FormItem><FormLabel>First Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                  )} />
-                  <FormField name="lastName" control={form.control} render={({ field }) => (
-                    <FormItem><FormLabel>Last Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                  )} />
-                </div>
-
-                <FormField name="middleName" control={form.control} render={({ field }) => (
-                  <FormItem><FormLabel>Middle Name <span className="text-muted-foreground">(optional)</span></FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4 px-6">
+                
+                <FormField name="firstName" control={form.control} render={({ field }) => (
+                  <FormItem><FormLabel>First Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                
+                <FormField name="lastName" control={form.control} render={({ field }) => (
+                  <FormItem><FormLabel>Last Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField name="yearOfBirth" control={form.control} render={({ field }) => (
-                    <FormItem><FormLabel>Year of Birth</FormLabel><FormControl><Input type="number" placeholder={String(currentYear)} {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                    )} />
+                <FormField name="middleName" control={form.control} render={({ field }) => (
+                  <FormItem className="md:col-span-2"><FormLabel>Middle Name <span className="text-muted-foreground">(optional)</span></FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
 
-                    <FormField
-                    control={form.control}
-                    name="gender"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Gender</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select gender" />
-                            </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                            <SelectItem value="male">Male</SelectItem>
-                            <SelectItem value="female">Female</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                </div>
+                <FormField name="yearOfBirth" control={form.control} render={({ field }) => (
+                  <FormItem><FormLabel>Year of Birth</FormLabel><FormControl><Input type="number" placeholder={String(currentYear)} {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                )} />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Controller name="family" control={form.control} render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Family</FormLabel>
-                      <Select value={field.value} onValueChange={field.onChange} disabled={!!familyToAddTo}>
-                        <FormControl>
-                          <SelectTrigger><SelectValue placeholder="Select a family" /></SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {families.sort((a,b) => a.name.localeCompare(b.name)).map((f) => <SelectItem key={f.id} value={f.name}>{f.name}</SelectItem>)}
-                        </SelectContent>
+                <FormField
+                  control={form.control}
+                  name="gender"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>Gender</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                          <SelectTrigger>
+                              <SelectValue placeholder="Select gender" />
+                          </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                          <SelectItem value="male">Male</SelectItem>
+                          <SelectItem value="female">Female</SelectItem>
+                          </SelectContent>
                       </Select>
                       <FormMessage />
-                    </FormItem>
-                  )} />
-
-                  <FormField name="email" control={form.control} render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email <span className="text-muted-foreground">(optional)</span></FormLabel>
-                      <FormControl><Input type="email" {...field} value={field.value ?? ''} /></FormControl><FormMessage />
-                    </FormItem>
-                  )} />
-                </div>
+                      </FormItem>
+                  )}
+                />
                 
-                <FormItem>
+                <Controller name="family" control={form.control} render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Family</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange} disabled={!!familyToAddTo}>
+                      <FormControl>
+                        <SelectTrigger><SelectValue placeholder="Select a family" /></SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {families.sort((a,b) => a.name.localeCompare(b.name)).map((f) => <SelectItem key={f.id} value={f.name}>{f.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <FormField name="email" control={form.control} render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email <span className="text-muted-foreground">(optional)</span></FormLabel>
+                    <FormControl><Input type="email" {...field} value={field.value ?? ''} /></FormControl><FormMessage />
+                  </FormItem>
+                )} />
+
+                <FormItem className="md:col-span-2">
                   <FormLabel>Phone <span className="text-muted-foreground">(optional)</span></FormLabel>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                      <FormField name="phoneCountryCode" control={form.control} render={({ field }) => (

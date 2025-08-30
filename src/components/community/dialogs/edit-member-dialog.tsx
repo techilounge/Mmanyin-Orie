@@ -110,87 +110,84 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <ScrollArea className="h-[60vh]">
-              <div className="space-y-4 py-4 px-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4 px-6">
+                
                   <FormField control={form.control} name="firstName" render={({ field }) => (
                     <FormItem><FormLabel>First Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
                   <FormField control={form.control} name="lastName" render={({ field }) => (
                     <FormItem><FormLabel>Last Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
-                </div>
                 
                 <FormField control={form.control} name="middleName" render={({ field }) => (
-                    <FormItem><FormLabel>Middle Name <span className="text-muted-foreground">(optional)</span></FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                    <FormItem className="md:col-span-2"><FormLabel>Middle Name <span className="text-muted-foreground">(optional)</span></FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                 )} />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField control={form.control} name="yearOfBirth" render={({ field }) => (
-                        <FormItem><FormLabel>Year of Birth</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
-                    )} />
-                     <Controller
-                        control={form.control}
-                        name="role"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Role</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                <SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                <SelectItem value="user">User</SelectItem>
-                                <SelectItem value="admin">Admin</SelectItem>
-                                <SelectItem value="owner">Owner</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Controller
-                        control={form.control}
-                        name="family"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Family</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                <SelectTrigger><SelectValue placeholder="Select a family" /></SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                {families.sort((a,b) => a.name.localeCompare(b.name)).map(f => <SelectItem key={f.id} value={f.name}>{f.name}</SelectItem>)}
-                                 <SelectItem value="new" className="font-bold text-primary">Create new family...</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                     {familyValue === 'new' && (
-                        <FormField
-                            control={form.control}
-                            name="newFamilyName"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>New Family Name</FormLabel>
-                                    <FormControl>
-                                        <Input {...field} placeholder="Enter family name" />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                <FormField control={form.control} name="yearOfBirth" render={({ field }) => (
+                    <FormItem><FormLabel>Year of Birth</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                
+                <Controller
+                    control={form.control}
+                    name="role"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Role</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                            <SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                            <SelectItem value="user">User</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="owner">Owner</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
                     )}
-                </div>
+                />
+            
+                <Controller
+                    control={form.control}
+                    name="family"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Family</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                            <SelectTrigger><SelectValue placeholder="Select a family" /></SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                            {families.sort((a,b) => a.name.localeCompare(b.name)).map(f => <SelectItem key={f.id} value={f.name}>{f.name}</SelectItem>)}
+                                <SelectItem value="new" className="font-bold text-primary">Create new family...</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                {familyValue === 'new' && (
+                    <FormField
+                        control={form.control}
+                        name="newFamilyName"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>New Family Name</FormLabel>
+                                <FormControl>
+                                    <Input {...field} placeholder="Enter family name" />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                )}
                 
                 <FormField control={form.control} name="email" render={({ field }) => (
-                  <FormItem><FormLabel>Email <span className="text-muted-foreground">(optional)</span></FormLabel><FormControl><Input type="email" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                  <FormItem className={familyValue === 'new' ? '' : 'md:col-span-2'}><FormLabel>Email <span className="text-muted-foreground">(optional)</span></FormLabel><FormControl><Input type="email" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                 )} />
 
-                <FormItem>
+                <FormItem className="md:col-span-2">
                   <FormLabel>Phone <span className="text-muted-foreground">(optional)</span></FormLabel>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                      <FormField name="phoneCountryCode" control={form.control} render={({ field }) => (
