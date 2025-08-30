@@ -353,22 +353,24 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
   const getInviteLink = async (memberId: string): Promise<string | null> => {
     if (!activeCommunityId) return null;
     try {
-        const q = query(
-            collection(db, 'invitations'), 
-            where('memberId', '==', memberId), 
-            where('communityId', '==', activeCommunityId),
-            where('status', '==', 'pending')
-        );
-        const querySnapshot = await getDocs(q);
+      const memberDocRef = doc(db, 'communities', activeCommunityId, 'members', memberId);
+      const memberSnap = await getDoc(memberDocRef);
 
-        if (querySnapshot.empty) {
-            return null;
-        }
-        
-        const inviteId = querySnapshot.docs[0].id;
-        return `${window.location.origin}/auth/accept-invite?token=${inviteId}`;
+      if (!memberSnap.exists() || !memberSnap.data()?.inviteId) {
+        return null; // Member or inviteId doesn't exist
+      }
+
+      const inviteId = memberSnap.data()?.inviteId;
+      const inviteRef = doc(db, 'invitations', inviteId);
+      const inviteSnap = await getDoc(inviteRef);
+      
+      if (inviteSnap.exists() && inviteSnap.data().status === 'pending') {
+          return `${window.location.origin}/auth/accept-invite?token=${inviteId}`;
+      }
+      
+      return null;
     } catch (error: any) {
-        toast({ variant: "destructive", title: "Error", description: "Could not retrieve invitation link."});
+        console.error("Error getting invite link:", error);
         return null;
     }
   };
@@ -468,6 +470,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
             status: 'invited' as const,
             uid: null,
             isPatriarch: data.isPatriarch,
+            inviteId: inviteDocRef.id, // **THE FIX: Link the member to the invitation**
         };
         
         const contribution = getContribution(newMemberBase, customContributions);

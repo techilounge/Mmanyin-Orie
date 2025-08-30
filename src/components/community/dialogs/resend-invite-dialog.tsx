@@ -25,7 +25,7 @@ export function ResendInviteDialog({ member }: ResendInviteDialogProps) {
   const isOpen = dialogState?.type === 'resend-invite' && dialogState.member.id === member.id;
 
   useEffect(() => {
-    // Only fetch if the dialog is open and we don't already have a link.
+    // Only fetch if the dialog is open for this specific member and we are in a loading state.
     if (isOpen && isLoading) {
         getInviteLink(member.id).then(link => {
             setInviteLink(link);
