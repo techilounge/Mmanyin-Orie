@@ -209,24 +209,26 @@ export function AddMemberDialog() {
                     />
                 </div>
 
-                <Controller name="family" control={form.control} render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Family</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange} disabled={!!familyToAddTo}>
-                      <FormControl>
-                        <SelectTrigger><SelectValue placeholder="Select a family" /></SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {families.sort((a,b) => a.name.localeCompare(b.name)).map((f) => <SelectItem key={f.id} value={f.name}>{f.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Controller name="family" control={form.control} render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Family</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange} disabled={!!familyToAddTo}>
+                        <FormControl>
+                          <SelectTrigger><SelectValue placeholder="Select a family" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {families.sort((a,b) => a.name.localeCompare(b.name)).map((f) => <SelectItem key={f.id} value={f.name}>{f.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
 
-                <FormField name="email" control={form.control} render={({ field }) => (
-                  <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                )} />
+                  <FormField name="email" control={form.control} render={({ field }) => (
+                    <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                </div>
                 
                 <FormItem>
                   <FormLabel>Phone <span className="text-muted-foreground">(optional)</span></FormLabel>
@@ -272,3 +274,4 @@ export function AddMemberDialog() {
     </Dialog>
   );
 }
+
