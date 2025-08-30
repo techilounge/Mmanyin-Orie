@@ -68,11 +68,15 @@ export function AvatarUploader() {
       });
       setAvatarFile(null);
       setAvatarPreview(null);
-    } catch (error) {
+    } catch (error: any) {
+      let description = 'There was an error uploading your avatar. Please try again.';
+      if (error.code === 'storage/object-not-found' || error.code === 'storage/unauthorized') {
+        description = 'Upload failed. Please ensure you have a Cloud Storage bucket enabled in your Firebase project.';
+      }
       toast({
         variant: 'destructive',
         title: 'Upload Failed',
-        description: 'There was an error uploading your avatar. Please try again.',
+        description: description,
       });
     } finally {
       setIsUploading(false);
