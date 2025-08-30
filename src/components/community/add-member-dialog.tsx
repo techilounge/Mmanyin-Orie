@@ -18,6 +18,7 @@ import { COUNTRY_OPTIONS } from '@/lib/countries';
 import type { NewMemberData } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Check, Copy, PartyPopper } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const currentYear = new Date().getFullYear();
 const formSchema = z.object({
@@ -28,7 +29,7 @@ const formSchema = z.object({
   gender: z.enum(['male', 'female'], { required_error: 'Gender is required.'}),
   family: z.string().min(1, 'Family is required.'),
   newFamilyName: z.string().optional(),
-  email: z.string().email('A valid email is required to send an invitation.'),
+  email: z.string().email('Invalid email address.').optional().or(z.literal('')),
   phone: z.string().trim().optional().default(''),
   phoneCountryCode: z.string().trim().optional().default(''),
 }).refine(
@@ -38,16 +39,20 @@ const formSchema = z.object({
 
 export function AddMemberDialog() {
   const {
-    dialogState, closeDialog, inviteMember, families, addFamily
+    dialogState, closeDialog, inviteMember, addMember, families, addFamily
   } = useCommunity();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [hasCopied, setHasCopied] = useState(false);
-
+  const { toast } = useToast();
 
   const isOpen = dialogState?.type === 'add-member';
   const familyToAddTo = isOpen && (dialogState as any).family ? (dialogState as any).family as string : undefined;
+  
+  // Determine if this form should invite or add directly.
+  // We can base this on whether an email is provided.
+  const [isInviteFlow, setIsInviteFlow] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -64,6 +69,14 @@ export function AddMemberDialog() {
       phoneCountryCode: '+234',
     },
   });
+
+  const emailValue = form.watch('email');
+
+  useEffect(() => {
+      // If email is provided, it's an invite flow.
+      setIsInviteFlow(!!emailValue);
+  }, [emailValue]);
+
 
   useEffect(() => {
     if (isOpen) {
@@ -106,13 +119,23 @@ export function AddMemberDialog() {
             phone: values.phone,
             phoneCountryCode: values.phoneCountryCode,
         };
-        
-        const link = await inviteMember(memberData);
-        if(link) {
-            setInviteLink(link);
+
+        if (isInviteFlow) {
+          if (!values.email) {
+            toast({ variant: 'destructive', title: 'Email Required', description: 'Please provide an email to send an invitation.' });
+            setIsSubmitting(false);
+            return;
+          }
+          const link = await inviteMember(memberData);
+          if(link) {
+              setInviteLink(link);
+          }
+        } else {
+          await addMember(memberData);
         }
+
     } catch (error) {
-        console.error("Failed to invite member:", error);
+        console.error("Failed to process member:", error);
     } finally {
         setIsSubmitting(false);
     }
@@ -125,6 +148,13 @@ export function AddMemberDialog() {
         setTimeout(() => setHasCopied(false), 2000);
     }
   };
+  
+  const dialogTitle = isInviteFlow ? 'Invite New Member' : 'Add New Member';
+  const dialogDescription = isInviteFlow 
+    ? 'An invitation link will be generated to share with the new member.'
+    : 'Add a new member directly to the registry. This is useful for family members without an email.';
+  const buttonText = isInviteFlow ? 'Send Invite' : 'Add Member';
+
 
   if (inviteLink) {
     return (
@@ -158,9 +188,9 @@ export function AddMemberDialog() {
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
       <DialogContent className="w-[calc(100vw-2rem)] max-w-lg sm:max-w-xl md:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Invite New Member</DialogTitle>
+          <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>
-            {familyToAddTo ? `Inviting a member to the ${familyToAddTo} family.` : 'Fill in the details to invite a new member.'}
+            {familyToAddTo ? `Adding a member to the ${familyToAddTo} family.` : dialogDescription}
           </DialogDescription>
         </DialogHeader>
 
@@ -226,7 +256,10 @@ export function AddMemberDialog() {
                   )} />
 
                   <FormField name="email" control={form.control} render={({ field }) => (
-                    <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                    <FormItem>
+                      <FormLabel>Email <span className="text-muted-foreground">(optional for invite)</span></FormLabel>
+                      <FormControl><Input type="email" {...field} value={field.value ?? ''} /></FormControl><FormMessage />
+                    </FormItem>
                   )} />
                 </div>
                 
@@ -265,7 +298,7 @@ export function AddMemberDialog() {
             <DialogFooter className="pt-4">
               <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>Cancel</Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Sending Invite...' : 'Invite Member'}
+                {isSubmitting ? 'Saving...' : buttonText}
               </Button>
             </DialogFooter>
           </form>
@@ -274,4 +307,3 @@ export function AddMemberDialog() {
     </Dialog>
   );
 }
-

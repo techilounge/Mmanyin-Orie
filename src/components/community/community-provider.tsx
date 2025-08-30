@@ -33,6 +33,7 @@ interface CommunityContextType {
   communityName: string;
   updateCommunityName: (newName: string) => Promise<void>;
   
+  addMember: (newMemberData: NewMemberData) => Promise<void>;
   inviteMember: (newMemberData: NewMemberData) => Promise<string | null>;
   getInviteLink: (memberId: string) => Promise<string | null>;
   updateMember: (updatedMemberData: Member) => Promise<void>;
@@ -367,9 +368,60 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         return null;
     }
   };
+  
+  const addMember = async (data: NewMemberData) => {
+    if (!activeCommunityId) return;
+
+    try {
+        const age = calculateAge(data.yearOfBirth);
+        const tier = getTier(age);
+        const fullName = [data.firstName, data.middleName, data.lastName]
+            .filter(part => part && part.trim())
+            .join(' ');
+        
+        const joinDate = new Date().toISOString();
+
+        const memberBase = {
+            name: fullName,
+            firstName: data.firstName,
+            middleName: data.middleName || '',
+            lastName: data.lastName,
+            yearOfBirth: data.yearOfBirth,
+            family: data.family,
+            email: data.email || '',
+            phone: data.phone || '',
+            phoneCountryCode: data.phoneCountryCode || '',
+            gender: data.gender,
+            age,
+            tier,
+            payments: [],
+            joinDate: joinDate,
+            role: 'user' as const,
+            status: 'active' as const, // Add member directly as active
+            uid: null,
+            isPatriarch: data.isPatriarch,
+        };
+        
+        const contribution = getContribution(memberBase, customContributions);
+        const newMember = { ...memberBase, contribution };
+        
+        await addDoc(collection(db, `communities/${activeCommunityId}/members`), newMember);
+
+        toast({ title: "Member Added", description: `${fullName} has been added to the registry.` });
+        closeDialog();
+    } catch(error: any) {
+        toast({ variant: "destructive", title: "Error adding member", description: error.message });
+    }
+  };
 
   const inviteMember = async (data: NewMemberData): Promise<string | null> => {
-    if (!activeCommunityId || !user) return null;
+    if (!activeCommunityId || !user || !data.email) {
+      if (!data.email) {
+        toast({ variant: "destructive", title: "Email Required", description: "An email is required to invite a member." });
+      }
+      return null;
+    }
+    
     try {
         const age = calculateAge(data.yearOfBirth);
         const tier = getTier(age);
@@ -688,6 +740,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     communityId: activeCommunityId,
     communityName,
     updateCommunityName,
+    addMember,
     inviteMember,
     getInviteLink,
     updateMember,
@@ -715,7 +768,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     getBalanceForContribution,
   }), [
     members, families, settings, customContributions, isLoading, activeCommunityId, communityName, dialogState, 
-    getTier, getContribution, calculateAge, addFamily, inviteMember, getInviteLink, updateMember, deleteMember, updateFamily, deleteFamily, updateSettings, updateCommunityName, recalculateTiers, addCustomContribution, updateCustomContribution, deleteCustomContribution, recordPayment, updatePayment, deletePayment, openDialog, closeDialog, getPaidAmount, getBalance, getPaidAmountForContribution, getBalanceForContribution
+    getTier, getContribution, calculateAge, addFamily, addMember, inviteMember, getInviteLink, updateMember, deleteMember, updateFamily, deleteFamily, updateSettings, updateCommunityName, recalculateTiers, addCustomContribution, updateCustomContribution, deleteCustomContribution, recordPayment, updatePayment, deletePayment, openDialog, closeDialog, getPaidAmount, getBalance, getPaidAmountForContribution, getBalanceForContribution
   ]);
 
   return (
