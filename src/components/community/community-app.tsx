@@ -17,7 +17,7 @@ import { Members } from './members';
 import { Families } from './families';
 import { AppSettings } from './app-settings';
 import { AddFamilyDialog } from './dialogs/add-family-dialog';
-import { AddMemberDialog } from './dialogs/add-member-dialog';
+import { InviteMemberDialog } from './dialogs/invite-member-dialog';
 import { EditMemberDialog } from './dialogs/edit-member-dialog';
 import { AddCustomContributionDialog } from './dialogs/add-custom-contribution-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -135,7 +135,7 @@ export function CommunityApp({ activeTab, setActiveTab }: CommunityAppProps) {
 
         {dialogState?.type === 'add-family' && <AddFamilyDialog />}
         {dialogState?.type === 'edit-family' && <EditFamilyDialog family={dialogState.family} />}
-        {dialogState?.type === 'invite-member' && <AddMemberDialog />}
+        {dialogState?.type === 'invite-member' && <InviteMemberDialog />}
         {dialogState?.type === 'add-member-to-family' && <AddMemberToFamilyDialog family={dialogState.family} />}
         {dialogState?.type === 'edit-member' && <EditMemberDialog member={dialogState.member} />}
         {dialogState?.type === 'resend-invite' && <ResendInviteDialog member={dialogState.member} />}

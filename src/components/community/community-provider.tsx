@@ -34,7 +34,7 @@ interface CommunityContextType {
   updateCommunityName: (newName: string) => Promise<void>;
   
   addMember: (newMemberData: NewMemberData) => Promise<void>;
-  inviteMember: (newMemberData: NewMemberData) => Promise<string | null>;
+  inviteMember: (newMemberData: NewMemberData, newFamilyName?: string) => Promise<string | null>;
   getInviteLink: (memberId: string) => Promise<string | null>;
   updateMember: (updatedMemberData: Member) => Promise<void>;
   deleteMember: (id: string) => Promise<void>;
@@ -414,7 +414,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     }
   };
 
-  const inviteMember = async (data: NewMemberData): Promise<string | null> => {
+  const inviteMember = async (data: NewMemberData, newFamilyName?: string): Promise<string | null> => {
     if (!activeCommunityId || !user || !data.email) {
       if (!data.email) {
         toast({ variant: "destructive", title: "Email Required", description: "An email is required to invite a member." });
@@ -423,6 +423,17 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     }
     
     try {
+        const batch = writeBatch(db);
+
+        // If a new family is being created, add it to the families collection
+        let familyToUse = data.family;
+        if (newFamilyName && newFamilyName.trim()) {
+            familyToUse = newFamilyName.trim();
+            const familyDocRef = doc(collection(db, `communities/${activeCommunityId}/families`));
+            batch.set(familyDocRef, { name: familyToUse });
+        }
+
+
         const age = calculateAge(data.yearOfBirth);
         const tier = getTier(age);
         const fullName = [data.firstName, data.middleName, data.lastName]
@@ -434,15 +445,13 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         const memberDocRef = doc(collection(db, `communities/${activeCommunityId}/members`));
         const inviteDocRef = doc(collection(db, 'invitations'));
         
-        const batch = writeBatch(db);
-
         const newMemberBase = {
             name: fullName,
             firstName: data.firstName,
             middleName: data.middleName || '',
             lastName: data.lastName,
             yearOfBirth: data.yearOfBirth,
-            family: data.family,
+            family: familyToUse,
             email: data.email,
             phone: data.phone || '',
             phoneCountryCode: data.phoneCountryCode || '',

@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -28,17 +28,24 @@ const formSchema = z.object({
   yearOfBirth: z.coerce.number().int().min(1900, 'Invalid year.').max(currentYear, 'Year cannot be in the future.'),
   gender: z.enum(['male', 'female'], { required_error: 'Gender is required.'}),
   family: z.string().min(1, 'Family is required.'),
-  email: z.string().email('Invalid email address.').optional().or(z.literal('')),
+  newFamilyName: z.string().optional(),
+  email: z.string().email('Invalid email address.'),
   phone: z.string().trim().optional().default(''),
   phoneCountryCode: z.string().trim().optional().default(''),
-}).refine(
-  (data) => data.family !== 'new', // "new" family creation is deprecated from this dialog
-  { message: 'Please create families from the Families tab.', path: ['family'] }
-);
+}).refine(data => {
+    if (data.family === 'new') {
+        return !!data.newFamilyName && data.newFamilyName.trim().length > 0;
+    }
+    return true;
+}, {
+    message: "New family name is required.",
+    path: ["newFamilyName"],
+});
 
-export function AddMemberDialog() {
+
+export function InviteMemberDialog() {
   const {
-    dialogState, closeDialog, inviteMember, addMember, families
+    dialogState, closeDialog, inviteMember, families
   } = useCommunity();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -49,10 +56,6 @@ export function AddMemberDialog() {
   const isOpen = dialogState?.type === 'invite-member';
   const familyToAddTo = isOpen && (dialogState as any).family ? (dialogState as any).family as string : undefined;
   
-  // Determine if this form should invite or add directly.
-  // We can base this on whether an email is provided.
-  const [isInviteFlow, setIsInviteFlow] = useState(false);
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -62,19 +65,14 @@ export function AddMemberDialog() {
       yearOfBirth: undefined,
       gender: undefined,
       family: '',
+      newFamilyName: '',
       email: '',
       phone: '',
       phoneCountryCode: '+234',
     },
   });
 
-  const emailValue = form.watch('email');
-
-  useEffect(() => {
-      // If email is provided, it's an invite flow.
-      setIsInviteFlow(!!emailValue);
-  }, [emailValue]);
-
+  const familyValue = form.watch('family');
 
   useEffect(() => {
     if (isOpen) {
@@ -85,6 +83,7 @@ export function AddMemberDialog() {
         yearOfBirth: undefined,
         gender: undefined,
         family: familyToAddTo || '',
+        newFamilyName: '',
         email: '',
         phone: '',
         phoneCountryCode: '+234',
@@ -113,22 +112,13 @@ export function AddMemberDialog() {
             phone: values.phone,
             phoneCountryCode: values.phoneCountryCode,
         };
-
-        if (isInviteFlow) {
-          if (!values.email) {
-            toast({ variant: 'destructive', title: 'Email Required', description: 'Please provide an email to send an invitation.' });
-            setIsSubmitting(false);
-            return;
-          }
-          const link = await inviteMember(memberData);
-          if(link) {
-              setInviteLink(link);
-          } else {
-            // Invite failed (e.g., email exists), keep dialog open
-            setIsSubmitting(false);
-          }
+        
+        const newFamilyName = values.family === 'new' ? values.newFamilyName : undefined;
+        const link = await inviteMember(memberData, newFamilyName);
+        if(link) {
+            setInviteLink(link);
         } else {
-          await addMember(memberData);
+          setIsSubmitting(false);
         }
 
     } catch (error) {
@@ -145,13 +135,6 @@ export function AddMemberDialog() {
     }
   };
   
-  const dialogTitle = isInviteFlow ? 'Invite New Member' : 'Add New Member';
-  const dialogDescription = isInviteFlow 
-    ? 'An invitation link will be generated to share with the new member.'
-    : 'Add a new member directly to the registry. This is useful for family members without an email.';
-  const buttonText = isInviteFlow ? 'Send Invite' : 'Add Member';
-
-
   if (inviteLink) {
     return (
        <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
@@ -184,16 +167,16 @@ export function AddMemberDialog() {
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
       <DialogContent className="w-[calc(100vw-2rem)] max-w-lg sm:max-w-xl md:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{dialogTitle}</DialogTitle>
+          <DialogTitle>Invite New Member</DialogTitle>
           <DialogDescription>
-            {familyToAddTo ? `Adding a member to the ${familyToAddTo} family.` : dialogDescription}
+             An invitation link will be generated to share with the new member.
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
-            <ScrollArea className="h-[60vh] px-1">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4 px-5">
+            <ScrollArea className="h-[60vh] -mx-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4 px-6">
                 
                 <FormField name="firstName" control={form.control} render={({ field }) => (
                   <FormItem><FormLabel>First Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
@@ -242,16 +225,33 @@ export function AddMemberDialog() {
                       </FormControl>
                       <SelectContent>
                         {families.sort((a,b) => a.name.localeCompare(b.name)).map((f) => <SelectItem key={f.id} value={f.name}>{f.name}</SelectItem>)}
+                        <SelectItem value="new" className="font-bold text-primary">Create new family...</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
                 )} />
+                
+                {familyValue === 'new' && (
+                    <FormField
+                        control={form.control}
+                        name="newFamilyName"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>New Family Name</FormLabel>
+                                <FormControl>
+                                    <Input {...field} placeholder="Enter family name" />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                )}
 
                 <FormField name="email" control={form.control} render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email <span className="text-muted-foreground">(optional)</span></FormLabel>
-                    <FormControl><Input type="email" placeholder="Email triggers an invite" {...field} value={field.value ?? ''} /></FormControl><FormMessage />
+                  <FormItem className={familyValue === 'new' ? '' : 'md:col-span-2'}>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl><Input type="email" placeholder="Email is required for an invite" {...field} value={field.value ?? ''} /></FormControl><FormMessage />
                   </FormItem>
                 )} />
 
@@ -290,7 +290,7 @@ export function AddMemberDialog() {
             <DialogFooter className="pt-4">
               <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>Cancel</Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (isInviteFlow ? 'Sending...' : 'Saving...') : buttonText}
+                {isSubmitting ? 'Sending...' : 'Send Invite'}
               </Button>
             </DialogFooter>
           </form>
