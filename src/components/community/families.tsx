@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useCommunity } from '@/hooks/use-community';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Home, Trash2, Users, DollarSign, Plus, TrendingUp, Edit, ChevronDown, UserCheck, AlertCircle } from 'lucide-react';
+import { Home, Trash2, Users, DollarSign, Plus, TrendingUp, Edit, ChevronDown, UserCheck, AlertCircle, Mail, UserPlus } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import type { Family } from '@/lib/types';
@@ -78,9 +78,9 @@ export function Families() {
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
         {families.sort((a,b) => a.name.localeCompare(b.name)).map(family => {
-          const familyMembers = members.filter(m => m.family === family.name && m.gender === 'male');
+          const familyMembers = members.filter(m => m.family === family.name);
           const patriarch = familyMembers.find(m => m.isPatriarch);
-          const children = familyMembers.filter(m => !m.isPatriarch).sort((a, b) => a.name.localeCompare(b.name));
+          const otherMembers = familyMembers.filter(m => !m.isPatriarch).sort((a, b) => a.name.localeCompare(b.name));
           
           const familyContribution = familyMembers.reduce((sum, m) => sum + (m.contribution || 0), 0);
           const familyPaid = familyMembers.reduce((sum, m) => sum + getPaidAmount(m), 0);
@@ -151,7 +151,7 @@ export function Families() {
                               </div>
                           </div>
                       )}
-                      {children.length > 0 ? children.map(member => {
+                      {otherMembers.length > 0 ? otherMembers.map(member => {
                         const tier = member.tier || '';
                         return (
                         <div key={member.id} className="flex justify-between items-center text-sm p-2 rounded-md hover:bg-muted/50">
@@ -171,9 +171,9 @@ export function Families() {
                           </div>
                         </div>
                       )}) : (
-                        patriarch && children.length === 0 && (
+                        patriarch && otherMembers.length === 0 && (
                           <div className="text-center py-4 text-sm text-muted-foreground">
-                              No male children added yet.
+                              No other members added yet.
                           </div>
                         )
                       )}
@@ -185,9 +185,12 @@ export function Families() {
                       )}
                     </div>
                   </CardContent>
-                  <CardFooter className="mt-auto border-t pt-4">
+                  <CardFooter className="mt-auto border-t pt-4 flex flex-col sm:flex-row gap-2">
                     <Button onClick={() => openDialog({ type: 'add-member', family: family.name })} className="w-full">
-                      <Plus className="mr-2 h-4 w-4" /> Add Male Child
+                      <UserPlus className="mr-2 h-4 w-4" /> Add Member
+                    </Button>
+                     <Button onClick={() => openDialog({ type: 'add-member', family: family.name })} variant="outline" className="w-full">
+                      <Mail className="mr-2 h-4 w-4" /> Invite Member
                     </Button>
                   </CardFooter>
                 </CollapsibleContent>
