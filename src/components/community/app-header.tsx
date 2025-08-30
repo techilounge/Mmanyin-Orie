@@ -36,7 +36,7 @@ export function AppHeader({ setActiveTab }: { setActiveTab: (tab: string) => voi
               <span className="hidden sm:inline">Create Family</span>
             </Button>
             <Button
-              onClick={() => openDialog({ type: 'add-member' })}
+              onClick={() => openDialog({ type: 'invite-member' })}
               className="bg-gradient-to-r from-primary to-indigo-600 text-white shadow-md hover:opacity-90 transition-opacity"
                size="sm"
             >

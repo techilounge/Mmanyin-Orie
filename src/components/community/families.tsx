@@ -186,10 +186,10 @@ export function Families() {
                     </div>
                   </CardContent>
                   <CardFooter className="mt-auto border-t pt-4 flex flex-col sm:flex-row gap-2">
-                    <Button onClick={() => openDialog({ type: 'add-member', family: family.name })} className="w-full">
+                    <Button onClick={() => openDialog({ type: 'add-member-to-family', family: family.name })} className="w-full">
                       <UserPlus className="mr-2 h-4 w-4" /> Add Member
                     </Button>
-                     <Button onClick={() => openDialog({ type: 'add-member', family: family.name })} variant="outline" className="w-full">
+                     <Button onClick={() => openDialog({ type: 'invite-member', family: family.name })} variant="outline" className="w-full">
                       <Mail className="mr-2 h-4 w-4" /> Invite Member
                     </Button>
                   </CardFooter>

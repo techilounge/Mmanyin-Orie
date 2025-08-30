@@ -17,7 +17,7 @@ import { Members } from './members';
 import { Families } from './families';
 import { AppSettings } from './app-settings';
 import { AddFamilyDialog } from './dialogs/add-family-dialog';
-import { AddMemberDialog } from './add-member-dialog';
+import { AddMemberDialog } from './dialogs/add-member-dialog';
 import { EditMemberDialog } from './dialogs/edit-member-dialog';
 import { AddCustomContributionDialog } from './dialogs/add-custom-contribution-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -32,6 +32,7 @@ import { usePathname } from 'next/navigation';
 import AppShellLite from '../layout/AppShellLite';
 import { defaultNav } from '@/config/nav';
 import { Reports } from './reports';
+import { AddMemberToFamilyDialog } from './dialogs/add-member-to-family-dialog';
 
 const TABS = [
   { id: 'dashboard', label: 'Dashboard', icon: BarChart2 },
@@ -134,7 +135,8 @@ export function CommunityApp({ activeTab, setActiveTab }: CommunityAppProps) {
 
         {dialogState?.type === 'add-family' && <AddFamilyDialog />}
         {dialogState?.type === 'edit-family' && <EditFamilyDialog family={dialogState.family} />}
-        {dialogState?.type === 'add-member' && <AddMemberDialog />}
+        {dialogState?.type === 'invite-member' && <AddMemberDialog />}
+        {dialogState?.type === 'add-member-to-family' && <AddMemberToFamilyDialog family={dialogState.family} />}
         {dialogState?.type === 'edit-member' && <EditMemberDialog member={dialogState.member} />}
         {dialogState?.type === 'resend-invite' && <ResendInviteDialog member={dialogState.member} />}
         {dialogState?.type === 'record-payment' && <RecordPaymentDialog member={dialogState.member} contribution={dialogState.contribution} month={dialogState.month} />}
