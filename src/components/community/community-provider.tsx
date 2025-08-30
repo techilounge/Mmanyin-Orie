@@ -353,7 +353,12 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
   const getInviteLink = async (memberId: string): Promise<string | null> => {
     if (!activeCommunityId) return null;
     try {
-        const q = query(collection(db, 'invitations'), where('memberId', '==', memberId), where('communityId', '==', activeCommunityId));
+        const q = query(
+            collection(db, 'invitations'), 
+            where('memberId', '==', memberId), 
+            where('communityId', '==', activeCommunityId),
+            where('status', '==', 'pending')
+        );
         const querySnapshot = await getDocs(q);
 
         if (querySnapshot.empty) {
@@ -427,7 +432,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
 
         // If a new family is being created, add it to the families collection
         let familyToUse = data.family;
-        if (newFamilyName && newFamilyName.trim()) {
+        if (newFamilyName && newFamilyName.trim() && data.family === 'new') {
             familyToUse = newFamilyName.trim();
             const familyDocRef = doc(collection(db, `communities/${activeCommunityId}/families`));
             batch.set(familyDocRef, { name: familyToUse });

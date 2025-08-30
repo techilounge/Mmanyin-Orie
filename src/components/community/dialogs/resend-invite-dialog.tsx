@@ -25,17 +25,17 @@ export function ResendInviteDialog({ member }: ResendInviteDialogProps) {
   const isOpen = dialogState?.type === 'resend-invite' && dialogState.member.id === member.id;
 
   useEffect(() => {
-    if (isOpen) {
-        setIsLoading(true);
-        setInviteLink(null); // Reset link on open
+    // Only fetch if the dialog is open and we don't already have a link.
+    if (isOpen && isLoading) {
         getInviteLink(member.id).then(link => {
             setInviteLink(link);
             setIsLoading(false);
         });
     }
-  }, [isOpen, member.id, getInviteLink]);
+  }, [isOpen, member.id, getInviteLink, isLoading]);
 
   const handleClose = () => {
+    // Reset state when closing, so it's fresh for the next open.
     setInviteLink(null);
     setHasCopied(false);
     setIsLoading(true);
