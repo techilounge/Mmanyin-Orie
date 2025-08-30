@@ -132,6 +132,7 @@ export function AddMemberDialog() {
           }
         } else {
           await addMember(memberData);
+          closeDialog();
         }
 
     } catch (error) {
@@ -196,7 +197,7 @@ export function AddMemberDialog() {
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
-            <ScrollArea className="h-[60vh] -mx-6">
+            <ScrollArea className="h-[60vh]">
               <div className="space-y-4 py-4 px-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField name="firstName" control={form.control} render={({ field }) => (
@@ -257,7 +258,7 @@ export function AddMemberDialog() {
 
                   <FormField name="email" control={form.control} render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email <span className="text-muted-foreground">(optional for invite)</span></FormLabel>
+                      <FormLabel>Email <span className="text-muted-foreground">(optional)</span></FormLabel>
                       <FormControl><Input type="email" {...field} value={field.value ?? ''} /></FormControl><FormMessage />
                     </FormItem>
                   )} />

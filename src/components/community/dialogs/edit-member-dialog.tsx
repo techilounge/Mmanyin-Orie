@@ -1,3 +1,4 @@
+
 'use client';
 import { useEffect, useState } from 'react';
 import { useCommunity } from '@/hooks/use-community';
@@ -108,7 +109,7 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
-            <ScrollArea className="h-[60vh] -mx-6">
+            <ScrollArea className="h-[60vh]">
               <div className="space-y-4 py-4 px-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField control={form.control} name="firstName" render={({ field }) => (
