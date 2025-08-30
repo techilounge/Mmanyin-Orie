@@ -166,8 +166,8 @@ export function AddMemberDialog() {
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
-            <ScrollArea className="h-[60vh] pr-6">
-              <div className="space-y-4 py-4">
+            <ScrollArea className="h-[60vh] -mx-6">
+              <div className="space-y-4 py-4 px-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField name="firstName" control={form.control} render={({ field }) => (
                     <FormItem><FormLabel>First Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
@@ -181,31 +181,33 @@ export function AddMemberDialog() {
                   <FormItem><FormLabel>Middle Name <span className="text-muted-foreground">(optional)</span></FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
 
-                <FormField name="yearOfBirth" control={form.control} render={({ field }) => (
-                  <FormItem><FormLabel>Year of Birth</FormLabel><FormControl><Input type="number" placeholder={String(currentYear)} {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                )} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField name="yearOfBirth" control={form.control} render={({ field }) => (
+                    <FormItem><FormLabel>Year of Birth</FormLabel><FormControl><Input type="number" placeholder={String(currentYear)} {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                    )} />
 
-                <FormField
-                  control={form.control}
-                  name="gender"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Gender</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select gender" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="male">Male</SelectItem>
-                          <SelectItem value="female">Female</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                    <FormField
+                    control={form.control}
+                    name="gender"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Gender</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select gender" />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                            <SelectItem value="male">Male</SelectItem>
+                            <SelectItem value="female">Female</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                </div>
 
                 <Controller name="family" control={form.control} render={({ field }) => (
                   <FormItem>
