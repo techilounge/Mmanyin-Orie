@@ -74,6 +74,15 @@ export function InviteMemberDialog() {
 
   const familyValue = form.watch('family');
 
+  const handleClose = () => {
+    if(!isSubmitting) {
+      form.reset();
+      setInviteLink(null);
+      setHasCopied(false);
+      closeDialog();
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
       form.reset({
@@ -94,8 +103,6 @@ export function InviteMemberDialog() {
       setIsSubmitting(false);
     }
   }, [isOpen, familyToAddTo, form]);
-
-  const handleClose = () => { if(!isSubmitting) closeDialog(); };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
