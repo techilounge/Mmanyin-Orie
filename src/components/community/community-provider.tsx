@@ -362,7 +362,6 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         const querySnapshot = await getDocs(q);
 
         if (querySnapshot.empty) {
-            toast({ variant: "destructive", title: "Not Found", description: "No pending invitation found for this member." });
             return null;
         }
         
