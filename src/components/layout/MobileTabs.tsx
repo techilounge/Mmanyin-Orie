@@ -30,6 +30,8 @@ export default function MobileTabs({ nav = [], hiddenOn = [], activeTab, onTabCh
   if (hiddenOn.some((p) => pathname.startsWith(p))) return null;
 
   const visibleNav = nav.filter(item => !item.admin).slice(0, 5);
+  const gridColsClass = `grid-cols-${visibleNav.length}`;
+
 
   // Only show on small screens
   return (
@@ -43,7 +45,7 @@ export default function MobileTabs({ nav = [], hiddenOn = [], activeTab, onTabCh
       role="navigation"
       aria-label="Bottom Navigation"
     >
-      <div className={`grid grid-cols-${visibleNav.length}`}>
+      <div className={cn("grid", gridColsClass)}>
         {visibleNav.map((item) => {
           const isActive = activeTab === item.id;
           const Icon = ICONS[item.label];
