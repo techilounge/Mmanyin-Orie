@@ -24,6 +24,7 @@ import { Progress } from '../ui/progress';
 import type { Member } from '@/lib/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { useAuth } from '@/lib/auth';
+import { ResendInviteDialog } from './dialogs/resend-invite-dialog';
 
 const roleIcons = {
   owner: <Crown size={14} className="text-amber-500" />,
@@ -38,7 +39,7 @@ const roleColors = {
 };
 
 export function Members() {
-  const { members, families, deleteMember, openDialog, settings, getPaidAmount, getBalance, resendInvitation } = useCommunity();
+  const { members, families, deleteMember, openDialog, settings, getPaidAmount, getBalance } = useCommunity();
   const { communityRole } = useAuth();
   const isAdmin = communityRole === 'admin' || communityRole === 'owner';
 
@@ -46,6 +47,7 @@ export function Members() {
   const [filterFamily, setFilterFamily] = useState('all');
   const [filterTier, setFilterTier] = useState('all');
   const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
+  const [memberToResend, setMemberToResend] = useState<Member | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
 
   const clearFilters = () => {
@@ -228,7 +230,7 @@ export function Members() {
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                onClick={() => resendInvitation(m)}
+                                                onClick={() => openDialog({ type: 'resend-invite', member: m })}
                                                 aria-label="Resend Invite"
                                             >
                                                 <Send size={16} className="text-primary" />
@@ -294,6 +296,8 @@ export function Members() {
             )}
         </Card>
       </div>
+      
+      {memberToResend && <ResendInviteDialog member={memberToResend} />}
 
       <AlertDialog open={memberToDelete !== null} onOpenChange={(open) => {
           if (!open) {
@@ -326,5 +330,3 @@ export function Members() {
     </div>
   );
 }
-
-    
