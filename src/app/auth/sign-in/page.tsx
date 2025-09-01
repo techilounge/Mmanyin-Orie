@@ -55,7 +55,9 @@ export default function SignInPage() {
         router.push('/app');
       }
     } catch (err: any) {
-      toast({ variant: 'destructive', title: 'Google Sign-In failed', description: err?.message ?? 'Please try again.' });
+      if (err.code !== 'auth/popup-closed-by-user') {
+        toast({ variant: 'destructive', title: 'Google Sign-In failed', description: err?.message ?? 'Please try again.' });
+      }
     } finally {
       setIsGoogleLoading(false);
     }
