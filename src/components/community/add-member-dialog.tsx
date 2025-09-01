@@ -52,8 +52,15 @@ export function AddMemberDialog() {
   const [hasCopied, setHasCopied] = useState(false);
   const { toast } = useToast();
 
-  const isOpen = dialogState?.type === 'add-member';
-  const familyToAddTo = isOpen && (dialogState as any).family ? (dialogState as any).family as string : undefined;
+  // Valid dialog types per DialogState: 'invite-member' | 'add-member-to-family' | ...
+  const isInvite = dialogState?.type === 'invite-member';
+  const isAddToFamily = dialogState?.type === 'add-member-to-family';
+  
+  // Open if either of the valid "add member" flows is active.
+  const isOpen = Boolean(isInvite || isAddToFamily);
+  
+  // Family is only present when adding directly to a family.
+  const familyToAddTo = isAddToFamily ? (dialogState as any).family as string : undefined;
   
   // Determine if this form should invite or add directly.
   // We can base this on whether an email is provided.
@@ -120,13 +127,13 @@ export function AddMemberDialog() {
         const memberData: NewMemberData = {
             firstName: values.firstName,
             lastName: values.lastName,
-            middleName: values.middleName,
+            middleName: values.middleName ?? '',
             tier: values.tier,
             family: values.family,
             gender: values.gender,
             isPatriarch: false, // Only family head can be patriarch
             email: values.email,
-            phone: values.phone,
+            phone: values.phone ?? '',
             phoneCountryCode: values.phoneCountryCode,
         };
 
