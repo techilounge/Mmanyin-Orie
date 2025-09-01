@@ -25,12 +25,6 @@ interface EditCustomContributionDialogProps {
   contribution: CustomContribution;
 }
 
-const TIERS = [
-  'Group 1 (18-24)',
-  'Group 2 (25+)',
-  'Under 18',
-];
-
 const formSchema = z.object({
   id: z.string(),
   name: z.string().min(1, 'Template name is required.'),
@@ -78,8 +72,6 @@ export function EditCustomContributionDialog({ contribution }: EditCustomContrib
     closeDialog();
   }
   
-  const tierOptions = TIERS;
-
   return (
     <Dialog open={dialogState?.type === 'edit-custom-contribution'} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[425px]">
@@ -160,33 +152,33 @@ export function EditCustomContributionDialog({ contribution }: EditCustomContrib
                   <div className="mb-4">
                     <FormLabel className="text-base">Applicable Age Groups</FormLabel>
                   </div>
-                  {tierOptions.map((item) => (
+                  {settings.ageGroups.map((group) => (
                     <FormField
-                      key={item}
+                      key={group.id}
                       control={form.control}
                       name="tiers"
                       render={({ field }) => {
                         return (
                           <FormItem
-                            key={item}
+                            key={group.id}
                             className="flex flex-row items-start space-x-3 space-y-0"
                           >
                             <FormControl>
                               <Checkbox
-                                checked={field.value?.includes(item)}
+                                checked={field.value?.includes(group.name)}
                                 onCheckedChange={(checked) => {
                                   return checked
-                                    ? field.onChange([...(field.value || []), item])
+                                    ? field.onChange([...(field.value || []), group.name])
                                     : field.onChange(
                                         field.value?.filter(
-                                          (value) => value !== item
+                                          (value) => value !== group.name
                                         )
                                       )
                                 }}
                               />
                             </FormControl>
                             <FormLabel className="font-normal">
-                              {item}
+                              {group.name}
                             </FormLabel>
                           </FormItem>
                         )

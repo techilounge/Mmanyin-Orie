@@ -30,18 +30,12 @@ const formSchema = z.object({
   phoneCountryCode: z.string().trim().optional().default(''),
 });
 
-const TIER_OPTIONS = [
-    'Group 1 (18-24)',
-    'Group 2 (25+)',
-    'Under 18',
-];
-
 interface AddMemberToFamilyDialogProps {
   family: string;
 }
 
 export function AddMemberToFamilyDialog({ family }: AddMemberToFamilyDialogProps) {
-  const { dialogState, closeDialog, addMember } = useCommunity();
+  const { dialogState, closeDialog, addMember, settings } = useCommunity();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isOpen = dialogState?.type === 'add-member-to-family';
@@ -137,7 +131,7 @@ export function AddMemberToFamilyDialog({ family }: AddMemberToFamilyDialogProps
                             </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                            {TIER_OPTIONS.map(tier => <SelectItem key={tier} value={tier}>{tier}</SelectItem>)}
+                            {settings.ageGroups.map(group => <SelectItem key={group.id} value={group.name}>{group.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
                     <FormMessage />

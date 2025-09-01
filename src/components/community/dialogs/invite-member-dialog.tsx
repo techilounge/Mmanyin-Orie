@@ -39,15 +39,9 @@ const formSchema = z.object({
     path: ["newFamilyName"],
 });
 
-const TIER_OPTIONS = [
-    'Group 1 (18-24)',
-    'Group 2 (25+)',
-    'Under 18',
-];
-
 export function InviteMemberDialog() {
   const {
-    dialogState, closeDialog, inviteMember, families
+    dialogState, closeDialog, inviteMember, families, settings
   } = useCommunity();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -191,7 +185,7 @@ export function InviteMemberDialog() {
                           </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                              {TIER_OPTIONS.map(tier => <SelectItem key={tier} value={tier}>{tier}</SelectItem>)}
+                              {settings.ageGroups.map(group => <SelectItem key={group.id} value={group.name}>{group.name}</SelectItem>)}
                           </SelectContent>
                       </Select>
                       <FormMessage />

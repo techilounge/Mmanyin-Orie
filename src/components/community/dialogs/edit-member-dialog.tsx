@@ -43,12 +43,6 @@ const formSchema = z.object({
     path: ["newFamilyName"],
 });
 
-const TIER_OPTIONS = [
-    'Group 1 (18-24)',
-    'Group 2 (25+)',
-    'Under 18',
-];
-
 type EditMemberForm = z.infer<typeof formSchema>;
 
 interface EditMemberDialogProps {
@@ -57,7 +51,7 @@ interface EditMemberDialogProps {
 
 export function EditMemberDialog({ member }: EditMemberDialogProps) {
   const { 
-    dialogState, closeDialog, updateMember, families
+    dialogState, closeDialog, updateMember, families, settings
   } = useCommunity();
 
   const form = useForm<EditMemberForm>({
@@ -137,7 +131,7 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
                               </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                              {TIER_OPTIONS.map(tier => <SelectItem key={tier} value={tier}>{tier}</SelectItem>)}
+                              {settings.ageGroups.map(group => <SelectItem key={group.id} value={group.name}>{group.name}</SelectItem>)}
                           </SelectContent>
                       </Select>
                       <FormMessage />

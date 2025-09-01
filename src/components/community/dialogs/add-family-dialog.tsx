@@ -24,14 +24,8 @@ const formSchema = z.object({
   patriarchTier: z.string().min(1, 'Age group is required.'),
 });
 
-const TIER_OPTIONS = [
-    'Group 1 (18-24)',
-    'Group 2 (25+)',
-    'Under 18',
-];
-
 export function AddFamilyDialog() {
-  const { dialogState, closeDialog, addFamily } = useCommunity();
+  const { dialogState, closeDialog, addFamily, settings } = useCommunity();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -105,7 +99,7 @@ export function AddFamilyDialog() {
                             </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                            {TIER_OPTIONS.map(tier => <SelectItem key={tier} value={tier}>{tier}</SelectItem>)}
+                            {settings.ageGroups.map(group => <SelectItem key={group.id} value={group.name}>{group.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
                   <FormMessage />
