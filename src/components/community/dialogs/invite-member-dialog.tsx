@@ -108,14 +108,14 @@ export function InviteMemberDialog() {
         const memberData: NewMemberData = {
             firstName: values.firstName,
             lastName: values.lastName,
-            middleName: values.middleName,
+            middleName: values.middleName ?? '',
             tier: values.tier,
             family: values.family,
             gender: values.gender,
             isPatriarch: false,
             email: values.email,
-            phone: values.phone,
-            phoneCountryCode: values.phoneCountryCode,
+            phone: values.phone ?? '',
+            phoneCountryCode: values.phoneCountryCode ?? '',
         };
         
         const newFamilyName = values.family === 'new' ? values.newFamilyName : undefined;
