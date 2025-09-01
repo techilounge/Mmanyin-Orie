@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { useToast } from '@/hooks/use-toast';
 import { Chrome } from 'lucide-react';
 import { signInWithGoogle, completeGoogleRedirect, ensureUserDocument } from '@/lib/google-auth';
-import { doc, getDoc, updateDoc, writeBatch, setDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, writeBatch, setDoc, serverTimestamp } from 'firebase/firestore';
 import type { Invitation } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -75,8 +75,9 @@ export default function AcceptInvitePage() {
         const memberUpdatePayload = { 
           uid: user.uid, 
           status: 'active' as const,
+          email: user.email, // Use the verified email from the auth provider
+          name: user.displayName, // Use the name from the auth provider
         };
-
         batch.update(memberRef, memberUpdatePayload);
 
         // 2. Update the invitation to mark it as accepted
@@ -87,8 +88,11 @@ export default function AcceptInvitePage() {
         const userDocRef = doc(db, 'users', user.uid);
         const userSnap = await getDoc(userDocRef);
 
-        const primaryCommunityId = invitation.communityId;
-        const memberships = userSnap.exists() ? [...(userSnap.data().memberships || []), invitation.communityId] : [invitation.communityId];
+        const primaryCommunityId = userSnap.exists() && userSnap.data().primaryCommunityId
+            ? userSnap.data().primaryCommunityId
+            : invitation.communityId;
+
+        const memberships = userSnap.exists() ? [...new Set([...(userSnap.data().memberships || []), invitation.communityId])] : [invitation.communityId];
 
         const userData = {
             primaryCommunityId,
@@ -96,12 +100,13 @@ export default function AcceptInvitePage() {
             displayName: user.displayName,
             email: user.email,
             photoURL: user.photoURL,
+            lastLoginAt: serverTimestamp(),
         };
         
         if (userSnap.exists()) {
              batch.update(userDocRef, userData);
         } else {
-            batch.set(userDocRef, { ...userData, createdAt: new Date().toISOString() });
+            batch.set(userDocRef, { ...userData, createdAt: serverTimestamp() });
         }
         
         await batch.commit();
@@ -125,7 +130,13 @@ export default function AcceptInvitePage() {
       await setPersistence(auth, browserLocalPersistence);
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(userCredential.user, { displayName });
-      await processAcceptedInvite(userCredential.user);
+      // Re-fetch user to get the updated profile
+      const updatedUser = auth.currentUser;
+      if (updatedUser) {
+        await processAcceptedInvite(updatedUser as any);
+      } else {
+        throw new Error("Could not get updated user details.");
+      }
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Sign Up Failed', description: error.message });
       setIsLoading(false);
@@ -135,7 +146,8 @@ export default function AcceptInvitePage() {
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
-        const cred = await signInWithGoogle();
+        // The email in the invitation should be used to pre-fill the Google sign-in
+        const cred = await signInWithGoogle(invitation?.email);
         if (cred?.user) {
             await processAcceptedInvite(cred.user);
         } else {

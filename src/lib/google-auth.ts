@@ -15,12 +15,15 @@ import {
 import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import type { AppUser } from '@/lib/types';
 
-
-const provider = new GoogleAuthProvider();
-provider.setCustomParameters({ prompt: 'select_account' });
-
-export async function signInWithGoogle(): Promise<UserCredential | null> {
+export async function signInWithGoogle(loginHint?: string): Promise<UserCredential | null> {
   await setPersistence(auth, browserLocalPersistence);
+  
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ 
+    prompt: 'select_account',
+    login_hint: loginHint,
+  });
+
   try {
     const cred = await signInWithPopup(auth, provider);
     return cred;
