@@ -356,20 +356,16 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     try {
       const memberDocRef = doc(db, 'communities', activeCommunityId, 'members', memberId);
       const memberSnap = await getDoc(memberDocRef);
+      const inviteId = memberSnap.data()?.inviteId;
 
-      if (!memberSnap.exists() || !memberSnap.data()?.inviteId) {
+      if (!memberSnap.exists() || !inviteId) {
         return null;
       }
-
-      const inviteId = memberSnap.data()?.inviteId;
-      const q = query(
-        collection(db, 'invitations'), 
-        where('__name__', '==', inviteId),
-        where('status', '==', 'pending')
-      );
-      const inviteSnaps = await getDocs(q);
       
-      if (!inviteSnaps.empty) {
+      const inviteRef = doc(db, 'invitations', inviteId);
+      const inviteSnap = await getDoc(inviteRef);
+
+      if (inviteSnap.exists() && inviteSnap.data().status === 'pending') {
           return `${window.location.origin}/auth/accept-invite?token=${inviteId}`;
       }
       

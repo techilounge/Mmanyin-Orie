@@ -1,4 +1,5 @@
 
+'use server';
 import { Resend } from 'resend';
 import InvitationEmail from '@/emails/invitation-email';
 
