@@ -132,9 +132,9 @@ export function AddMemberDialog() {
             family: values.family,
             gender: values.gender,
             isPatriarch: false, // Only family head can be patriarch
-            email: values.email,
+            email: values.email ?? '',
             phone: values.phone ?? '',
-            phoneCountryCode: values.phoneCountryCode,
+            phoneCountryCode: values.phoneCountryCode ?? '',
         };
 
         if (isInviteFlow) {
