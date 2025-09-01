@@ -85,14 +85,14 @@ export function AddMemberToFamilyDialog({ family }: AddMemberToFamilyDialogProps
         const memberData: NewMemberData = {
             firstName: values.firstName,
             lastName: values.lastName,
-            middleName: values.middleName,
+            middleName: values.middleName ?? '',
             tier: values.tier,
             family: values.family,
             gender: values.gender,
             isPatriarch: false,
-            email: values.email,
-            phone: values.phone,
-            phoneCountryCode: values.phoneCountryCode,
+            email: values.email ?? '',
+            phone: values.phone ?? '',
+            phoneCountryCode: values.phoneCountryCode ?? '',
         };
         await addMember(memberData);
         handleClose();
