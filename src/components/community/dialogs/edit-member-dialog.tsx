@@ -21,13 +21,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import type { Member } from '@/lib/types';
 import { COUNTRY_OPTIONS } from '@/lib/countries';
 
-const currentYear = new Date().getFullYear();
 const formSchema = z.object({
   id: z.string(),
   firstName: z.string().min(1, 'First name is required.'),
   lastName: z.string().min(1, 'Last name is required.'),
   middleName: z.string().trim().optional().default(''),
-  yearOfBirth: z.coerce.number().int().min(1900, `Invalid year.`).max(currentYear, `Year cannot be in the future.`),
+  tier: z.string().min(1, 'Age group is required.'),
   family: z.string().min(1, 'Family is required.'),
   newFamilyName: z.string().optional(),
   email: z.string().email('Invalid email address.').optional().or(z.literal('')).default(''),
@@ -44,6 +43,11 @@ const formSchema = z.object({
     path: ["newFamilyName"],
 });
 
+const TIER_OPTIONS = [
+    'Group 1 (18-24)',
+    'Group 2 (25+)',
+    'Under 18',
+];
 
 type EditMemberForm = z.infer<typeof formSchema>;
 
@@ -69,7 +73,7 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
         firstName: member.firstName,
         lastName: member.lastName,
         middleName: member.middleName ?? '',
-        yearOfBirth: member.yearOfBirth,
+        tier: member.tier ?? '',
         family: member.family ?? '',
         newFamilyName: '',
         email: member.email ?? '',
@@ -123,8 +127,21 @@ export function EditMemberDialog({ member }: EditMemberDialogProps) {
                     <FormItem className="md:col-span-2"><FormLabel>Middle Name <span className="text-muted-foreground">(optional)</span></FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                 )} />
 
-                <FormField control={form.control} name="yearOfBirth" render={({ field }) => (
-                    <FormItem><FormLabel>Year of Birth</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                <FormField control={form.control} name="tier" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Age Group</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                              <SelectTrigger>
+                                  <SelectValue placeholder="Select an age group" />
+                              </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                              {TIER_OPTIONS.map(tier => <SelectItem key={tier} value={tier}>{tier}</SelectItem>)}
+                          </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
                 )} />
                 
                 <Controller

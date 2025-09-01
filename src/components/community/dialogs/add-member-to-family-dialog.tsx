@@ -18,18 +18,23 @@ import { COUNTRY_OPTIONS } from '@/lib/countries';
 import type { NewMemberData } from '@/lib/types';
 import { toast } from '@/hooks/use-toast';
 
-const currentYear = new Date().getFullYear();
 const formSchema = z.object({
   firstName: z.string().min(1, 'First name is required.'),
   lastName: z.string().min(1, 'Last name is required.'),
   middleName: z.string().trim().optional().default(''),
-  yearOfBirth: z.coerce.number().int().min(1900, 'Invalid year.').max(currentYear, 'Year cannot be in the future.'),
+  tier: z.string().min(1, 'Age group is required.'),
   gender: z.enum(['male', 'female'], { required_error: 'Gender is required.'}),
   family: z.string().min(1, 'Family is required.'),
   email: z.string().email('Invalid email address.').optional().or(z.literal('')),
   phone: z.string().trim().optional().default(''),
   phoneCountryCode: z.string().trim().optional().default(''),
 });
+
+const TIER_OPTIONS = [
+    'Group 1 (18-24)',
+    'Group 2 (25+)',
+    'Under 18',
+];
 
 interface AddMemberToFamilyDialogProps {
   family: string;
@@ -47,7 +52,7 @@ export function AddMemberToFamilyDialog({ family }: AddMemberToFamilyDialogProps
       firstName: '',
       lastName: '',
       middleName: '',
-      yearOfBirth: undefined,
+      tier: '',
       gender: undefined,
       family: family || '',
       email: '',
@@ -62,7 +67,7 @@ export function AddMemberToFamilyDialog({ family }: AddMemberToFamilyDialogProps
         firstName: '',
         lastName: '',
         middleName: '',
-        yearOfBirth: undefined,
+        tier: '',
         gender: undefined,
         family: family,
         email: '',
@@ -81,7 +86,7 @@ export function AddMemberToFamilyDialog({ family }: AddMemberToFamilyDialogProps
             firstName: values.firstName,
             lastName: values.lastName,
             middleName: values.middleName,
-            yearOfBirth: values.yearOfBirth,
+            tier: values.tier,
             family: values.family,
             gender: values.gender,
             isPatriarch: false,
@@ -122,8 +127,21 @@ export function AddMemberToFamilyDialog({ family }: AddMemberToFamilyDialogProps
                 <FormField name="middleName" control={form.control} render={({ field }) => (
                   <FormItem className="md:col-span-2"><FormLabel>Middle Name <span className="text-muted-foreground">(optional)</span></FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
-                <FormField name="yearOfBirth" control={form.control} render={({ field }) => (
-                  <FormItem><FormLabel>Year of Birth</FormLabel><FormControl><Input type="number" placeholder={String(currentYear)} {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                <FormField control={form.control} name="tier" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Age Group</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select an age group" />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            {TIER_OPTIONS.map(tier => <SelectItem key={tier} value={tier}>{tier}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
                 )} />
                 <FormField control={form.control} name="gender" render={({ field }) => (
                   <FormItem>

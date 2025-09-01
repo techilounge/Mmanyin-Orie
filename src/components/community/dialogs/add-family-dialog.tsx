@@ -16,14 +16,19 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-const currentYear = new Date().getFullYear();
 const formSchema = z.object({
   patriarchFirstName: z.string().min(1, "Father's first name is required."),
   patriarchLastName: z.string().min(1, 'Family name is required.'),
-  yearOfBirth: z.coerce.number().int().min(1900, 'Invalid year.').max(currentYear, 'Year cannot be in the future.'),
+  patriarchTier: z.string().min(1, 'Age group is required.'),
 });
 
+const TIER_OPTIONS = [
+    'Group 1 (18-24)',
+    'Group 2 (25+)',
+    'Under 18',
+];
 
 export function AddFamilyDialog() {
   const { dialogState, closeDialog, addFamily } = useCommunity();
@@ -31,12 +36,12 @@ export function AddFamilyDialog() {
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { patriarchFirstName: '', patriarchLastName: '', yearOfBirth: '' as any },
+    defaultValues: { patriarchFirstName: '', patriarchLastName: '', patriarchTier: '' },
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
-    const success = await addFamily(values.patriarchFirstName.trim(), values.patriarchLastName.trim(), values.yearOfBirth);
+    const success = await addFamily(values.patriarchFirstName.trim(), values.patriarchLastName.trim(), values.patriarchTier);
     if (success) {
       handleClose();
     }
@@ -89,13 +94,20 @@ export function AddFamilyDialog() {
             </div>
             <FormField
               control={form.control}
-              name="yearOfBirth"
+              name="patriarchTier"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Father's Year of Birth</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder={String(currentYear - 30)} {...field} />
-                  </FormControl>
+                  <FormLabel>Father's Age Group</FormLabel>
+                   <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select an age group" />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            {TIER_OPTIONS.map(tier => <SelectItem key={tier} value={tier}>{tier}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
                   <FormMessage />
                 </FormItem>
               )}
