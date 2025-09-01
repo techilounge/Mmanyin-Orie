@@ -66,7 +66,9 @@ export default function SignUpPage() {
         router.push('/subscribe');
       }
     } catch (err: any) {
-      toast({ variant: 'destructive', title: 'Google Sign-Up failed', description: err?.message ?? 'Please try again.' });
+      if (err.code !== 'auth/popup-closed-by-user') {
+        toast({ variant: 'destructive', title: 'Google Sign-Up failed', description: err?.message ?? 'Please try again.' });
+      }
     } finally {
       setIsGoogleLoading(false);
     }
