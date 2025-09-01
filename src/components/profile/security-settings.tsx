@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import {
   AlertDialog,
@@ -128,8 +129,7 @@ export function SecuritySettings() {
         await reauthenticateWithCredential(user, credential);
         
         await updateEmail(user, data.newEmail);
-        setCurrentEmail(data.newEmail); // Update the displayed email
-
+        
         const userDocRef = doc(db, 'users', user.uid);
         await updateDoc(userDocRef, { email: data.newEmail });
         
@@ -145,6 +145,7 @@ export function SecuritySettings() {
 
         toast({ title: 'Email Updated', description: 'Your email has been changed successfully.' });
         emailForm.reset({ newEmail: '', currentPassword: '' });
+        setCurrentEmail(data.newEmail); // Update the displayed email
     } catch (error: any) {
          toast({
             variant: 'destructive',
