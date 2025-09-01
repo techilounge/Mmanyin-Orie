@@ -18,13 +18,13 @@ interface StatCardProps {
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, colorClass, iconBgClass }) => (
   <Card className={`${colorClass} border-0 shadow-sm`}>
     <CardContent className="p-4">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center justify-start gap-4">
         <div className={`p-3 rounded-lg ${iconBgClass}`}>
           <Icon className="h-5 w-5 text-primary" />
         </div>
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <p className="text-xs font-medium text-muted-foreground">{title}</p>
-          <p className="text-xl font-bold text-foreground">{value}</p>
+          <p className="text-xl font-bold text-foreground truncate">{value}</p>
         </div>
       </div>
     </CardContent>

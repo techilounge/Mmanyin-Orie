@@ -29,7 +29,7 @@ export default function MobileTabs({ nav = [], hiddenOn = [], activeTab, onTabCh
   // Hide on specific routes (auth, subscribe, onboarding, etc.)
   if (hiddenOn.some((p) => pathname.startsWith(p))) return null;
 
-  const visibleNav = nav.slice(0, 5);
+  const visibleNav = nav.filter(item => !item.admin).slice(0, 5);
 
   // Only show on small screens
   return (
@@ -43,27 +43,26 @@ export default function MobileTabs({ nav = [], hiddenOn = [], activeTab, onTabCh
       role="navigation"
       aria-label="Bottom Navigation"
     >
-      <ul className={`grid grid-cols-${visibleNav.length}`}>
+      <div className={`grid grid-cols-${visibleNav.length}`}>
         {visibleNav.map((item) => {
           const isActive = activeTab === item.id;
           const Icon = ICONS[item.label];
           return (
-            <li key={item.id} className="contents">
-              <button
-                onClick={() => onTabChange?.(item.id)}
-                className={cn(
-                  "flex flex-col items-center gap-1 py-2 text-xs",
-                  isActive ? "font-semibold text-primary" : "text-muted-foreground",
-                )}
-                aria-current={isActive ? "page" : undefined}
-              >
-                {Icon ? <Icon className="h-5 w-5" /> : null}
-                <span>{item.label}</span>
-              </button>
-            </li>
+            <button
+              key={item.id}
+              onClick={() => onTabChange?.(item.id)}
+              className={cn(
+                "flex flex-col items-center gap-1 py-2 text-xs",
+                isActive ? "font-semibold text-primary" : "text-muted-foreground",
+              )}
+              aria-current={isActive ? "page" : undefined}
+            >
+              {Icon ? <Icon className="h-5 w-5" /> : null}
+              <span>{item.label}</span>
+            </button>
           );
         })}
-      </ul>
+      </div>
     </div>
   );
 }
