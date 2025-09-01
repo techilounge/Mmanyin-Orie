@@ -112,4 +112,5 @@ export type DialogState =
   | { type: 'edit-payment', member: Member, contribution: CustomContribution, payment: Payment }
   | { type: 'add-custom-contribution' }
   | { type: 'edit-custom-contribution', contribution: CustomContribution }
+  | { type: 'resend-invite', member: Member }
   | null;
