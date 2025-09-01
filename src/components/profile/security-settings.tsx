@@ -58,6 +58,13 @@ export function SecuritySettings() {
   const [isDeleteSubmitting, setIsDeleteSubmitting] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [canDeleteAccount, setCanDeleteAccount] = useState(false);
+  const [currentEmail, setCurrentEmail] = useState(user?.email || '');
+
+  useEffect(() => {
+    if (user?.email) {
+      setCurrentEmail(user.email);
+    }
+  }, [user]);
 
   const passwordForm = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordFormSchema),
@@ -66,7 +73,7 @@ export function SecuritySettings() {
   
   const emailForm = useForm<EmailFormValues>({
     resolver: zodResolver(emailFormSchema),
-    defaultValues: { newEmail: user?.email || '', currentPassword: '' },
+    defaultValues: { newEmail: '', currentPassword: '' },
   });
 
 
@@ -121,6 +128,7 @@ export function SecuritySettings() {
         await reauthenticateWithCredential(user, credential);
         
         await updateEmail(user, data.newEmail);
+        setCurrentEmail(data.newEmail); // Update the displayed email
 
         const userDocRef = doc(db, 'users', user.uid);
         await updateDoc(userDocRef, { email: data.newEmail });
@@ -136,7 +144,7 @@ export function SecuritySettings() {
         }
 
         toast({ title: 'Email Updated', description: 'Your email has been changed successfully.' });
-        emailForm.reset({ newEmail: data.newEmail, currentPassword: '' });
+        emailForm.reset({ newEmail: '', currentPassword: '' });
     } catch (error: any) {
          toast({
             variant: 'destructive',
@@ -207,10 +215,14 @@ export function SecuritySettings() {
               <CardDescription>Update the email address associated with your account.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+               <div className="space-y-2">
+                <Label>Current Email</Label>
+                <Input value={currentEmail} disabled className="bg-muted/50" />
+              </div>
               <FormField control={emailForm.control} name="newEmail" render={({ field }) => (
                 <FormItem>
                   <FormLabel>New Email Address</FormLabel>
-                  <FormControl><Input type="email" {...field} /></FormControl>
+                  <FormControl><Input type="email" {...field} placeholder="Enter your new email" /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
