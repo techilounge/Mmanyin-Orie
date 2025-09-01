@@ -1,4 +1,3 @@
-
 'use client';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -397,16 +396,13 @@ export function LandingPage() {
         </main>
         
         <footer className="w-full p-6 text-center text-sm text-muted-foreground bg-background border-t">
-            © {new Date().getFullYear()} Mmanyin Orie. All rights reserved.
+          <div className="flex justify-center gap-6">
+              <Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
+              <Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
+          </div>
+          <p className="mt-4">© {new Date().getFullYear()} Mmanyin Orie, a product of TechiLounge. All rights reserved.</p>
         </footer>
       </div>
     </div>
   );
 }
-    
-
-    
-
-
-
-

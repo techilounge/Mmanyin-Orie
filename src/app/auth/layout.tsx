@@ -1,5 +1,5 @@
-
 import Image from "next/image";
+import Link from 'next/link';
 
 export default function AuthLayout({
   children,
@@ -16,7 +16,7 @@ export default function AuthLayout({
           backgroundSize: '400px 400px',
         }}
       ></div>
-      <div className="relative z-10 flex w-full max-w-sm flex-col items-center">
+      <div className="relative z-10 flex w-full max-w-sm flex-col items-center p-4">
          <Image 
             src="/logo.png" 
             alt="Mmanyin Orie Logo" 
@@ -25,7 +25,14 @@ export default function AuthLayout({
             className="rounded-2xl shadow-lg mb-6"
             priority
         />
-        {children}
+        <div className="w-full">{children}</div>
+         <footer className="w-full p-6 text-center text-sm text-muted-foreground">
+            <div className="flex justify-center gap-6">
+                <Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
+                <Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
+            </div>
+            <p className="mt-4">© {new Date().getFullYear()} Mmanyin Orie</p>
+        </footer>
       </div>
     </div>
   );
