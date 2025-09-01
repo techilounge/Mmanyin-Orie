@@ -9,18 +9,21 @@ import {
 } from '@/components/ui/dialog';
 import type { Member } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Check, Copy, PartyPopper, Loader2 } from 'lucide-react';
+import { Check, Copy, PartyPopper, Loader2, Send } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface ResendInviteDialogProps {
     member: Member;
 }
 
 export function ResendInviteDialog({ member }: ResendInviteDialogProps) {
-  const { dialogState, closeDialog, getInviteLink } = useCommunity();
+  const { dialogState, closeDialog, getInviteLink, resendInvitation } = useCommunity();
+  const { toast } = useToast();
   
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [hasCopied, setHasCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isResending, setIsResending] = useState(false);
 
   const isOpen = dialogState?.type === 'resend-invite' && dialogState.member.id === member.id;
 
@@ -42,10 +45,17 @@ export function ResendInviteDialog({ member }: ResendInviteDialogProps) {
     closeDialog(); 
   };
 
+  const handleResend = async () => {
+    setIsResending(true);
+    await resendInvitation(member);
+    setIsResending(false);
+  }
+
   const copyToClipboard = () => {
     if (inviteLink) {
         navigator.clipboard.writeText(inviteLink);
         setHasCopied(true);
+        toast({ title: 'Copied!', description: 'The invitation link has been copied to your clipboard.'})
         setTimeout(() => setHasCopied(false), 2000);
     }
   };
@@ -56,7 +66,7 @@ export function ResendInviteDialog({ member }: ResendInviteDialogProps) {
           <DialogHeader>
               <DialogTitle className="flex items-center gap-2"><PartyPopper className="text-primary"/>Invitation Link for {member.name}</DialogTitle>
               <DialogDescription>
-                  Copy the link below and share it with the new member.
+                  Copy the link to share it directly, or resend the invitation email.
               </DialogDescription>
           </DialogHeader>
 
@@ -80,11 +90,15 @@ export function ResendInviteDialog({ member }: ResendInviteDialogProps) {
             </Alert>
           )}
 
-          <DialogFooter className="sm:justify-between gap-2 mt-4">
-              <Button variant="outline" onClick={handleClose}>Done</Button>
+          <DialogFooter className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4">
+              <Button variant="outline" onClick={handleClose} className="sm:col-span-1">Done</Button>
               <Button onClick={copyToClipboard} disabled={!inviteLink || isLoading}>
                   {hasCopied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
                   {hasCopied ? 'Copied!' : 'Copy Link'}
+              </Button>
+              <Button onClick={handleResend} disabled={!inviteLink || isLoading || isResending}>
+                  {isResending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                  {isResending ? 'Sending...' : 'Resend Email'}
               </Button>
           </DialogFooter>
       </DialogContent>
