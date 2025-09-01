@@ -17,7 +17,7 @@ interface StatCardProps {
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, colorClass, iconBgClass }) => (
   <Card className={`${colorClass} border-0 shadow-sm`}>
-    <CardContent className="p-4">
+    <CardContent className="py-4 px-0">
       <div className="flex items-center justify-start gap-4">
         <div className={`p-3 rounded-lg ${iconBgClass}`}>
           <Icon className="h-5 w-5 text-primary" />
