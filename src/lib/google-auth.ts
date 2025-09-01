@@ -19,10 +19,16 @@ export async function signInWithGoogle(loginHint?: string): Promise<UserCredenti
   await setPersistence(auth, browserLocalPersistence);
   
   const provider = new GoogleAuthProvider();
-  provider.setCustomParameters({ 
-    prompt: 'select_account',
-    login_hint: loginHint,
-  });
+  if (loginHint) {
+    provider.setCustomParameters({ 
+      prompt: 'select_account',
+      login_hint: loginHint,
+    });
+  } else {
+     provider.setCustomParameters({ 
+      prompt: 'select_account',
+    });
+  }
 
   try {
     const cred = await signInWithPopup(auth, provider);
