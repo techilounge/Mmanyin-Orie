@@ -6,12 +6,23 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Settings, Plus, Trash2, Edit } from 'lucide-react';
-import { DollarSign, Globe } from 'lucide-react';
+import { DollarSign, Globe, Users } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '../ui/badge';
 import { Settings as AppSettingsType } from '@/lib/types';
 import { useState, useEffect } from 'react';
 import { useDebounce } from 'use-debounce';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 const CURRENCIES = [
   { value: '₦', label: 'NGN (₦)' },
@@ -27,6 +38,12 @@ export function AppSettings() {
   const [localSettings, setLocalSettings] = useState(settings);
   const [localCommunityName, setLocalCommunityName] = useState(communityName);
   const [debouncedSettings] = useDebounce(localSettings, 500);
+
+  // New state for managing age groups
+  const [newAgeGroup, setNewAgeGroup] = useState('');
+  const [editingAgeGroup, setEditingAgeGroup] = useState<{ id: string; name: string } | null>(null);
+  const [editingAgeGroupName, setEditingAgeGroupName] = useState('');
+
 
   useEffect(() => {
     setLocalSettings(settings);
@@ -54,6 +71,21 @@ export function AppSettings() {
   const handleSaveCommunityName = () => {
     if (localCommunityName !== communityName) {
       updateCommunityName(localCommunityName);
+    }
+  };
+
+  const handleAddAgeGroup = () => {
+    // This will be implemented in a future step
+    console.log("Adding age group:", newAgeGroup);
+    setNewAgeGroup('');
+  };
+
+  const handleEditAgeGroup = () => {
+    if (editingAgeGroup) {
+      // This will be implemented in a future step
+      console.log("Updating age group:", editingAgeGroup.id, editingAgeGroupName);
+      setEditingAgeGroup(null);
+      setEditingAgeGroupName('');
     }
   };
   
@@ -88,14 +120,7 @@ export function AppSettings() {
                         {settings.currency}{contrib.amount}
                       </span>
                       {contrib.tiers.map(tier => (
-                         <Badge key={tier} variant={
-                          tier.includes('Group 1') ? 'secondary' :
-                          tier.includes('Group 2') ? 'outline' : 'default'
-                        } className={`text-xs ${
-                          tier.includes('Group 1') ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200' :
-                          tier.includes('Group 2') ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200' :
-                          ''
-                        }`}>{tier}</Badge>
+                         <Badge key={tier} variant="outline" className="text-xs">{tier}</Badge>
                       ))}
                     </div>
                     {contrib.description && (
@@ -162,7 +187,78 @@ export function AppSettings() {
             <Button onClick={handleSaveCommunityName}>Save Changes</Button>
           </CardFooter>
         </Card>
+
+        <Card>
+          <CardHeader>
+             <CardTitle className="flex items-center gap-2">
+                <Users className="text-primary" />
+                Age Groups
+            </CardTitle>
+             <CardDescription>
+                Define the age groups for your community members.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              {/* This will be replaced with a map of dynamic age groups */}
+              <div className="flex items-center justify-between p-2 border rounded-md">
+                <span>Group 1 (18-24)</span>
+                <div className="flex items-center">
+                    <Button variant="ghost" size="icon" onClick={() => {}}><Edit className="h-4 w-4 text-primary" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => {}}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                </div>
+              </div>
+               <div className="flex items-center justify-between p-2 border rounded-md">
+                <span>Group 2 (25+)</span>
+                 <div className="flex items-center">
+                    <Button variant="ghost" size="icon" onClick={() => {}}><Edit className="h-4 w-4 text-primary" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => {}}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                </div>
+              </div>
+               <div className="flex items-center justify-between p-2 border rounded-md">
+                <span>Under 18</span>
+                 <div className="flex items-center">
+                    <Button variant="ghost" size="icon" onClick={() => {}}><Edit className="h-4 w-4 text-primary" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => {}}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                </div>
+              </div>
+            </div>
+             <div className="flex items-center gap-2 pt-2">
+                <Input 
+                    placeholder="New age group name..."
+                    value={newAgeGroup}
+                    onChange={(e) => setNewAgeGroup(e.target.value)}
+                />
+                <Button onClick={handleAddAgeGroup}>
+                    <Plus className="h-4 w-4" />
+                </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+       <AlertDialog open={!!editingAgeGroup} onOpenChange={() => setEditingAgeGroup(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Edit Age Group</AlertDialogTitle>
+            <AlertDialogDescription>
+              Enter the new name for this age group.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Input
+            value={editingAgeGroupName}
+            onChange={(e) => setEditingAgeGroupName(e.target.value)}
+            placeholder="Age group name"
+            className="my-2"
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setEditingAgeGroup(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleEditAgeGroup}>
+              Save
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
