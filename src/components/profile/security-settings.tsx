@@ -1,14 +1,14 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/lib/auth';
 import { auth, db, storage } from '@/lib/firebase';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, deleteUser } from 'firebase/auth';
-import { doc, deleteDoc, writeBatch, getDoc } from 'firebase/firestore';
+import { doc, deleteDoc, writeBatch, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { ref, deleteObject } from 'firebase/storage';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -28,7 +28,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useRouter } from 'next/navigation';
-import type { AppUser } from '@/lib/types';
+import type { AppUser, Member } from '@/lib/types';
 
 const passwordFormSchema = z.object({
   currentPassword: z.string().min(1, { message: "Current password is required." }),
@@ -42,17 +42,38 @@ const passwordFormSchema = z.object({
 type PasswordFormValues = z.infer<typeof passwordFormSchema>;
 
 export function SecuritySettings() {
-  const { user } = useAuth();
+  const { user, appUser } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
   const [isPasswordSubmitting, setIsPasswordSubmitting] = useState(false);
   const [isDeleteSubmitting, setIsDeleteSubmitting] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [canDeleteAccount, setCanDeleteAccount] = useState(false);
 
   const passwordForm = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordFormSchema),
     defaultValues: { currentPassword: '', newPassword: '', confirmPassword: '' },
   });
+
+  useEffect(() => {
+    const checkUserRole = async () => {
+      if (appUser && appUser.memberships && appUser.memberships.length > 0) {
+        for (const communityId of appUser.memberships) {
+           const memberDocRef = doc(db, 'communities', communityId, 'members', appUser.uid);
+           const memberDocSnap = await getDoc(memberDocRef);
+           if (memberDocSnap.exists()) {
+               const memberData = memberDocSnap.data() as Member;
+               if (memberData.role === 'admin' || memberData.role === 'owner') {
+                   setCanDeleteAccount(true);
+                   return; // Found a privileged role, no need to check further
+               }
+           }
+        }
+      }
+      setCanDeleteAccount(false); // No privileged role found
+    };
+    checkUserRole();
+  }, [appUser]);
 
   async function onPasswordSubmit(data: PasswordFormValues) {
     if (!user || !user.email) return;
@@ -84,8 +105,8 @@ export function SecuritySettings() {
       // 1. Get the list of memberships from the user's document
       const userDocRef = doc(db, 'users', user.uid);
       const userDocSnap = await getDoc(userDocRef);
-      const appUser = userDocSnap.data() as AppUser;
-      const communityIds = appUser?.memberships || [];
+      const appUserData = userDocSnap.data() as AppUser;
+      const communityIds = appUserData?.memberships || [];
 
       // 2. Prepare a batch to delete all associated membership documents and the main user doc
       const batch = writeBatch(db);
@@ -165,44 +186,46 @@ export function SecuritySettings() {
         </form>
       </Form>
 
-      <Card className="border-destructive">
-        <CardHeader>
-          <CardTitle className="text-destructive flex items-center gap-2"><AlertTriangle />Delete Account</CardTitle>
-          <CardDescription>Permanently delete your account and all of your content. This action is not reversible.</CardDescription>
-        </CardHeader>
-        <CardFooter>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive">Delete Account</Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete your account and remove your data from our servers. Please type <strong className="text-foreground">DELETE</strong> to confirm.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <Input
-                    value={deleteConfirmation}
-                    onChange={(e) => setDeleteConfirmation(e.target.value)}
-                    placeholder="Type DELETE to confirm"
-                    className="my-2"
-                />
-                <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => setDeleteConfirmation('')}>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleDeleteAccount}
-                    disabled={deleteConfirmation !== 'DELETE' || isDeleteSubmitting}
-                    className="bg-destructive hover:bg-destructive/90"
-                  >
-                    {isDeleteSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Delete my account
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-        </CardFooter>
-      </Card>
+      {canDeleteAccount && (
+        <Card className="border-destructive">
+            <CardHeader>
+            <CardTitle className="text-destructive flex items-center gap-2"><AlertTriangle />Delete Account</CardTitle>
+            <CardDescription>Permanently delete your account and all of your content. This action is not reversible.</CardDescription>
+            </CardHeader>
+            <CardFooter>
+                <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="destructive">Delete Account</Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete your account and remove your data from our servers. Please type <strong className="text-foreground">DELETE</strong> to confirm.
+                    </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <Input
+                        value={deleteConfirmation}
+                        onChange={(e) => setDeleteConfirmation(e.target.value)}
+                        placeholder="Type DELETE to confirm"
+                        className="my-2"
+                    />
+                    <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setDeleteConfirmation('')}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                        onClick={handleDeleteAccount}
+                        disabled={deleteConfirmation !== 'DELETE' || isDeleteSubmitting}
+                        className="bg-destructive hover:bg-destructive/90"
+                    >
+                        {isDeleteSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Delete my account
+                    </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+                </AlertDialog>
+            </CardFooter>
+        </Card>
+      )}
     </div>
   );
 }
