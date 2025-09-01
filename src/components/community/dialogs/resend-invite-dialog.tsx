@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import type { Member } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Check, Copy, PartyPopper, Loader2, Send } from 'lucide-react';
+import { Check, Copy, PartyPopper, Loader2, Send, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export function ResendInviteDialog() {
@@ -64,7 +64,7 @@ export function ResendInviteDialog() {
           <DialogHeader>
               <DialogTitle className="flex items-center gap-2"><PartyPopper className="text-primary"/>Invitation Link for {member.name}</DialogTitle>
               <DialogDescription>
-                  Copy the link to share it directly, or resend the invitation email.
+                  Copy the link to share it directly, or resend the invitation email to <strong className="text-foreground">{member.email}</strong>.
               </DialogDescription>
           </DialogHeader>
 
