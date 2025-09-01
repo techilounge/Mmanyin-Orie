@@ -6,10 +6,13 @@ import { Home, UserPlus, DollarSign, LogOut } from 'lucide-react';
 import Image from 'next/image';
 import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/auth';
 
 export function AppHeader({ setActiveTab }: { setActiveTab: (tab: string) => void; }) {
   const { openDialog } = useCommunity();
   const router = useRouter();
+  const { communityRole } = useAuth();
+  const isAdmin = communityRole === 'admin' || communityRole === 'owner';
 
   const handleSignOut = async () => {
     await auth.signOut();
@@ -27,23 +30,27 @@ export function AppHeader({ setActiveTab }: { setActiveTab: (tab: string) => voi
             </div>
           </div>
           <div className="flex gap-2 sm:gap-3 flex-shrink-0">
+            {isAdmin && (
+              <>
+                <Button
+                  onClick={() => openDialog({ type: 'add-family' })}
+                  className="bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-md hover:opacity-90 transition-opacity"
+                  size="sm"
+                >
+                  <Home className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Create Family</span>
+                </Button>
+                <Button
+                  onClick={() => openDialog({ type: 'invite-member' })}
+                  className="bg-gradient-to-r from-primary to-indigo-600 text-white shadow-md hover:opacity-90 transition-opacity"
+                  size="sm"
+                >
+                  <UserPlus className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Invite Member</span>
+                </Button>
+              </>
+            )}
             <Button
-              onClick={() => openDialog({ type: 'add-family' })}
-              className="bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-md hover:opacity-90 transition-opacity"
-              size="sm"
-            >
-              <Home className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Create Family</span>
-            </Button>
-            <Button
-              onClick={() => openDialog({ type: 'invite-member' })}
-              className="bg-gradient-to-r from-primary to-indigo-600 text-white shadow-md hover:opacity-90 transition-opacity"
-               size="sm"
-            >
-              <UserPlus className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Invite Member</span>
-            </Button>
-             <Button
               onClick={() => setActiveTab('payments')}
               className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-md hover:opacity-90 transition-opacity"
                size="sm"

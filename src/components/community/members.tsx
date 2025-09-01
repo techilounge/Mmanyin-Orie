@@ -23,6 +23,7 @@ import {
 import { Progress } from '../ui/progress';
 import type { Member } from '@/lib/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { useAuth } from '@/lib/auth';
 
 const roleIcons = {
   owner: <Crown size={14} className="text-amber-500" />,
@@ -38,6 +39,8 @@ const roleColors = {
 
 export function Members() {
   const { members, families, deleteMember, openDialog, settings, getPaidAmount, getBalance, resendInvitation } = useCommunity();
+  const { communityRole } = useAuth();
+  const isAdmin = communityRole === 'admin' || communityRole === 'owner';
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterFamily, setFilterFamily] = useState('all');
@@ -216,63 +219,65 @@ export function Members() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-1 justify-end">
-                           {status === 'invited' ? (
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => resendInvitation(m)}
-                                            aria-label="Resend Invite"
-                                        >
-                                            <Send size={16} className="text-primary" />
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>Resend Invitation</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-                           ) : (
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => openDialog({ type: 'edit-member', member: m })}
-                                            aria-label="Edit member"
-                                        >
-                                            <Edit size={16} className="text-primary" />
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>Edit Member</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-                           )}
-                           
-                            <TooltipProvider>
-                                <Tooltip>
-                                     <TooltipTrigger asChild>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => setMemberToDelete(m)}
-                                            aria-label="Delete member"
-                                        >
-                                            <Trash2 size={16} className="text-destructive" />
-                                        </Button>
-                                     </TooltipTrigger>
-                                     <TooltipContent>
-                                        <p>Delete Member</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-                        </div>
+                        {isAdmin && (
+                            <div className="flex gap-1 justify-end">
+                            {status === 'invited' ? (
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => resendInvitation(m)}
+                                                aria-label="Resend Invite"
+                                            >
+                                                <Send size={16} className="text-primary" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Resend Invitation</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            ) : (
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => openDialog({ type: 'edit-member', member: m })}
+                                                aria-label="Edit member"
+                                            >
+                                                <Edit size={16} className="text-primary" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Edit Member</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            )}
+                            
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => setMemberToDelete(m)}
+                                                aria-label="Delete member"
+                                            >
+                                                <Trash2 size={16} className="text-destructive" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Delete Member</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </div>
+                        )}
                       </TableCell>
                     </TableRow>
                   );

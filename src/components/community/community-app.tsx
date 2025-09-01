@@ -32,14 +32,15 @@ import AppShellLite from '../layout/AppShellLite';
 import { defaultNav } from '@/config/nav';
 import { Reports } from './reports';
 import { AddMemberToFamilyDialog } from './dialogs/add-member-to-family-dialog';
+import { useAuth } from '@/lib/auth';
 
-const TABS = [
+const TABS_ALL = [
   { id: 'dashboard', label: 'Dashboard', icon: BarChart2 },
   { id: 'members', label: 'Members', icon: Users },
   { id: 'families', label: 'Families', icon: Home },
   { id: 'payments', label: 'Payments', icon: DollarSign },
   { id: 'reports', label: 'Reports', icon: FileText },
-  { id: 'settings', label: 'Settings', icon: Settings },
+  { id: 'settings', label: 'Settings', icon: Settings, admin: true },
 ];
 
 interface CommunityAppProps {
@@ -50,6 +51,10 @@ interface CommunityAppProps {
 export function CommunityApp({ activeTab, setActiveTab }: CommunityAppProps) {
   const pathname = usePathname();
   const { isLoading, dialogState, communityName } = useCommunity();
+  const { communityRole } = useAuth();
+  const isAdmin = communityRole === 'admin' || communityRole === 'owner';
+
+  const TABS = TABS_ALL.filter(tab => !tab.admin || isAdmin);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -64,7 +69,7 @@ export function CommunityApp({ activeTab, setActiveTab }: CommunityAppProps) {
       case 'reports':
         return <Reports />;
       case 'settings':
-        return <AppSettings />;
+        return isAdmin ? <AppSettings /> : null;
       default:
         return null;
     }
@@ -99,7 +104,7 @@ export function CommunityApp({ activeTab, setActiveTab }: CommunityAppProps) {
   const inactiveNavItemClasses = "border-transparent text-muted-foreground hover:text-foreground";
 
   return (
-    <AppShellLite header={<AppHeader setActiveTab={setActiveTab} />} nav={defaultNav} activeTab={activeTab} onTabChange={setActiveTab}>
+    <AppShellLite header={<AppHeader setActiveTab={setActiveTab} />} nav={TABS} activeTab={activeTab} onTabChange={setActiveTab}>
       <div className="text-center py-4">
         <h2 className="text-2xl font-bold tracking-tight text-foreground">{communityName}</h2>
       </div>

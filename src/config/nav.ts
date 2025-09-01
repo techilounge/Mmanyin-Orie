@@ -1,5 +1,5 @@
 
-export type NavItem = { id: string; label: string };
+export type NavItem = { id: string; label: string; admin?: boolean };
 
 export const defaultNav: NavItem[] = [
   { id: "dashboard", label: "Dashboard" },
@@ -7,5 +7,5 @@ export const defaultNav: NavItem[] = [
   { id: "families", label: "Families" },
   { id: "payments", label: "Payments" },
   { id: "reports", label: "Reports" },
-  { id: "settings", label: "Settings" },
+  { id: "settings", label: "Settings", admin: true },
 ];

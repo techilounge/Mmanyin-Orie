@@ -3,12 +3,11 @@
 import * as React from "react";
 import { usePathname } from "next/navigation";
 import type { NavItem } from "@/config/nav";
-import { Home, Users, Settings, DollarSign, FileText } from 'lucide-react';
-import Link from "next/link";
+import { Home, Users, Settings, DollarSign, FileText, BarChart2 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-    Dashboard: Home,
+    Dashboard: BarChart2,
     Members: Users,
     Families: Home,
     Payments: DollarSign,
@@ -30,6 +29,8 @@ export default function MobileTabs({ nav = [], hiddenOn = [], activeTab, onTabCh
   // Hide on specific routes (auth, subscribe, onboarding, etc.)
   if (hiddenOn.some((p) => pathname.startsWith(p))) return null;
 
+  const visibleNav = nav.slice(0, 5);
+
   // Only show on small screens
   return (
     <div
@@ -42,8 +43,8 @@ export default function MobileTabs({ nav = [], hiddenOn = [], activeTab, onTabCh
       role="navigation"
       aria-label="Bottom Navigation"
     >
-      <ul className="grid grid-cols-5">
-        {(nav.length ? nav : []).slice(0, 5).map((item) => {
+      <ul className={`grid grid-cols-${visibleNav.length}`}>
+        {visibleNav.map((item) => {
           const isActive = activeTab === item.id;
           const Icon = ICONS[item.label];
           return (

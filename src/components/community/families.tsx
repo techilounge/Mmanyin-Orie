@@ -19,6 +19,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Input } from '../ui/input';
+import { useAuth } from '@/lib/auth';
 
 interface FamilyStatProps {
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
@@ -43,6 +44,9 @@ const FamilyStat: React.FC<FamilyStatProps> = ({ icon: Icon, label, value, color
 
 export function Families() {
   const { families, members, deleteFamily, openDialog, settings, getPaidAmount } = useCommunity();
+  const { communityRole } = useAuth();
+  const isAdmin = communityRole === 'admin' || communityRole === 'owner';
+
   const [familyToDelete, setFamilyToDelete] = useState<Family | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
 
@@ -60,16 +64,18 @@ export function Families() {
         <Home className="mx-auto h-16 w-16 text-muted-foreground/50" />
         <h3 className="mt-4 text-xl font-semibold text-foreground">No Families Found</h3>
         <p className="mt-2 text-base text-muted-foreground">Get started by creating your first family to manage members and contributions.</p>
-        <div className="mt-6">
-          <Button
-            onClick={() => openDialog({ type: 'add-family' })}
-            size="lg"
-            className="bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-md hover:opacity-90 transition-opacity"
-          >
-            <Plus className="mr-2 h-5 w-5" />
-            Create First Family
-          </Button>
-        </div>
+        {isAdmin && (
+            <div className="mt-6">
+            <Button
+                onClick={() => openDialog({ type: 'add-family' })}
+                size="lg"
+                className="bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-md hover:opacity-90 transition-opacity"
+            >
+                <Plus className="mr-2 h-5 w-5" />
+                Create First Family
+            </Button>
+            </div>
+        )}
       </div>
     );
   }
@@ -95,12 +101,16 @@ export function Families() {
                             <CardDescription>Manage family members and track contributions.</CardDescription>
                         </div>
                         <div className='flex items-center'>
-                            <Button variant="ghost" size="icon" onClick={() => openDialog({ type: 'edit-family', family })} aria-label="Edit Family">
-                              <Edit className="h-4 w-4 text-primary" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => setFamilyToDelete(family)} aria-label="Delete Family">
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+                            {isAdmin && (
+                                <>
+                                <Button variant="ghost" size="icon" onClick={() => openDialog({ type: 'edit-family', family })} aria-label="Edit Family">
+                                <Edit className="h-4 w-4 text-primary" />
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => setFamilyToDelete(family)} aria-label="Delete Family">
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                                </>
+                            )}
                              <CollapsibleTrigger asChild>
                                 <Button variant="ghost" size="icon">
                                   <ChevronDown className="h-5 w-5 transition-transform duration-200 data-[state=open]:rotate-180" />
@@ -145,9 +155,11 @@ export function Families() {
                               </div>
                               <div className="flex items-center gap-2">
                                   <Badge variant="default" className="text-xs bg-primary/80">Father</Badge>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDialog({ type: 'edit-member', member: patriarch })} aria-label={`Edit ${patriarch.name}`}>
-                                      <Edit className="h-4 w-4 text-primary" />
-                                  </Button>
+                                   {isAdmin && (
+                                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDialog({ type: 'edit-member', member: patriarch })} aria-label={`Edit ${patriarch.name}`}>
+                                          <Edit className="h-4 w-4 text-primary" />
+                                      </Button>
+                                   )}
                               </div>
                           </div>
                       )}
@@ -165,9 +177,11 @@ export function Families() {
                                   tier.includes('Group 2') ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200' :
                                   ''
                               }`}>{tier}</Badge>
-                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDialog({ type: 'edit-member', member })} aria-label={`Edit ${member.name}`}>
-                                  <Edit className="h-4 w-4 text-primary" />
-                              </Button>
+                               {isAdmin && (
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDialog({ type: 'edit-member', member })} aria-label={`Edit ${member.name}`}>
+                                      <Edit className="h-4 w-4 text-primary" />
+                                  </Button>
+                               )}
                           </div>
                         </div>
                       )}) : (
@@ -185,14 +199,16 @@ export function Families() {
                       )}
                     </div>
                   </CardContent>
-                  <CardFooter className="mt-auto border-t pt-4 flex flex-col sm:flex-row gap-2">
-                    <Button onClick={() => openDialog({ type: 'add-member-to-family', family: family.name })} className="w-full">
-                      <UserPlus className="mr-2 h-4 w-4" /> Add Member
-                    </Button>
-                     <Button onClick={() => openDialog({ type: 'invite-member', family: family.name })} variant="outline" className="w-full">
-                      <Mail className="mr-2 h-4 w-4" /> Invite Member
-                    </Button>
-                  </CardFooter>
+                  {isAdmin && (
+                    <CardFooter className="mt-auto border-t pt-4 flex flex-col sm:flex-row gap-2">
+                        <Button onClick={() => openDialog({ type: 'add-member-to-family', family: family.name })} className="w-full">
+                        <UserPlus className="mr-2 h-4 w-4" /> Add Member
+                        </Button>
+                        <Button onClick={() => openDialog({ type: 'invite-member', family: family.name })} variant="outline" className="w-full">
+                        <Mail className="mr-2 h-4 w-4" /> Invite Member
+                        </Button>
+                    </CardFooter>
+                  )}
                 </CollapsibleContent>
               </Card>
             </Collapsible>
