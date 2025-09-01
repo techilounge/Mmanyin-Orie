@@ -34,23 +34,28 @@ export default function AcceptInvitePage() {
   useEffect(() => {
     const fetchInvite = async () => {
       if (!token) {
-        setError("No invitation token provided.");
+        setError("No invitation token provided. Please use the link from your email.");
         setIsProcessingInvite(false);
         return;
       }
       try {
         const inviteRef = doc(db, 'invitations', token);
         const inviteSnap = await getDoc(inviteRef);
-        if (inviteSnap.exists() && inviteSnap.data().status === 'pending') {
+        if (inviteSnap.exists()) {
           const inviteData = inviteSnap.data() as Invitation;
-          setInvitation(inviteData);
-          setEmail(inviteData.email);
-          setDisplayName(`${inviteData.firstName} ${inviteData.lastName}`);
+           if (inviteData.status !== 'pending') {
+             setError("This invitation has already been used or has expired.");
+           } else {
+            setInvitation(inviteData);
+            setEmail(inviteData.email);
+            setDisplayName(`${inviteData.firstName} ${inviteData.lastName}`);
+           }
         } else {
-          setError("This invitation is invalid or has already been used.");
+          setError("This invitation is invalid or could not be found.");
         }
       } catch (e) {
-        setError("Failed to retrieve invitation details.");
+        console.error("Error fetching invitation: ", e);
+        setError("Failed to retrieve invitation details. This could be due to a network issue or invalid security rules.");
       } finally {
         setIsProcessingInvite(false);
       }
@@ -67,12 +72,9 @@ export default function AcceptInvitePage() {
         // 1. Update the member document with the new UID and set status to active
         const memberRef = doc(db, 'communities', invitation.communityId, 'members', invitation.memberId);
         
-        // Pass inviteId and inviteCode to satisfy security rules
         const memberUpdatePayload = { 
           uid: user.uid, 
-          status: 'active',
-          inviteId: token, // This is the invitation document ID
-          inviteCode: invitation.code // This is the secret code from the invitation
+          status: 'active' as const,
         };
 
         batch.update(memberRef, memberUpdatePayload);
@@ -85,20 +87,23 @@ export default function AcceptInvitePage() {
         const userDocRef = doc(db, 'users', user.uid);
         const userSnap = await getDoc(userDocRef);
 
-        if (userSnap.exists()) {
-             batch.update(userDocRef, {
-                primaryCommunityId: invitation.communityId,
-                memberships: [...(userSnap.data().memberships || []), invitation.communityId]
-             });
-        } else {
-            // Because batch writes can't read, we have to do this outside the batch.
-            // This is acceptable because ensureUserDocument is idempotent.
-            await ensureUserDocument(user, {
-                primaryCommunityId: invitation.communityId,
-                memberships: [invitation.communityId]
-            });
-        }
+        const primaryCommunityId = invitation.communityId;
+        const memberships = userSnap.exists() ? [...(userSnap.data().memberships || []), invitation.communityId] : [invitation.communityId];
 
+        const userData = {
+            primaryCommunityId,
+            memberships,
+            displayName: user.displayName,
+            email: user.email,
+            photoURL: user.photoURL,
+        };
+        
+        if (userSnap.exists()) {
+             batch.update(userDocRef, userData);
+        } else {
+            batch.set(userDocRef, { ...userData, createdAt: new Date().toISOString() });
+        }
+        
         await batch.commit();
         router.push(`/app/${invitation.communityId}`);
 
@@ -133,10 +138,12 @@ export default function AcceptInvitePage() {
         const cred = await signInWithGoogle();
         if (cred?.user) {
             await processAcceptedInvite(cred.user);
+        } else {
+            // This handles the case where the user closes the popup
+            setIsGoogleLoading(false);
         }
     } catch (err: any) {
         toast({ variant: 'destructive', title: 'Google Sign-In failed', description: err?.message ?? 'Please try again.' });
-    } finally {
         setIsGoogleLoading(false);
     }
   };
