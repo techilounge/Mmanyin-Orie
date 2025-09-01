@@ -121,27 +121,49 @@ export function SecuritySettings() {
   }
   
   async function onEmailSubmit(data: EmailFormValues) {
-    if (!user || !user.email) return;
+    if (!user || !user.email || !appUser?.memberships) return;
 
     setIsEmailSubmitting(true);
     try {
+        // 1. Check if the new email already exists in any of the user's communities
+        for (const communityId of appUser.memberships) {
+            const membersRef = collection(db, 'communities', communityId, 'members');
+            const q = query(membersRef, where("email", "==", data.newEmail));
+            const querySnapshot = await getDocs(q);
+
+            if (!querySnapshot.empty) {
+                // Check if the found member is the current user. If not, it's a duplicate.
+                const isDuplicate = querySnapshot.docs.some(doc => doc.id !== user.uid);
+                if (isDuplicate) {
+                    toast({
+                        variant: 'destructive',
+                        title: 'Email Already in Use',
+                        description: `The email ${data.newEmail} is already registered to another member in one of your communities.`,
+                    });
+                    setIsEmailSubmitting(false);
+                    return;
+                }
+            }
+        }
+
+        // 2. Re-authenticate the user
         const credential = EmailAuthProvider.credential(user.email, data.currentPassword);
         await reauthenticateWithCredential(user, credential);
         
+        // 3. Update the email in Firebase Auth
         await updateEmail(user, data.newEmail);
         
+        // 4. Update email in the user's document
         const userDocRef = doc(db, 'users', user.uid);
         await updateDoc(userDocRef, { email: data.newEmail });
         
-        // Also update the email in all member documents
-        if (appUser?.memberships) {
-            const batch = writeBatch(db);
-            appUser.memberships.forEach(communityId => {
-                const memberDocRef = doc(db, 'communities', communityId, 'members', user.uid);
-                batch.update(memberDocRef, { email: data.newEmail });
-            });
-            await batch.commit();
-        }
+        // 5. Also update the email in all member documents
+        const batch = writeBatch(db);
+        appUser.memberships.forEach(communityId => {
+            const memberDocRef = doc(db, 'communities', communityId, 'members', user.uid);
+            batch.update(memberDocRef, { email: data.newEmail });
+        });
+        await batch.commit();
 
         toast({ title: 'Email Updated', description: 'Your email has been changed successfully.' });
         emailForm.reset({ newEmail: '', currentPassword: '' });
@@ -152,6 +174,8 @@ export function SecuritySettings() {
             title: 'Error',
             description: error.code === 'auth/wrong-password' 
                 ? 'The password you entered is incorrect.' 
+                : error.code === 'auth/email-already-in-use'
+                ? 'This email address is already in use by another account.'
                 : 'Failed to update email. Please try again.',
         });
     } finally {
