@@ -37,7 +37,7 @@ const roleColors = {
 };
 
 export function Members() {
-  const { members, families, deleteMember, openDialog, settings, getPaidAmount, getBalance } = useCommunity();
+  const { members, families, deleteMember, openDialog, settings, getPaidAmount, getBalance, resendInvitation } = useCommunity();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterFamily, setFilterFamily] = useState('all');
@@ -224,7 +224,7 @@ export function Members() {
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            onClick={() => openDialog({ type: 'resend-invite', member: m })}
+                                            onClick={() => resendInvitation(m)}
                                             aria-label="Resend Invite"
                                         >
                                             <Send size={16} className="text-primary" />

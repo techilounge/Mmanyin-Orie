@@ -37,6 +37,7 @@ interface CommunityContextType {
   addMember: (newMemberData: NewMemberData) => Promise<void>;
   inviteMember: (newMemberData: NewMemberData, newFamilyName?: string) => Promise<boolean>;
   getInviteLink: (memberId: string) => Promise<string | null>;
+  resendInvitation: (member: Member) => Promise<void>;
   updateMember: (updatedMemberData: Member) => Promise<void>;
   deleteMember: (id: string) => Promise<void>;
   
@@ -517,7 +518,31 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         toast({ variant: "destructive", title: "Error inviting member", description: error.message });
         return false;
     }
-};
+  };
+
+  const resendInvitation = async (member: Member) => {
+    if (!user || !member.email) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Member does not have an email to send an invitation to.' });
+      return;
+    }
+    try {
+      const inviteLink = await getInviteLink(member.id);
+      if (!inviteLink) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not retrieve a valid invitation link. The member may have already joined.' });
+        return;
+      }
+      
+      await sendInvitationEmail({
+        to: member.email,
+        communityName: communityName,
+        inviteLink: inviteLink,
+        inviterName: user.displayName || 'The community admin',
+      });
+      toast({ title: 'Invitation Resent', description: `An invitation email has been sent to ${member.name}.` });
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Failed to Resend', description: error.message });
+    }
+  };
 
   const updateMember = async (updatedData: Member) => {
     if (!activeCommunityId) return;
@@ -768,6 +793,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     addMember,
     inviteMember,
     getInviteLink,
+    resendInvitation,
     updateMember,
     deleteMember,
     addFamily,
@@ -793,7 +819,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     getBalanceForContribution,
   }), [
     members, families, settings, customContributions, isLoading, activeCommunityId, communityName, dialogState, 
-    getTier, getContribution, calculateAge, addFamily, addMember, inviteMember, getInviteLink, updateMember, deleteMember, updateFamily, deleteFamily, updateSettings, updateCommunityName, recalculateTiers, addCustomContribution, updateCustomContribution, deleteCustomContribution, recordPayment, updatePayment, deletePayment, openDialog, closeDialog, getPaidAmount, getBalance, getPaidAmountForContribution, getBalanceForContribution
+    getTier, getContribution, calculateAge, addFamily, addMember, inviteMember, getInviteLink, resendInvitation, updateMember, deleteMember, updateFamily, deleteFamily, updateSettings, updateCommunityName, recalculateTiers, addCustomContribution, updateCustomContribution, deleteCustomContribution, recordPayment, updatePayment, deletePayment, openDialog, closeDialog, getPaidAmount, getBalance, getPaidAmountForContribution, getBalanceForContribution
   ]);
 
   return (

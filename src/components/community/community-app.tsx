@@ -26,7 +26,6 @@ import { Payments } from './payments';
 import { EditCustomContributionDialog } from './dialogs/edit-custom-contribution-dialog';
 import { EditPaymentDialog } from './dialogs/edit-payment-dialog';
 import { EditFamilyDialog } from './dialogs/edit-family-dialog';
-import { ResendInviteDialog } from './dialogs/resend-invite-dialog';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import AppShellLite from '../layout/AppShellLite';
@@ -138,7 +137,6 @@ export function CommunityApp({ activeTab, setActiveTab }: CommunityAppProps) {
         {dialogState?.type === 'invite-member' && <InviteMemberDialog />}
         {dialogState?.type === 'add-member-to-family' && <AddMemberToFamilyDialog family={dialogState.family} />}
         {dialogState?.type === 'edit-member' && <EditMemberDialog member={dialogState.member} />}
-        {dialogState?.type === 'resend-invite' && <ResendInviteDialog member={dialogState.member} />}
         {dialogState?.type === 'record-payment' && <RecordPaymentDialog member={dialogState.member} contribution={dialogState.contribution} month={dialogState.month} />}
         {dialogState?.type === 'edit-payment' && <EditPaymentDialog member={dialogState.member} contribution={dialogState.contribution} payment={dialogState.payment} />}
         {dialogState?.type === 'add-custom-contribution' && <AddCustomContributionDialog />}
