@@ -41,12 +41,11 @@ interface CommunityContextType {
   updateMember: (updatedMemberData: Member) => Promise<void>;
   deleteMember: (id: string) => Promise<void>;
   
-  addFamily: (patriarchFirstName: string, patriarchLastName: string, patriarchYearOfBirth: number) => Promise<boolean>;
+  addFamily: (patriarchFirstName: string, patriarchLastName: string, patriarchTier: string) => Promise<boolean>;
   updateFamily: (family: Family, newFamilyName: string) => Promise<void>;
   deleteFamily: (family: Family) => Promise<void>;
   
   updateSettings: (newSettings: Partial<Settings>) => Promise<void>;
-  recalculateTiers: () => Promise<void>;
   
   addCustomContribution: (contributionData: NewCustomContributionData) => Promise<void>;
   updateCustomContribution: (updatedContribution: CustomContribution) => Promise<void>;
@@ -61,8 +60,6 @@ interface CommunityContextType {
   closeDialog: () => void;
 
   getContribution: (member: Omit<Member, 'id' | 'contribution'>, currentCustomContributions: CustomContribution[]) => number;
-  getTier: (age: number) => string;
-  calculateAge: (yearOfBirth: number) => number;
   getPaidAmount: (member: Member) => number;
   getBalance: (member: Member) => number;
   getPaidAmountForContribution: (member: Member, contributionId: string, month?: number) => number;
@@ -167,15 +164,6 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
 
   }, [activeCommunityId, user]); // Adding `user` to the dependency array is the fix.
 
-
-  const calculateAge = useCallback((yearOfBirth: number) => new Date().getFullYear() - yearOfBirth, []);
-
-  const getTier = useCallback((age: number) => {
-    if (age < settings.tier1Age) return 'Under 18';
-    if (age >= settings.tier1Age && age < settings.tier2Age) return `Group 1 (${settings.tier1Age}-${settings.tier2Age - 1})`;
-    return `Group 2 (${settings.tier2Age}+)`;
-  }, [settings.tier1Age, settings.tier2Age]);
-
  const getContribution = useCallback((member: Omit<Member, 'id' | 'contribution'>, currentCustomContributions: CustomContribution[]) => {
     const applicableContributions = currentCustomContributions.filter(c => c.tiers.includes(member.tier || ''));
     
@@ -227,7 +215,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     return totalOwedForOneTime - paid;
   }
   
-  const addFamily = async (patriarchFirstName: string, patriarchLastName: string, patriarchYearOfBirth: number): Promise<boolean> => {
+  const addFamily = async (patriarchFirstName: string, patriarchLastName: string, patriarchTier: string): Promise<boolean> => {
     if (!activeCommunityId) {
         toast({ variant: 'destructive', title: 'Error', description: 'No community selected.' });
         return false;
@@ -236,7 +224,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     const trimmedLastName = patriarchLastName.trim();
     const familyName = `${trimmedFirstName} ${trimmedLastName}`;
 
-    if (!trimmedFirstName || !trimmedLastName || !patriarchYearOfBirth) {
+    if (!trimmedFirstName || !trimmedLastName || !patriarchTier) {
         toast({ variant: 'destructive', title: 'Error', description: 'All fields are required.' });
         return false;
     }
@@ -255,8 +243,6 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         batch.set(familyDocRef, { name: familyName });
 
         // 2. Create the patriarch member document
-        const age = calculateAge(patriarchYearOfBirth);
-        const tier = getTier(age);
         const joinDate = new Date().toISOString();
 
         const patriarchMemberBase = {
@@ -264,15 +250,13 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
             firstName: trimmedFirstName,
             middleName: '',
             lastName: trimmedLastName,
-            yearOfBirth: patriarchYearOfBirth,
             family: familyName,
             gender: 'male' as const,
             isPatriarch: true,
             email: '',
             phone: '',
             phoneCountryCode: '',
-            age,
-            tier,
+            tier: patriarchTier,
             payments: [],
             joinDate: joinDate,
             role: 'user' as const,
@@ -381,8 +365,6 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     if (!activeCommunityId) return;
 
     try {
-        const age = calculateAge(data.yearOfBirth);
-        const tier = getTier(age);
         const fullName = [data.firstName, data.middleName, data.lastName]
             .filter(part => part && part.trim())
             .join(' ');
@@ -394,14 +376,12 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
             firstName: data.firstName,
             middleName: data.middleName || '',
             lastName: data.lastName,
-            yearOfBirth: data.yearOfBirth,
             family: data.family,
             email: data.email || '',
             phone: data.phone || '',
             phoneCountryCode: data.phoneCountryCode || '',
             gender: data.gender,
-            age,
-            tier,
+            tier: data.tier,
             payments: [],
             joinDate: joinDate,
             role: 'user' as const,
@@ -441,9 +421,6 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
             batch.set(familyDocRef, { name: familyToUse });
         }
 
-
-        const age = calculateAge(data.yearOfBirth);
-        const tier = getTier(age);
         const fullName = [data.firstName, data.middleName, data.lastName]
             .filter(part => part && part.trim())
             .join(' ');
@@ -458,14 +435,12 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
             firstName: data.firstName,
             middleName: data.middleName || '',
             lastName: data.lastName,
-            yearOfBirth: data.yearOfBirth,
             family: familyToUse,
             email: data.email,
             phone: data.phone || '',
             phoneCountryCode: data.phoneCountryCode || '',
             gender: data.gender,
-            age,
-            tier,
+            tier: data.tier,
             payments: [],
             joinDate: joinDate,
             role: 'user' as const,
@@ -547,8 +522,6 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
   const updateMember = async (updatedData: Member) => {
     if (!activeCommunityId) return;
     try {
-      const age = calculateAge(updatedData.yearOfBirth);
-      const tier = getTier(age);
       const fullName = [updatedData.firstName, updatedData.middleName, updatedData.lastName]
         .filter(part => part && part.trim())
         .join(' ');
@@ -556,8 +529,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
       const tempMemberForCalc = {
         ...updatedData,
         name: fullName,
-        age,
-        tier,
+        tier: updatedData.tier,
         joinDate: updatedData.joinDate,
         payments: updatedData.payments || [],
         email: updatedData.email || '',
@@ -572,8 +544,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
       const memberToUpdate = {
           ...updatedData,
           name: fullName,
-          age,
-          tier,
+          tier: updatedData.tier,
           contribution: newContribution
       };
 
@@ -725,31 +696,11 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     }
   };
 
-  const recalculateTiers = async () => {
-    if (!activeCommunityId) return;
-    try {
-        const batch = writeBatch(db);
-        members.forEach(member => {
-            const tier = getTier(member.age);
-            const contribution = getContribution({ ...member, tier }, customContributions);
-            if (member.tier !== tier || member.contribution !== contribution) {
-                const memberDocRef = doc(db, `communities/${activeCommunityId}/members`, member.id);
-                batch.update(memberDocRef, { tier, contribution });
-            }
-        });
-        await batch.commit();
-        toast({ title: "Groups Updated", description: "All member groups and default contributions have been recalculated." });
-    } catch (error: any) {
-        toast({ variant: "destructive", title: "Error recalculating tiers", description: error.message });
-    }
-  };
-
   const addCustomContribution = async (data: NewCustomContributionData) => {
     if (!activeCommunityId) return;
     try {
         await addDoc(collection(db, `communities/${activeCommunityId}/contributions`), data);
         toast({ title: "Template Added", description: `"${data.name}" has been added.` });
-        await recalculateTiers();
     } catch (error: any) {
         toast({ variant: "destructive", title: "Error adding template", description: error.message });
     }
@@ -763,7 +714,6 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         await updateDoc(contribDocRef, dataToUpdate);
         toast({ title: "Template Updated", description: `"${updatedContribution.name}" has been updated.` });
         closeDialog();
-        await recalculateTiers();
     } catch (error: any) {
         toast({ variant: "destructive", title: "Error updating template", description: error.message });
     }
@@ -775,7 +725,6 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         const contribName = customContributions.find(c => c.id === id)?.name || 'Template';
         await deleteDoc(doc(db, `communities/${activeCommunityId}/contributions`, id));
         toast({ title: "Template Deleted", description: `"${contribName}" has been removed.` });
-        await recalculateTiers();
     } catch (error: any) {
         toast({ variant: "destructive", title: "Error deleting template", description: error.message });
     }
@@ -800,7 +749,6 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     updateFamily,
     deleteFamily,
     updateSettings,
-    recalculateTiers,
     addCustomContribution,
     updateCustomContribution,
     deleteCustomContribution,
@@ -811,15 +759,13 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     openDialog,
     closeDialog,
     getContribution,
-    getTier,
-    calculateAge,
     getPaidAmount,
     getBalance,
     getPaidAmountForContribution,
     getBalanceForContribution,
   }), [
     members, families, settings, customContributions, isLoading, activeCommunityId, communityName, dialogState, 
-    getTier, getContribution, calculateAge, addFamily, addMember, inviteMember, getInviteLink, resendInvitation, updateMember, deleteMember, updateFamily, deleteFamily, updateSettings, updateCommunityName, recalculateTiers, addCustomContribution, updateCustomContribution, deleteCustomContribution, recordPayment, updatePayment, deletePayment, openDialog, closeDialog, getPaidAmount, getBalance, getPaidAmountForContribution, getBalanceForContribution
+    getContribution, addFamily, addMember, inviteMember, getInviteLink, resendInvitation, updateMember, deleteMember, updateFamily, deleteFamily, updateSettings, updateCommunityName, addCustomContribution, updateCustomContribution, deleteCustomContribution, recordPayment, updatePayment, deletePayment, openDialog, closeDialog, getPaidAmount, getBalance, getPaidAmountForContribution, getBalanceForContribution
   ]);
 
   return (
