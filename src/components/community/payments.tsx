@@ -12,10 +12,13 @@ import { Progress } from '../ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 import { format, getMonth, getYear } from 'date-fns';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
+import { useAuth } from '@/lib/auth';
 
 
 export function Payments() {
   const { members, settings, getPaidAmount, getBalance, openDialog, customContributions, getPaidAmountForContribution, getBalanceForContribution, deletePayment } = useCommunity();
+  const { communityRole } = useAuth();
+  const isAdmin = communityRole === 'admin' || communityRole === 'owner';
   const [selectedMemberId, setSelectedMemberId] = useState<string>('');
   const [paymentToDelete, setPaymentToDelete] = useState<{memberId: string, paymentId: string} | null>(null);
 
@@ -59,11 +62,13 @@ export function Payments() {
                                 Due: {settings.currency}{contribution.amount} | Paid: {settings.currency}{paid} | Balance: {settings.currency}{balance.toFixed(2)}
                             </p>
                         </div>
-                        <div className="flex items-center gap-1 self-end sm:self-center">
-                            <Button size="sm" variant="outline" onClick={() => openDialog({ type: 'record-payment', member, contribution, month })} disabled={balance <= 0}>
-                                Pay
-                            </Button>
-                        </div>
+                        {isAdmin && (
+                          <div className="flex items-center gap-1 self-end sm:self-center">
+                              <Button size="sm" variant="outline" onClick={() => openDialog({ type: 'record-payment', member, contribution, month })} disabled={balance <= 0}>
+                                  Pay
+                              </Button>
+                          </div>
+                        )}
                     </div>
                 )
             })}
@@ -108,7 +113,7 @@ export function Payments() {
                       <TableHead className="text-right hidden sm:table-cell">Amount</TableHead>
                       <TableHead className="text-right hidden sm:table-cell">Paid</TableHead>
                       <TableHead className="text-right">Balance</TableHead>
-                      <TableHead className="text-center w-32 sm:w-40">Actions</TableHead>
+                      {isAdmin && <TableHead className="text-center w-32 sm:w-40">Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
                 
@@ -161,22 +166,24 @@ export function Payments() {
                               <TableCell className="text-right hidden sm:table-cell">{settings.currency}{amount.toLocaleString()}</TableCell>
                               <TableCell className="text-right hidden sm:table-cell text-green-600 dark:text-green-400">{settings.currency}{paid.toLocaleString()}</TableCell>
                               <TableCell className="text-right font-medium">{settings.currency}{balance.toLocaleString()}</TableCell>
-                              <TableCell className="text-center">
-                                {!isMonthly && (
-                                  <Button 
-                                      onClick={() => openDialog({type: 'record-payment', member, contribution: contrib})}
-                                      disabled={balance <= 0}
-                                      size="sm"
-                                      variant="outline"
-                                  >
-                                      Record
-                                  </Button>
-                                )}
-                              </TableCell>
+                              {isAdmin && 
+                                <TableCell className="text-center">
+                                  {!isMonthly && (
+                                    <Button 
+                                        onClick={() => openDialog({type: 'record-payment', member, contribution: contrib})}
+                                        disabled={balance <= 0}
+                                        size="sm"
+                                        variant="outline"
+                                    >
+                                        Record
+                                    </Button>
+                                  )}
+                                </TableCell>
+                              }
                           </TableRow>
                           <CollapsibleContent asChild>
                               <TableRow>
-                              <TableCell colSpan={6} className="p-0">
+                              <TableCell colSpan={isAdmin ? 6 : 5} className="p-0">
                                   <div className="p-4 bg-muted/50">
                                   <h4 className="font-semibold mb-2 text-sm">Payment History for {contrib.name}</h4>
                                   {isMonthly ? renderMonthlyBreakdown(member, contrib) : 
@@ -187,14 +194,16 @@ export function Payments() {
                                           <div className="text-sm">
                                               <span className="font-medium">{settings.currency}{payment.amount.toLocaleString()}</span> on <span>{format(new Date(payment.date), "PPP")}</span>
                                           </div>
-                                          <div className="flex items-center gap-1 self-end sm:self-center">
-                                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDialog({ type: 'edit-payment', member, contribution: contrib, payment })}>
-                                              <Edit className="h-4 w-4" />
-                                              </Button>
-                                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setPaymentToDelete({memberId: member.id, paymentId: payment.id})}>
-                                              <Trash2 className="h-4 w-4" />
-                                              </Button>
-                                          </div>
+                                          {isAdmin && 
+                                            <div className="flex items-center gap-1 self-end sm:self-center">
+                                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDialog({ type: 'edit-payment', member, contribution: contrib, payment })}>
+                                                <Edit className="h-4 w-4" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setPaymentToDelete({memberId: member.id, paymentId: payment.id})}>
+                                                <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                          }
                                           </div>
                                       ))}
                                       </div>
@@ -211,7 +220,7 @@ export function Payments() {
                 }) : (
                   <TableBody>
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={isAdmin ? 6 : 5} className="text-center text-muted-foreground py-8">
                           No contributions assigned to this member's age group.
                       </TableCell>
                     </TableRow>

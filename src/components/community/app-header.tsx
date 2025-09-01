@@ -48,16 +48,16 @@ export function AppHeader({ setActiveTab }: { setActiveTab: (tab: string) => voi
                   <UserPlus className="h-4 w-4 sm:mr-2" />
                   <span className="hidden sm:inline">Invite Member</span>
                 </Button>
+                <Button
+                  onClick={() => setActiveTab('payments')}
+                  className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-md hover:opacity-90 transition-opacity"
+                  size="sm"
+                >
+                  <DollarSign className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Record Payment</span>
+                </Button>
               </>
             )}
-            <Button
-              onClick={() => setActiveTab('payments')}
-              className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-md hover:opacity-90 transition-opacity"
-               size="sm"
-            >
-              <DollarSign className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Record Payment</span>
-            </Button>
             <Button
               onClick={handleSignOut}
               variant="outline"
