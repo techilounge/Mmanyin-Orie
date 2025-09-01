@@ -1,4 +1,5 @@
 
+
 export interface Payment {
   id: string; // Firestore document ID
   contributionId: string; // Links payment to a specific CustomContribution
@@ -36,10 +37,16 @@ export interface Family {
   name: string;
 }
 
+export interface AgeGroup {
+    id: string;
+    name: string;
+}
+
 export interface Settings {
   tier1Age: number;
   tier2Age: number;
   currency: string;
+  ageGroups: AgeGroup[];
 }
 
 export interface CustomContribution {

@@ -2,7 +2,7 @@
 'use client';
 import type { ReactNode } from 'react';
 import React, { createContext, useState, useEffect, useMemo, useCallback } from 'react';
-import type { Member, Family, Settings, CustomContribution, NewMemberData, NewCustomContributionData, DialogState, NewPaymentData, Payment, Invitation } from '@/lib/types';
+import type { Member, Family, Settings, CustomContribution, NewMemberData, NewCustomContributionData, DialogState, NewPaymentData, Payment, Invitation, AgeGroup } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getMonth, getYear } from 'date-fns';
 import { useAuth } from '@/lib/auth';
@@ -21,6 +21,8 @@ import {
   getDoc,
   setDoc,
   Timestamp,
+  arrayUnion,
+  arrayRemove,
 } from 'firebase/firestore';
 import { sendInvitationEmail } from '@/lib/email';
 
@@ -46,6 +48,9 @@ interface CommunityContextType {
   deleteFamily: (family: Family) => Promise<void>;
   
   updateSettings: (newSettings: Partial<Settings>) => Promise<void>;
+  addAgeGroup: (name: string) => Promise<void>;
+  updateAgeGroup: (id: string, name: string) => Promise<void>;
+  deleteAgeGroup: (id: string) => Promise<void>;
   
   addCustomContribution: (contributionData: NewCustomContributionData) => Promise<void>;
   updateCustomContribution: (updatedContribution: CustomContribution) => Promise<void>;
@@ -72,6 +77,11 @@ const DEFAULT_SETTINGS: Settings = {
   tier1Age: 18,
   tier2Age: 25,
   currency: '₦',
+  ageGroups: [
+    { id: 'group1', name: 'Group 1 (18-24)'},
+    { id: 'group2', name: 'Group 2 (25+)'},
+    { id: 'under18', name: 'Under 18'},
+  ],
 };
 
 // Helper to generate a random string for the invite code
@@ -141,11 +151,13 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
       onSnapshot(communityDocRef, (snapshot) => {
         if (snapshot.exists()) {
             const communityData = snapshot.data();
-            setSettings({
+            const fetchedSettings = {
                 tier1Age: communityData.tier1Age || DEFAULT_SETTINGS.tier1Age,
                 tier2Age: communityData.tier2Age || DEFAULT_SETTINGS.tier2Age,
-                currency: communityData.currency || DEFAULT_SETTINGS.currency
-            });
+                currency: communityData.currency || DEFAULT_SETTINGS.currency,
+                ageGroups: communityData.ageGroups || DEFAULT_SETTINGS.ageGroups,
+            };
+            setSettings(fetchedSettings);
             setCommunityName(communityData.name || '');
         }
       }, (error) => {
@@ -683,7 +695,48 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     } catch (error: any) {
         toast({ variant: "destructive", title: "Error updating settings", description: error.message });
     }
-  }
+  };
+
+  const addAgeGroup = async (name: string) => {
+    if (!activeCommunityId || !name.trim()) return;
+    const newAgeGroup: AgeGroup = { id: doc(collection(db, 'dummy')).id, name: name.trim() };
+    try {
+        const communityDocRef = doc(db, 'communities', activeCommunityId);
+        await updateDoc(communityDocRef, {
+            ageGroups: arrayUnion(newAgeGroup)
+        });
+        toast({ title: "Age Group Added", description: `"${name}" has been added.`});
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "Error", description: "Could not add age group."});
+    }
+  };
+
+  const updateAgeGroup = async (id: string, name: string) => {
+    if (!activeCommunityId || !name.trim()) return;
+    const updatedAgeGroups = settings.ageGroups.map(g => g.id === id ? { ...g, name: name.trim() } : g);
+    try {
+        const communityDocRef = doc(db, 'communities', activeCommunityId);
+        await updateDoc(communityDocRef, { ageGroups: updatedAgeGroups });
+        toast({ title: "Age Group Updated" });
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "Error", description: "Could not update age group."});
+    }
+  };
+
+  const deleteAgeGroup = async (id: string) => {
+    if (!activeCommunityId) return;
+    const groupToDelete = settings.ageGroups.find(g => g.id === id);
+    if (!groupToDelete) return;
+    try {
+        const communityDocRef = doc(db, 'communities', activeCommunityId);
+        await updateDoc(communityDocRef, {
+            ageGroups: arrayRemove(groupToDelete)
+        });
+        toast({ title: "Age Group Deleted" });
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "Error", description: "Could not delete age group."});
+    }
+  };
 
   const updateCommunityName = async (newName: string) => {
     if (!activeCommunityId || !newName.trim()) return;
@@ -749,6 +802,9 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     updateFamily,
     deleteFamily,
     updateSettings,
+    addAgeGroup,
+    updateAgeGroup,
+    deleteAgeGroup,
     addCustomContribution,
     updateCustomContribution,
     deleteCustomContribution,
@@ -765,7 +821,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     getBalanceForContribution,
   }), [
     members, families, settings, customContributions, isLoading, activeCommunityId, communityName, dialogState, 
-    getContribution, addFamily, addMember, inviteMember, getInviteLink, resendInvitation, updateMember, deleteMember, updateFamily, deleteFamily, updateSettings, updateCommunityName, addCustomContribution, updateCustomContribution, deleteCustomContribution, recordPayment, updatePayment, deletePayment, openDialog, closeDialog, getPaidAmount, getBalance, getPaidAmountForContribution, getBalanceForContribution
+    getContribution, addFamily, addMember, inviteMember, getInviteLink, resendInvitation, updateMember, deleteMember, updateFamily, deleteFamily, updateSettings, addAgeGroup, updateAgeGroup, deleteAgeGroup, updateCommunityName, addCustomContribution, updateCustomContribution, deleteCustomContribution, recordPayment, updatePayment, deletePayment, openDialog, closeDialog, getPaidAmount, getBalance, getPaidAmountForContribution, getBalanceForContribution
   ]);
 
   return (
