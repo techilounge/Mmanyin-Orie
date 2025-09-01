@@ -7,8 +7,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/lib/auth';
 import { auth, db, storage } from '@/lib/firebase';
-import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, deleteUser } from 'firebase/auth';
-import { doc, deleteDoc, writeBatch, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, deleteUser, updateEmail } from 'firebase/auth';
+import { doc, deleteDoc, writeBatch, getDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
 import { ref, deleteObject } from 'firebase/storage';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -41,11 +41,20 @@ const passwordFormSchema = z.object({
 
 type PasswordFormValues = z.infer<typeof passwordFormSchema>;
 
+const emailFormSchema = z.object({
+    newEmail: z.string().email({ message: "Please enter a valid email address." }),
+    currentPassword: z.string().min(1, { message: "Password is required to change email." }),
+});
+
+type EmailFormValues = z.infer<typeof emailFormSchema>;
+
+
 export function SecuritySettings() {
   const { user, appUser } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
   const [isPasswordSubmitting, setIsPasswordSubmitting] = useState(false);
+  const [isEmailSubmitting, setIsEmailSubmitting] = useState(false);
   const [isDeleteSubmitting, setIsDeleteSubmitting] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [canDeleteAccount, setCanDeleteAccount] = useState(false);
@@ -54,6 +63,12 @@ export function SecuritySettings() {
     resolver: zodResolver(passwordFormSchema),
     defaultValues: { currentPassword: '', newPassword: '', confirmPassword: '' },
   });
+  
+  const emailForm = useForm<EmailFormValues>({
+    resolver: zodResolver(emailFormSchema),
+    defaultValues: { newEmail: user?.email || '', currentPassword: '' },
+  });
+
 
   useEffect(() => {
     const checkUserRole = async () => {
@@ -94,6 +109,44 @@ export function SecuritySettings() {
       });
     } finally {
       setIsPasswordSubmitting(false);
+    }
+  }
+  
+  async function onEmailSubmit(data: EmailFormValues) {
+    if (!user || !user.email) return;
+
+    setIsEmailSubmitting(true);
+    try {
+        const credential = EmailAuthProvider.credential(user.email, data.currentPassword);
+        await reauthenticateWithCredential(user, credential);
+        
+        await updateEmail(user, data.newEmail);
+
+        const userDocRef = doc(db, 'users', user.uid);
+        await updateDoc(userDocRef, { email: data.newEmail });
+        
+        // Also update the email in all member documents
+        if (appUser?.memberships) {
+            const batch = writeBatch(db);
+            appUser.memberships.forEach(communityId => {
+                const memberDocRef = doc(db, 'communities', communityId, 'members', user.uid);
+                batch.update(memberDocRef, { email: data.newEmail });
+            });
+            await batch.commit();
+        }
+
+        toast({ title: 'Email Updated', description: 'Your email has been changed successfully.' });
+        emailForm.reset({ newEmail: data.newEmail, currentPassword: '' });
+    } catch (error: any) {
+         toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: error.code === 'auth/wrong-password' 
+                ? 'The password you entered is incorrect.' 
+                : 'Failed to update email. Please try again.',
+        });
+    } finally {
+        setIsEmailSubmitting(false);
     }
   }
 
@@ -146,6 +199,39 @@ export function SecuritySettings() {
 
   return (
     <div className="space-y-8">
+       <Form {...emailForm}>
+        <form onSubmit={emailForm.handleSubmit(onEmailSubmit)}>
+          <Card>
+            <CardHeader>
+              <CardTitle>Change Email</CardTitle>
+              <CardDescription>Update the email address associated with your account.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <FormField control={emailForm.control} name="newEmail" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>New Email Address</FormLabel>
+                  <FormControl><Input type="email" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={emailForm.control} name="currentPassword" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Current Password (for security)</FormLabel>
+                  <FormControl><Input type="password" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            </CardContent>
+            <CardFooter>
+              <Button type="submit" disabled={isEmailSubmitting}>
+                {isEmailSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Update Email
+              </Button>
+            </CardFooter>
+          </Card>
+        </form>
+      </Form>
+    
       <Form {...passwordForm}>
         <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}>
           <Card>
