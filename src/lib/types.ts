@@ -13,15 +13,13 @@ export interface Member {
   firstName: string;
   middleName: string;
   lastName: string;
-  yearOfBirth: number;
   family: string; // Family name, will be used to group, but not a separate collection
   gender: 'male' | 'female';
   isPatriarch: boolean;
   email: string;
   phone: string;
   phoneCountryCode: string; // e.g., '+1'
-  age: number;
-  tier: string;
+  tier: string; // This now directly captures the age group, e.g., "Group 1 (18-24)"
   contribution: number;
   payments: Payment[];
   joinDate: string; // ISO date string
@@ -99,7 +97,7 @@ export interface Invitation {
 
 
 // Data for creating a new document, omitting the ID
-export type NewMemberData = Omit<Member, 'id' | 'name' | 'age' | 'tier' | 'contribution' | 'payments' | 'joinDate' | 'role' | 'uid' | 'status'>;
+export type NewMemberData = Omit<Member, 'id' | 'name' | 'contribution' | 'payments' | 'joinDate' | 'role' | 'uid' | 'status'>;
 export type NewPaymentData = Omit<Payment, 'id'>;
 export type NewCustomContributionData = Omit<CustomContribution, 'id'>;
 
