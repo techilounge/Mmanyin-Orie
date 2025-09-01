@@ -2,7 +2,7 @@
 'use client';
 import { Button } from '@/components/ui/button';
 import { useCommunity } from '@/hooks/use-community';
-import { Home, UserPlus, DollarSign, LogOut, User as UserIcon } from 'lucide-react';
+import { Home, UserPlus, DollarSign, LogOut, User as UserIcon, Replace } from 'lucide-react';
 import Image from 'next/image';
 import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
@@ -100,6 +100,14 @@ export function AppHeader({ setActiveTab }: { setActiveTab: (tab: string) => voi
                         <span>Profile</span>
                     </Link>
                 </DropdownMenuItem>
+                 {(appUser?.memberships?.length ?? 0) > 1 && (
+                  <DropdownMenuItem asChild>
+                      <Link href="/app/switch-community">
+                          <Replace className="mr-2 h-4 w-4" />
+                          <span>Switch Community</span>
+                      </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut}>
                   <LogOut className="mr-2 h-4 w-4" />

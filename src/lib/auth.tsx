@@ -97,6 +97,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!mounted || loading) return;
 
     const pathIsPublic = publicPaths.some(p => pathname.startsWith(p));
+    const isOnAppPath = pathname.startsWith('/app');
 
     if (!user && !pathIsPublic) {
       router.push('/auth/sign-in');
@@ -108,7 +109,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const hasCommunity = memberships.length > 0;
 
       if (isAuthPage(pathname) && !pathname.startsWith('/auth/accept-invite')) {
-        router.push('/app');
+        if (hasCommunity) {
+          router.push('/app');
+        } else {
+          router.push('/subscribe');
+        }
         return;
       }
       
@@ -116,23 +121,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         router.push('/subscribe');
         return;
       }
-
+      
       if (hasCommunity && (pathname === '/subscribe' || pathname === '/create-community')) {
-        router.push('/app');
-        return;
+          router.push('/app');
+          return;
       }
 
       if (pathname === '/app') {
-        const targetCommunityId = appUser.primaryCommunityId || memberships[0];
-        if (!targetCommunityId) {
-          router.push('/subscribe');
-          return;
-        }
-        router.replace(`/app/${targetCommunityId}`);
+          if (appUser.primaryCommunityId) {
+              router.replace(`/app/${appUser.primaryCommunityId}`);
+          } else if (memberships.length > 1) {
+              router.replace('/app/switch-community');
+          } else if (memberships.length === 1) {
+              router.replace(`/app/${memberships[0]}`);
+          } else {
+              router.replace('/subscribe');
+          }
       }
-    } else if (user && !appUser && !isAuthPage(pathname)) {
-        if (!pathIsPublic) {
-        }
     }
 
   }, [user, appUser, loading, router, pathname, mounted]);
