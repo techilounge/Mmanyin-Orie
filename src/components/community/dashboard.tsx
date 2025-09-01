@@ -24,7 +24,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, colorClas
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-xs font-medium text-muted-foreground">{title}</p>
-          <p className="text-xl font-bold text-foreground truncate">{value}</p>
+          <p className="text-lg font-bold text-foreground">{value}</p>
         </div>
       </div>
     </CardContent>
@@ -55,7 +55,7 @@ export function Dashboard() {
   
   return (
     <div className="space-y-6 md:space-y-8">
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <StatCard title="Total Members" value={stats.totalMembers} icon={Users} colorClass="bg-blue-100 dark:bg-blue-900/20" iconBgClass="bg-white/50 text-blue-600 dark:text-blue-400" />
         <StatCard title="Total Families" value={stats.totalFamilies} icon={Home} colorClass="bg-indigo-100 dark:bg-indigo-900/20" iconBgClass="bg-white/50 text-indigo-600 dark:text-indigo-400" />
         <StatCard title="Expected Contributions" value={`${settings.currency}${stats.totalContributions.toLocaleString()}`} icon={DollarSign} colorClass="bg-yellow-100 dark:bg-yellow-900/20" iconBgClass="bg-white/50 text-yellow-600 dark:text-yellow-400" />
