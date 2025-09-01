@@ -8,7 +8,7 @@ import * as z from 'zod';
 import { useAuth } from '@/lib/auth';
 import { auth, db, storage } from '@/lib/firebase';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, deleteUser } from 'firebase/auth';
-import { doc, deleteDoc } from 'firebase/firestore';
+import { doc, deleteDoc, writeBatch, getDoc } from 'firebase/firestore';
 import { ref, deleteObject } from 'firebase/storage';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useRouter } from 'next/navigation';
+import type { AppUser } from '@/lib/types';
 
 const passwordFormSchema = z.object({
   currentPassword: z.string().min(1, { message: "Current password is required." }),
@@ -80,14 +81,24 @@ export function SecuritySettings() {
 
     setIsDeleteSubmitting(true);
     try {
-      // 1. Delete user from Firebase Auth
-      await deleteUser(user);
-
-      // 2. Delete user document from Firestore
+      // 1. Get the list of memberships from the user's document
       const userDocRef = doc(db, 'users', user.uid);
-      await deleteDoc(userDocRef);
+      const userDocSnap = await getDoc(userDocRef);
+      const appUser = userDocSnap.data() as AppUser;
+      const communityIds = appUser?.memberships || [];
 
-      // 3. Delete user avatar from Storage (if it exists)
+      // 2. Prepare a batch to delete all associated membership documents and the main user doc
+      const batch = writeBatch(db);
+      communityIds.forEach(communityId => {
+        const memberDocRef = doc(db, 'communities', communityId, 'members', user.uid);
+        batch.delete(memberDocRef);
+      });
+      batch.delete(userDocRef);
+      
+      // 3. Commit the batch deletion from Firestore
+      await batch.commit();
+      
+      // 4. Delete user avatar from Storage (if it exists)
       const avatarRef = ref(storage, `avatars/${user.uid}/profile.png`);
       try {
         await deleteObject(avatarRef);
@@ -97,10 +108,14 @@ export function SecuritySettings() {
         }
       }
       
-      toast({ title: 'Account Deleted', description: 'Your account has been permanently deleted.' });
+      // 5. Delete user from Firebase Auth (this should be last)
+      await deleteUser(user);
+      
+      toast({ title: 'Account Deleted', description: 'Your account and all associated data have been permanently deleted.' });
       router.push('/');
 
     } catch (error: any) {
+        console.error("Account deletion error:", error);
         toast({ variant: 'destructive', title: 'Deletion Failed', description: 'Please sign out and sign back in, then try again.' });
     } finally {
         setIsDeleteSubmitting(false);
