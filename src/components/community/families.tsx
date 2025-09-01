@@ -44,7 +44,7 @@ const FamilyStat: React.FC<FamilyStatProps> = ({ icon: Icon, label, value, color
 
 export function Families() {
   const { families, members, deleteFamily, openDialog, settings, getPaidAmount } = useCommunity();
-  const { communityRole } = useAuth();
+  const { user, communityRole } = useAuth();
   const isAdmin = communityRole === 'admin' || communityRole === 'owner';
 
   const [familyToDelete, setFamilyToDelete] = useState<Family | null>(null);
@@ -90,6 +90,7 @@ export function Families() {
           
           const familyContribution = familyMembers.reduce((sum, m) => sum + (m.contribution || 0), 0);
           const familyPaid = familyMembers.reduce((sum, m) => sum + getPaidAmount(m), 0);
+          const isPatriarchForThisFamily = patriarch?.uid === user?.uid;
           
           return (
             <Collapsible key={family.id} defaultOpen={false} asChild>
@@ -199,7 +200,7 @@ export function Families() {
                       )}
                     </div>
                   </CardContent>
-                  {isAdmin && (
+                  {(isAdmin || isPatriarchForThisFamily) && (
                     <CardFooter className="mt-auto border-t pt-4 flex flex-col sm:flex-row gap-2">
                         <Button onClick={() => openDialog({ type: 'add-member-to-family', family: family.name })} className="w-full">
                         <UserPlus className="mr-2 h-4 w-4" /> Add Member
