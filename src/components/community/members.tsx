@@ -297,7 +297,7 @@ export function Members() {
         </Card>
       </div>
       
-      {memberToResend && <ResendInviteDialog member={memberToResend} />}
+      <ResendInviteDialog />
 
       <AlertDialog open={memberToDelete !== null} onOpenChange={(open) => {
           if (!open) {
@@ -330,3 +330,4 @@ export function Members() {
     </div>
   );
 }
+

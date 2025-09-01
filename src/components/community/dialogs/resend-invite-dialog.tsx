@@ -12,38 +12,36 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Check, Copy, PartyPopper, Loader2, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-interface ResendInviteDialogProps {
-    member: Member;
-}
-
-export function ResendInviteDialog({ member }: ResendInviteDialogProps) {
+export function ResendInviteDialog() {
   const { dialogState, closeDialog, getInviteLink, resendInvitation } = useCommunity();
   const { toast } = useToast();
+  
+  const member = dialogState?.type === 'resend-invite' ? dialogState.member : null;
   
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [hasCopied, setHasCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isResending, setIsResending] = useState(false);
 
-  const isOpen = dialogState?.type === 'resend-invite' && dialogState.member.id === member.id;
+  const isOpen = dialogState?.type === 'resend-invite';
 
   useEffect(() => {
-    // Only fetch if the dialog is open for this specific member and we are in a loading state.
-    if (isOpen && isLoading) {
+    if (isOpen && member && isLoading) {
         getInviteLink(member.id).then(link => {
             setInviteLink(link);
             setIsLoading(false);
         });
     }
-  }, [isOpen, member.id, getInviteLink, isLoading]);
+  }, [isOpen, member, getInviteLink, isLoading]);
 
   const handleClose = () => {
-    // Reset state when closing, so it's fresh for the next open.
     setInviteLink(null);
     setHasCopied(false);
     setIsLoading(true);
     closeDialog(); 
   };
+  
+  if (!member) return null;
 
   const handleResend = async () => {
     setIsResending(true);
