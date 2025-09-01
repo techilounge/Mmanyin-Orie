@@ -23,6 +23,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import type { AgeGroup } from '@/lib/types';
 
 const CURRENCIES = [
   { value: '₦', label: 'NGN (₦)' },
@@ -33,15 +34,14 @@ const CURRENCIES = [
 ];
 
 export function AppSettings() {
-  const { settings, updateSettings, customContributions, openDialog, deleteCustomContribution, communityName, updateCommunityName } = useCommunity();
+  const { settings, updateSettings, customContributions, openDialog, deleteCustomContribution, communityName, updateCommunityName, addAgeGroup, updateAgeGroup, deleteAgeGroup } = useCommunity();
   
   const [localSettings, setLocalSettings] = useState(settings);
   const [localCommunityName, setLocalCommunityName] = useState(communityName);
   const [debouncedSettings] = useDebounce(localSettings, 500);
 
-  // New state for managing age groups
   const [newAgeGroup, setNewAgeGroup] = useState('');
-  const [editingAgeGroup, setEditingAgeGroup] = useState<{ id: string; name: string } | null>(null);
+  const [editingAgeGroup, setEditingAgeGroup] = useState<AgeGroup | null>(null);
   const [editingAgeGroupName, setEditingAgeGroupName] = useState('');
 
 
@@ -75,18 +75,23 @@ export function AppSettings() {
   };
 
   const handleAddAgeGroup = () => {
-    // This will be implemented in a future step
-    console.log("Adding age group:", newAgeGroup);
-    setNewAgeGroup('');
+    if (newAgeGroup.trim()) {
+      addAgeGroup(newAgeGroup.trim());
+      setNewAgeGroup('');
+    }
   };
 
   const handleEditAgeGroup = () => {
-    if (editingAgeGroup) {
-      // This will be implemented in a future step
-      console.log("Updating age group:", editingAgeGroup.id, editingAgeGroupName);
+    if (editingAgeGroup && editingAgeGroupName.trim()) {
+      updateAgeGroup(editingAgeGroup.id, editingAgeGroupName.trim());
       setEditingAgeGroup(null);
       setEditingAgeGroupName('');
     }
+  };
+  
+  const startEditing = (group: AgeGroup) => {
+    setEditingAgeGroup(group);
+    setEditingAgeGroupName(group.name);
   };
   
   return (
@@ -200,28 +205,18 @@ export function AppSettings() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              {/* This will be replaced with a map of dynamic age groups */}
-              <div className="flex items-center justify-between p-2 border rounded-md">
-                <span>Group 1 (18-24)</span>
-                <div className="flex items-center">
-                    <Button variant="ghost" size="icon" onClick={() => {}}><Edit className="h-4 w-4 text-primary" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => {}}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                </div>
-              </div>
-               <div className="flex items-center justify-between p-2 border rounded-md">
-                <span>Group 2 (25+)</span>
-                 <div className="flex items-center">
-                    <Button variant="ghost" size="icon" onClick={() => {}}><Edit className="h-4 w-4 text-primary" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => {}}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                </div>
-              </div>
-               <div className="flex items-center justify-between p-2 border rounded-md">
-                <span>Under 18</span>
-                 <div className="flex items-center">
-                    <Button variant="ghost" size="icon" onClick={() => {}}><Edit className="h-4 w-4 text-primary" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => {}}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                </div>
-              </div>
+              {(settings.ageGroups || []).map((group: AgeGroup) => (
+                  <div key={group.id} className="flex items-center justify-between p-2 border rounded-md">
+                    <span>{group.name}</span>
+                    <div className="flex items-center">
+                        <Button variant="ghost" size="icon" onClick={() => startEditing(group)}><Edit className="h-4 w-4 text-primary" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => deleteAgeGroup(group.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                    </div>
+                  </div>
+              ))}
+              {(!settings.ageGroups || settings.ageGroups.length === 0) && (
+                <p className="text-sm text-muted-foreground text-center py-4">No age groups defined.</p>
+              )}
             </div>
              <div className="flex items-center gap-2 pt-2">
                 <Input 
@@ -242,7 +237,7 @@ export function AppSettings() {
           <AlertDialogHeader>
             <AlertDialogTitle>Edit Age Group</AlertDialogTitle>
             <AlertDialogDescription>
-              Enter the new name for this age group.
+              Enter the new name for the age group "{editingAgeGroup?.name}".
             </AlertDialogDescription>
           </AlertDialogHeader>
           <Input
