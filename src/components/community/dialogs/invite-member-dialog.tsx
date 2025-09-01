@@ -16,7 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { COUNTRY_OPTIONS } from '@/lib/countries';
 import type { NewMemberData } from '@/lib/types';
-import { CheckCircle, PartyPopper } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 
 const formSchema = z.object({
   firstName: z.string().min(1, 'First name is required.'),
