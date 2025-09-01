@@ -1,0 +1,47 @@
+
+import { Resend } from 'resend';
+import InvitationEmail from '@/emails/invitation-email';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+interface SendInvitationEmailParams {
+  to: string;
+  communityName: string;
+  inviteLink: string;
+  inviterName: string;
+}
+
+export async function sendInvitationEmail({
+  to,
+  communityName,
+  inviteLink,
+  inviterName,
+}: SendInvitationEmailParams) {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn("RESEND_API_KEY is not set. Skipping email sending.");
+    // In a real app, you might want to throw an error or handle this differently.
+    // For this context, we will log a warning and proceed without sending an email
+    // to prevent the app from breaking if the user hasn't set up their key yet.
+    return;
+  }
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: `Mmanyin Orie <no-reply@${process.env.NEXT_PUBLIC_RESEND_DOMAIN || 'resend.dev'}>`,
+      to: [to],
+      subject: `Invitation to join ${communityName}`,
+      react: InvitationEmail({ communityName, inviteLink, inviterName }),
+      text: `You have been invited to join ${communityName}. Accept your invitation here: ${inviteLink}`,
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Failed to send invitation email:", error);
+    // Re-throw the error so it can be caught by the calling function
+    throw new Error("Could not send the invitation email.");
+  }
+}

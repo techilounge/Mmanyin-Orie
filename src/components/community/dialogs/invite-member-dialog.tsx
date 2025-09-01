@@ -16,9 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { COUNTRY_OPTIONS } from '@/lib/countries';
 import type { NewMemberData } from '@/lib/types';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Check, Copy, PartyPopper } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { CheckCircle, PartyPopper } from 'lucide-react';
 
 const currentYear = new Date().getFullYear();
 const formSchema = z.object({
@@ -49,9 +47,7 @@ export function InviteMemberDialog() {
   } = useCommunity();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [inviteLink, setInviteLink] = useState<string | null>(null);
-  const [hasCopied, setHasCopied] = useState(false);
-  const { toast } = useToast();
+  const [inviteSent, setInviteSent] = useState(false);
 
   const isOpen = dialogState?.type === 'invite-member';
   const familyToAddTo = isOpen && (dialogState as any).family ? (dialogState as any).family as string : undefined;
@@ -77,8 +73,7 @@ export function InviteMemberDialog() {
   const handleClose = () => {
     if(!isSubmitting) {
       form.reset();
-      setInviteLink(null);
-      setHasCopied(false);
+      setInviteSent(false);
       closeDialog();
     }
   };
@@ -97,8 +92,7 @@ export function InviteMemberDialog() {
         phone: '',
         phoneCountryCode: '+234',
       });
-      setInviteLink(null);
-      setHasCopied(false);
+      setInviteSent(false);
     } else {
       setIsSubmitting(false);
     }
@@ -121,9 +115,9 @@ export function InviteMemberDialog() {
         };
         
         const newFamilyName = values.family === 'new' ? values.newFamilyName : undefined;
-        const link = await inviteMember(memberData, newFamilyName);
-        if(link) {
-            setInviteLink(link);
+        const success = await inviteMember(memberData, newFamilyName);
+        if(success) {
+            setInviteSent(true);
         } else {
           setIsSubmitting(false);
         }
@@ -133,37 +127,20 @@ export function InviteMemberDialog() {
         setIsSubmitting(false);
     }
   };
-
-  const copyToClipboard = () => {
-    if (inviteLink) {
-        navigator.clipboard.writeText(inviteLink);
-        setHasCopied(true);
-        setTimeout(() => setHasCopied(false), 2000);
-    }
-  };
   
-  if (inviteLink) {
+  if (inviteSent) {
     return (
-       <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-lg sm:max-w-xl md:max-w-2xl">
-            <DialogHeader>
-                <DialogTitle className="flex items-center gap-2"><PartyPopper className="text-primary"/>Invitation Sent!</DialogTitle>
+       <Dialog open={isOpen} onOpenChange={handleClose}>
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-lg">
+            <DialogHeader className="text-center items-center">
+                <CheckCircle className="text-green-500 h-16 w-16 mb-4" />
+                <DialogTitle className="text-2xl">Invitation Sent!</DialogTitle>
                 <DialogDescription>
-                    The invitation is ready. Copy the link below and share it with the new member.
+                    An invitation email has been successfully sent. The recipient can now join your community.
                 </DialogDescription>
             </DialogHeader>
-            <Alert>
-                <AlertTitle>Shareable Invite Link</AlertTitle>
-                <AlertDescription className="break-all text-primary">
-                    {inviteLink}
-                </AlertDescription>
-            </Alert>
-            <DialogFooter className="sm:justify-between gap-2">
-                <Button variant="outline" onClick={handleClose}>Done</Button>
-                <Button onClick={copyToClipboard}>
-                    {hasCopied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
-                    {hasCopied ? 'Copied!' : 'Copy Link'}
-                </Button>
+            <DialogFooter className="sm:justify-center">
+                <Button onClick={handleClose}>Done</Button>
             </DialogFooter>
         </DialogContent>
        </Dialog>
@@ -171,12 +148,12 @@ export function InviteMemberDialog() {
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="w-[calc(100vw-2rem)] max-w-lg sm:max-w-xl md:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Invite New Member</DialogTitle>
           <DialogDescription>
-             An invitation link will be generated to share with the new member.
+             An invitation email will be sent to the new member.
           </DialogDescription>
         </DialogHeader>
 

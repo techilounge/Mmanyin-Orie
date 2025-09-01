@@ -22,6 +22,7 @@ import {
   setDoc,
   Timestamp,
 } from 'firebase/firestore';
+import { sendInvitationEmail } from '@/lib/email';
 
 interface CommunityContextType {
   members: Member[];
@@ -34,7 +35,7 @@ interface CommunityContextType {
   updateCommunityName: (newName: string) => Promise<void>;
   
   addMember: (newMemberData: NewMemberData) => Promise<void>;
-  inviteMember: (newMemberData: NewMemberData, newFamilyName?: string) => Promise<string | null>;
+  inviteMember: (newMemberData: NewMemberData, newFamilyName?: string) => Promise<boolean>;
   getInviteLink: (memberId: string) => Promise<string | null>;
   updateMember: (updatedMemberData: Member) => Promise<void>;
   deleteMember: (id: string) => Promise<void>;
@@ -357,14 +358,18 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
       const memberSnap = await getDoc(memberDocRef);
 
       if (!memberSnap.exists() || !memberSnap.data()?.inviteId) {
-        return null; // Member or inviteId doesn't exist
+        return null;
       }
 
       const inviteId = memberSnap.data()?.inviteId;
-      const inviteRef = doc(db, 'invitations', inviteId);
-      const inviteSnap = await getDoc(inviteRef);
+      const q = query(
+        collection(db, 'invitations'), 
+        where('__name__', '==', inviteId),
+        where('status', '==', 'pending')
+      );
+      const inviteSnaps = await getDocs(q);
       
-      if (inviteSnap.exists() && inviteSnap.data().status === 'pending') {
+      if (!inviteSnaps.empty) {
           return `${window.location.origin}/auth/accept-invite?token=${inviteId}`;
       }
       
@@ -420,12 +425,12 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     }
   };
 
-  const inviteMember = async (data: NewMemberData, newFamilyName?: string): Promise<string | null> => {
+  const inviteMember = async (data: NewMemberData, newFamilyName?: string): Promise<boolean> => {
     if (!activeCommunityId || !user || !data.email) {
       if (!data.email) {
         toast({ variant: "destructive", title: "Email Required", description: "An email is required to invite a member." });
       }
-      return null;
+      return false;
     }
     
     try {
@@ -470,7 +475,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
             status: 'invited' as const,
             uid: null,
             isPatriarch: data.isPatriarch,
-            inviteId: inviteDocRef.id, // **THE FIX: Link the member to the invitation**
+            inviteId: inviteDocRef.id,
         };
         
         const contribution = getContribution(newMemberBase, customContributions);
@@ -498,15 +503,23 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         
         const inviteLink = `${window.location.origin}/auth/accept-invite?token=${inviteDocRef.id}`;
 
-        toast({ 
-            title: "Member Invited", 
-            description: `${fullName} has been invited. Share the link with them to join.`
+        // Send email using Resend
+        await sendInvitationEmail({
+          to: data.email,
+          communityName: communityName,
+          inviteLink: inviteLink,
+          inviterName: user.displayName || 'The community admin'
         });
-        return inviteLink;
+
+        toast({ 
+            title: "Invitation Sent", 
+            description: `An invitation email has been sent to ${fullName}.`
+        });
+        return true;
 
     } catch(error: any) {
         toast({ variant: "destructive", title: "Error inviting member", description: error.message });
-        return null;
+        return false;
     }
 };
 
