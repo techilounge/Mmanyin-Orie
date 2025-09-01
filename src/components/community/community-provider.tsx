@@ -75,11 +75,7 @@ const DEFAULT_SETTINGS: Settings = {
   tier1Age: 18,
   tier2Age: 25,
   currency: '₦',
-  ageGroups: [
-    { id: 'group1', name: 'Group 1 (18-24)'},
-    { id: 'group2', name: 'Group 2 (25+)'},
-    { id: 'under18', name: 'Under 18'},
-  ],
+  ageGroups: [],
 };
 
 // Helper to generate a random string for the invite code
@@ -749,7 +745,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     try {
         const communityDocRef = doc(db, 'communities', activeCommunityId);
         await updateDoc(communityDocRef, { name: newName.trim() });
-        toast({ title: "Community Name Updated", description: "Your community name has been saved." });
+        // No toast here, handled by the calling component
     } catch (error: any) {
         toast({ variant: "destructive", title: "Error updating name", description: error.message });
     }

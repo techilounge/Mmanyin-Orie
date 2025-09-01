@@ -11,7 +11,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '../ui/badge';
 import { Settings as AppSettingsType } from '@/lib/types';
 import { useState, useEffect } from 'react';
-import { useDebounce } from 'use-debounce';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,6 +23,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import type { AgeGroup } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
 
 const CURRENCIES = [
   { value: '₦', label: 'NGN (₦)' },
@@ -35,42 +35,36 @@ const CURRENCIES = [
 
 export function AppSettings() {
   const { settings, updateSettings, customContributions, openDialog, deleteCustomContribution, communityName, updateCommunityName, addAgeGroup, updateAgeGroup, deleteAgeGroup } = useCommunity();
-  
-  const [localSettings, setLocalSettings] = useState(settings);
+  const { toast } = useToast();
+
   const [localCommunityName, setLocalCommunityName] = useState(communityName);
-  const [debouncedSettings] = useDebounce(localSettings, 500);
+  const [localCurrency, setLocalCurrency] = useState(settings.currency);
 
   const [newAgeGroup, setNewAgeGroup] = useState('');
   const [editingAgeGroup, setEditingAgeGroup] = useState<AgeGroup | null>(null);
   const [editingAgeGroupName, setEditingAgeGroupName] = useState('');
-
-
-  useEffect(() => {
-    setLocalSettings(settings);
-  }, [settings]);
 
   useEffect(() => {
     setLocalCommunityName(communityName);
   }, [communityName]);
 
   useEffect(() => {
-    if (JSON.stringify(debouncedSettings) !== JSON.stringify(settings)) {
-      updateSettings(debouncedSettings);
-    }
-  }, [debouncedSettings, settings, updateSettings]);
+    setLocalCurrency(settings.currency);
+  }, [settings.currency]);
 
-  const handleSettingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setLocalSettings(prev => ({ ...prev, [name]: parseInt(value) || 0 }));
-  };
 
-  const handleCurrencyChange = (value: string) => {
-    setLocalSettings(prev => ({ ...prev, currency: value }));
-  };
-
-  const handleSaveCommunityName = () => {
+  const handleSaveChanges = () => {
+    let hasChanges = false;
     if (localCommunityName !== communityName) {
       updateCommunityName(localCommunityName);
+      hasChanges = true;
+    }
+    if (localCurrency !== settings.currency) {
+      updateSettings({ ...settings, currency: localCurrency });
+      hasChanges = true;
+    }
+    if (hasChanges) {
+        toast({ title: 'Settings Saved', description: 'Your general settings have been updated.'});
     }
   };
 
@@ -176,7 +170,7 @@ export function AppSettings() {
              </div>
              <div className="space-y-2">
                 <Label htmlFor="currency">Currency</Label>
-                <Select value={localSettings.currency} onValueChange={handleCurrencyChange}>
+                <Select value={localCurrency} onValueChange={setLocalCurrency}>
                   <SelectTrigger id="currency">
                     <SelectValue placeholder="Select a currency" />
                   </SelectTrigger>
@@ -189,7 +183,7 @@ export function AppSettings() {
               </div>
           </CardContent>
           <CardFooter>
-            <Button onClick={handleSaveCommunityName}>Save Changes</Button>
+            <Button onClick={handleSaveChanges}>Save Changes</Button>
           </CardFooter>
         </Card>
 
@@ -205,7 +199,7 @@ export function AppSettings() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              {(settings.ageGroups || []).map((group: AgeGroup) => (
+              {settings.ageGroups.map((group: AgeGroup) => (
                   <div key={group.id} className="flex items-center justify-between p-2 border rounded-md">
                     <span>{group.name}</span>
                     <div className="flex items-center">
