@@ -21,8 +21,6 @@ import {
   getDoc,
   setDoc,
   Timestamp,
-  arrayUnion,
-  arrayRemove,
 } from 'firebase/firestore';
 import { sendInvitationEmail } from '@/lib/email';
 
@@ -702,10 +700,13 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     const newAgeGroup: AgeGroup = { id: doc(collection(db, 'dummy')).id, name: name.trim() };
     try {
         const communityDocRef = doc(db, 'communities', activeCommunityId);
-        await updateDoc(communityDocRef, {
-            ageGroups: arrayUnion(newAgeGroup)
-        });
-        toast({ title: "Age Group Added", description: `"${name}" has been added.`});
+        const communitySnap = await getDoc(communityDocRef);
+        if (communitySnap.exists()) {
+            const currentGroups = communitySnap.data().ageGroups || [];
+            const updatedGroups = [...currentGroups, newAgeGroup];
+            await updateDoc(communityDocRef, { ageGroups: updatedGroups });
+            toast({ title: "Age Group Added", description: `"${name}" has been added.`});
+        }
     } catch (error: any) {
         toast({ variant: "destructive", title: "Error", description: "Could not add age group."});
     }
@@ -713,11 +714,15 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
 
   const updateAgeGroup = async (id: string, name: string) => {
     if (!activeCommunityId || !name.trim()) return;
-    const updatedAgeGroups = settings.ageGroups.map(g => g.id === id ? { ...g, name: name.trim() } : g);
     try {
         const communityDocRef = doc(db, 'communities', activeCommunityId);
-        await updateDoc(communityDocRef, { ageGroups: updatedAgeGroups });
-        toast({ title: "Age Group Updated" });
+        const communitySnap = await getDoc(communityDocRef);
+        if (communitySnap.exists()) {
+            const currentGroups = communitySnap.data().ageGroups || [];
+            const updatedGroups = currentGroups.map((g: AgeGroup) => g.id === id ? { ...g, name: name.trim() } : g);
+            await updateDoc(communityDocRef, { ageGroups: updatedGroups });
+            toast({ title: "Age Group Updated" });
+        }
     } catch (error: any) {
         toast({ variant: "destructive", title: "Error", description: "Could not update age group."});
     }
@@ -725,14 +730,15 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
 
   const deleteAgeGroup = async (id: string) => {
     if (!activeCommunityId) return;
-    const groupToDelete = settings.ageGroups.find(g => g.id === id);
-    if (!groupToDelete) return;
     try {
         const communityDocRef = doc(db, 'communities', activeCommunityId);
-        await updateDoc(communityDocRef, {
-            ageGroups: arrayRemove(groupToDelete)
-        });
-        toast({ title: "Age Group Deleted" });
+        const communitySnap = await getDoc(communityDocRef);
+        if (communitySnap.exists()) {
+            const currentGroups = communitySnap.data().ageGroups || [];
+            const updatedGroups = currentGroups.filter((g: AgeGroup) => g.id !== id);
+            await updateDoc(communityDocRef, { ageGroups: updatedGroups });
+            toast({ title: "Age Group Deleted" });
+        }
     } catch (error: any) {
         toast({ variant: "destructive", title: "Error", description: "Could not delete age group."});
     }

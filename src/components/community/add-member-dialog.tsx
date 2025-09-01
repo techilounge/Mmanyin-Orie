@@ -20,12 +20,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Check, Copy, PartyPopper } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-const TIER_OPTIONS = [
-    'Group 1 (18-24)',
-    'Group 2 (25+)',
-    'Under 18',
-];
-
 const formSchema = z.object({
   firstName: z.string().min(1, 'First name is required.'),
   lastName: z.string().min(1, 'Last name is required.'),
@@ -44,7 +38,7 @@ const formSchema = z.object({
 
 export function AddMemberDialog() {
   const {
-    dialogState, closeDialog, inviteMember, addMember, families
+    dialogState, closeDialog, inviteMember, addMember, families, settings
   } = useCommunity();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -235,7 +229,7 @@ export function AddMemberDialog() {
                           </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                              {TIER_OPTIONS.map(tier => <SelectItem key={tier} value={tier}>{tier}</SelectItem>)}
+                              {settings.ageGroups.map(group => <SelectItem key={group.id} value={group.name}>{group.name}</SelectItem>)}
                           </SelectContent>
                       </Select>
                       <FormMessage />
@@ -283,7 +277,8 @@ export function AddMemberDialog() {
                 <FormField name="email" control={form.control} render={({ field }) => (
                   <FormItem>
                     <FormLabel>Email <span className="text-muted-foreground">(optional, for invites)</span></FormLabel>
-                    <FormControl><Input type="email" {...field} value={field.value ?? ''} /></FormControl><FormMessage />
+                    <FormControl><Input type="email" {...field} value={field.value ?? ''} /></FormControl>
+                    <FormMessage />
                   </FormItem>
                 )} />
 
