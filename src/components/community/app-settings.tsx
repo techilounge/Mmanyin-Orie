@@ -22,7 +22,7 @@ const CURRENCIES = [
 ];
 
 export function AppSettings() {
-  const { settings, updateSettings, recalculateTiers, customContributions, openDialog, deleteCustomContribution, communityName, updateCommunityName } = useCommunity();
+  const { settings, updateSettings, customContributions, openDialog, deleteCustomContribution, communityName, updateCommunityName } = useCommunity();
   
   const [localSettings, setLocalSettings] = useState(settings);
   const [localCommunityName, setLocalCommunityName] = useState(communityName);
@@ -161,33 +161,6 @@ export function AppSettings() {
           <CardFooter>
             <Button onClick={handleSaveCommunityName}>Save Changes</Button>
           </CardFooter>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="text-primary" />
-              Age Groups
-            </CardTitle>
-            <CardDescription>
-              Define age ranges for contribution groups.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="tier1Age">Group 1 Starting Age</Label>
-                <Input id="tier1Age" name="tier1Age" type="number" value={localSettings.tier1Age} onChange={handleSettingChange} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="tier2Age">Group 2 Starting Age</Label>
-                <Input id="tier2Age" name="tier2Age" type="number" value={localSettings.tier2Age} onChange={handleSettingChange} />
-              </div>
-            </div>
-            <Button onClick={recalculateTiers} className="mt-6 w-full">
-              Update All Member Groups & Contributions
-            </Button>
-          </CardContent>
         </Card>
       </div>
     </div>

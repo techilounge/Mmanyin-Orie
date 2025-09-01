@@ -1,3 +1,4 @@
+
 'use client';
 import { useEffect } from 'react';
 import { useCommunity } from '@/hooks/use-community';
@@ -16,7 +17,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import type { CustomContribution, Settings } from '@/lib/types';
+import type { CustomContribution } from '@/lib/types';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
@@ -24,9 +25,9 @@ interface EditCustomContributionDialogProps {
   contribution: CustomContribution;
 }
 
-const TIERS = (settings: Settings): string[] => [
-  `Group 1 (${settings.tier1Age}-${settings.tier2Age - 1})`,
-  `Group 2 (${settings.tier2Age}+)`,
+const TIERS = [
+  'Group 1 (18-24)',
+  'Group 2 (25+)',
   'Under 18',
 ];
 
@@ -77,7 +78,7 @@ export function EditCustomContributionDialog({ contribution }: EditCustomContrib
     closeDialog();
   }
   
-  const tierOptions = TIERS(settings);
+  const tierOptions = TIERS;
 
   return (
     <Dialog open={dialogState?.type === 'edit-custom-contribution'} onOpenChange={handleClose}>

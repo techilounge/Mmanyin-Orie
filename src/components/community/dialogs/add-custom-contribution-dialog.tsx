@@ -19,14 +19,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
-type AgeSettings = {
-  tier1Age: number;
-  tier2Age: number;
-};
-
-const TIERS = (settings: AgeSettings): string[] => [
-  `Group 1 (${settings.tier1Age}-${settings.tier2Age - 1})`,
-  `Group 2 (${settings.tier2Age}+)`,
+const TIERS = [
+  'Group 1 (18-24)',
+  'Group 2 (25+)',
   'Under 18',
 ];
 
@@ -60,7 +55,7 @@ export function AddCustomContributionDialog() {
     closeDialog();
   }
 
-  const tierOptions = TIERS(settings);
+  const tierOptions = TIERS;
 
   return (
     <Dialog open={dialogState?.type === 'add-custom-contribution'} onOpenChange={handleClose}>

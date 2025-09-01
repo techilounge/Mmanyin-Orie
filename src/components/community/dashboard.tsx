@@ -32,7 +32,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, colorClas
 );
 
 export function Dashboard() {
-  const { members, families, getTier, settings, getPaidAmount, getBalance } = useCommunity();
+  const { members, families, settings, getPaidAmount, getBalance } = useCommunity();
 
   const totalContributions = members.reduce((sum, m) => sum + (m.contribution || 0), 0);
   const totalPaid = members.reduce((sum, m) => sum + getPaidAmount(m), 0);
