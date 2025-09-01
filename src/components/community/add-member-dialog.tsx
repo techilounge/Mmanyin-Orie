@@ -20,12 +20,17 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Check, Copy, PartyPopper } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-const currentYear = new Date().getFullYear();
+const TIER_OPTIONS = [
+    'Group 1 (18-24)',
+    'Group 2 (25+)',
+    'Under 18',
+];
+
 const formSchema = z.object({
   firstName: z.string().min(1, 'First name is required.'),
   lastName: z.string().min(1, 'Last name is required.'),
   middleName: z.string().trim().optional().default(''),
-  yearOfBirth: z.coerce.number().int().min(1900, 'Invalid year.').max(currentYear, 'Year cannot be in the future.'),
+  tier: z.string().min(1, 'Age group is required.'),
   gender: z.enum(['male', 'female'], { required_error: 'Gender is required.'}),
   family: z.string().min(1, 'Family is required.'),
   newFamilyName: z.string().optional(),
@@ -39,7 +44,7 @@ const formSchema = z.object({
 
 export function AddMemberDialog() {
   const {
-    dialogState, closeDialog, inviteMember, addMember, families, addFamily
+    dialogState, closeDialog, inviteMember, addMember, families
   } = useCommunity();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -60,7 +65,7 @@ export function AddMemberDialog() {
       firstName: '',
       lastName: '',
       middleName: '',
-      yearOfBirth: undefined,
+      tier: '',
       gender: undefined,
       family: '',
       newFamilyName: '',
@@ -88,7 +93,7 @@ export function AddMemberDialog() {
         firstName: '',
         lastName: '',
         middleName: '',
-        yearOfBirth: undefined,
+        tier: '',
         gender: undefined,
         family: familyToAddTo || '', newFamilyName: '',
         email: '',
@@ -102,7 +107,12 @@ export function AddMemberDialog() {
     }
   }, [isOpen, familyToAddTo, form]);
 
-  const handleClose = () => { if(!isSubmitting) closeDialog(); };
+  const handleClose = () => { 
+    if(!isSubmitting) {
+      setInviteLink(null);
+      closeDialog(); 
+    }
+  };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
@@ -111,7 +121,7 @@ export function AddMemberDialog() {
             firstName: values.firstName,
             lastName: values.lastName,
             middleName: values.middleName,
-            yearOfBirth: values.yearOfBirth,
+            tier: values.tier,
             family: values.family,
             gender: values.gender,
             isPatriarch: false, // Only family head can be patriarch
@@ -126,9 +136,9 @@ export function AddMemberDialog() {
             setIsSubmitting(false);
             return;
           }
-          const link = await inviteMember(memberData);
-          if(link) {
-              setInviteLink(link);
+          const success = await inviteMember(memberData);
+          if(success) {
+              setInviteLink(`${window.location.origin}/auth/accept-invite?token=...`); // Using a placeholder link for UI feedback
           }
         } else {
           await addMember(memberData);
@@ -138,7 +148,10 @@ export function AddMemberDialog() {
     } catch (error) {
         console.error("Failed to process member:", error);
     } finally {
-        setIsSubmitting(false);
+        // Only set submitting to false if we are not in the invite link success state
+        if (!inviteLink) {
+           setIsSubmitting(false);
+        }
     }
   };
 
@@ -154,31 +167,21 @@ export function AddMemberDialog() {
   const dialogDescription = isInviteFlow 
     ? 'An invitation link will be generated to share with the new member.'
     : 'Add a new member directly to the registry. This is useful for family members without an email.';
-  const buttonText = isInviteFlow ? 'Send Invite' : 'Add Member';
+  const buttonText = isInviteFlow ? 'Generate Invite' : 'Add Member';
 
 
   if (inviteLink) {
     return (
-       <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
+       <Dialog open={!!inviteLink} onOpenChange={(open) => { if (!open) handleClose(); }}>
         <DialogContent className="w-[calc(100vw-2rem)] max-w-lg sm:max-w-xl md:max-w-2xl">
             <DialogHeader>
                 <DialogTitle className="flex items-center gap-2"><PartyPopper className="text-primary"/>Invitation Sent!</DialogTitle>
                 <DialogDescription>
-                    The invitation is ready. Copy the link below and share it with the new member.
+                    An invitation email has been sent. You can also copy the link below and share it directly.
                 </DialogDescription>
             </DialogHeader>
-            <Alert>
-                <AlertTitle>Shareable Invite Link</AlertTitle>
-                <AlertDescription className="break-all text-primary">
-                    {inviteLink}
-                </AlertDescription>
-            </Alert>
-            <DialogFooter className="sm:justify-between gap-2">
-                <Button variant="outline" onClick={handleClose}>Done</Button>
-                <Button onClick={copyToClipboard}>
-                    {hasCopied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
-                    {hasCopied ? 'Copied!' : 'Copy Link'}
-                </Button>
+            <DialogFooter className="sm:justify-start gap-2 pt-4">
+                <Button onClick={handleClose}>Done</Button>
             </DialogFooter>
         </DialogContent>
        </Dialog>
@@ -186,7 +189,7 @@ export function AddMemberDialog() {
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
+    <Dialog open={isOpen && !inviteLink} onOpenChange={(open) => { if (!open) handleClose(); }}>
       <DialogContent className="w-[calc(100vw-2rem)] max-w-lg sm:max-w-xl md:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>
@@ -212,9 +215,26 @@ export function AddMemberDialog() {
                   <FormItem className="md:col-span-2"><FormLabel>Middle Name <span className="text-muted-foreground">(optional)</span></FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
 
-                <FormField name="yearOfBirth" control={form.control} render={({ field }) => (
-                  <FormItem><FormLabel>Year of Birth</FormLabel><FormControl><Input type="number" placeholder={String(currentYear)} {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                )} />
+                <FormField
+                  control={form.control}
+                  name="tier"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>Age Group</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                          <SelectTrigger>
+                              <SelectValue placeholder="Select an age group" />
+                          </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                              {TIER_OPTIONS.map(tier => <SelectItem key={tier} value={tier}>{tier}</SelectItem>)}
+                          </SelectContent>
+                      </Select>
+                      <FormMessage />
+                      </FormItem>
+                  )}
+                />
 
                 <FormField
                   control={form.control}
@@ -255,7 +275,7 @@ export function AddMemberDialog() {
 
                 <FormField name="email" control={form.control} render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email <span className="text-muted-foreground">(optional)</span></FormLabel>
+                    <FormLabel>Email <span className="text-muted-foreground">(optional, for invites)</span></FormLabel>
                     <FormControl><Input type="email" {...field} value={field.value ?? ''} /></FormControl><FormMessage />
                   </FormItem>
                 )} />
