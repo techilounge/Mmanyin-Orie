@@ -128,7 +128,7 @@ export function InviteMemberDialog() {
   
   if (inviteSent) {
     return (
-       <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
+       <Dialog open={inviteSent} onOpenChange={(open) => { if (!open) handleClose(); }}>
         <DialogContent className="w-[calc(100vw-2rem)] max-w-lg">
             <DialogHeader className="text-center items-center">
                 <CheckCircle className="text-green-500 h-16 w-16 mb-4" />
@@ -146,7 +146,7 @@ export function InviteMemberDialog() {
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog open={isOpen && !inviteSent} onOpenChange={handleClose}>
       <DialogContent className="w-[calc(100vw-2rem)] max-w-lg sm:max-w-xl md:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Invite New Member</DialogTitle>
@@ -298,3 +298,5 @@ export function InviteMemberDialog() {
     </Dialog>
   );
 }
+
+    
