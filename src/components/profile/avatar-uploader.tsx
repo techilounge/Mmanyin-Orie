@@ -52,8 +52,8 @@ export function AvatarUploader() {
       const storageRef = ref(storage, `avatars/${user.uid}/profile.png`);
       
       // Upload the new file
-      const snapshot = await uploadBytes(storageRef, avatarFile);
-      const downloadURL = await getDownloadURL(snapshot.ref);
+      await uploadBytes(storageRef, avatarFile, { contentType: avatarFile.type });
+      const downloadURL = await getDownloadURL(storageRef);
 
       // Update Firebase Auth profile
       await updateProfile(user, { photoURL: downloadURL });
@@ -69,14 +69,11 @@ export function AvatarUploader() {
       setAvatarFile(null);
       setAvatarPreview(null);
     } catch (error: any) {
-      let description = 'There was an error uploading your avatar. Please try again.';
-      if (error.code === 'storage/object-not-found' || error.code === 'storage/unauthorized') {
-        description = 'Upload failed. Please ensure you have a Cloud Storage bucket enabled in your Firebase project.';
-      }
+      console.error('Avatar upload failed:', err);
       toast({
         variant: 'destructive',
         title: 'Upload Failed',
-        description: description,
+        description: err?.message ?? 'We could not upload your avatar.',
       });
     } finally {
       setIsUploading(false);
