@@ -91,7 +91,6 @@ export function InviteMemberDialog() {
         phoneCountryCode: '+234',
       });
       setInviteSent(false);
-    } else {
       setIsSubmitting(false);
     }
   }, [isOpen, familyToAddTo, form]);
@@ -126,177 +125,173 @@ export function InviteMemberDialog() {
     }
   };
   
-  if (inviteSent) {
-    return (
-       <Dialog open={inviteSent} onOpenChange={(open) => { if (!open) handleClose(); }}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-lg">
-            <DialogHeader className="text-center items-center">
-                <CheckCircle className="text-green-500 h-16 w-16 mb-4" />
-                <DialogTitle className="text-2xl">Invitation Sent!</DialogTitle>
-                <DialogDescription>
-                    An invitation email has been successfully sent. The recipient can now join your community.
-                </DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="sm:justify-center">
-                <Button onClick={handleClose}>Done</Button>
-            </DialogFooter>
-        </DialogContent>
-       </Dialog>
-    )
-  }
-
   return (
-    <Dialog open={isOpen && !inviteSent} onOpenChange={handleClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="w-[calc(100vw-2rem)] max-w-lg sm:max-w-xl md:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Invite New Member</DialogTitle>
-          <DialogDescription>
-             An invitation email will be sent to the new member.
-          </DialogDescription>
-        </DialogHeader>
+        {inviteSent ? (
+            <>
+                <DialogHeader className="text-center items-center">
+                    <CheckCircle className="text-green-500 h-16 w-16 mb-4" />
+                    <DialogTitle className="text-2xl">Invitation Sent!</DialogTitle>
+                    <DialogDescription>
+                        An invitation email has been successfully sent. The recipient can now join your community.
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="sm:justify-center">
+                    <Button onClick={handleClose}>Done</Button>
+                </DialogFooter>
+            </>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle>Invite New Member</DialogTitle>
+              <DialogDescription>
+                 An invitation email will be sent to the new member.
+              </DialogDescription>
+            </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <ScrollArea className="h-[60vh] -mx-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4 px-6">
-                
-                <FormField name="firstName" control={form.control} render={({ field }) => (
-                  <FormItem><FormLabel>First Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
-                
-                <FormField name="lastName" control={form.control} render={({ field }) => (
-                  <FormItem><FormLabel>Last Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)}>
+                <ScrollArea className="h-[60vh] -mx-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4 px-6">
+                    
+                    <FormField name="firstName" control={form.control} render={({ field }) => (
+                      <FormItem><FormLabel>First Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    
+                    <FormField name="lastName" control={form.control} render={({ field }) => (
+                      <FormItem><FormLabel>Last Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
 
-                <FormField name="middleName" control={form.control} render={({ field }) => (
-                  <FormItem className="md:col-span-2"><FormLabel>Middle Name <span className="text-muted-foreground">(optional)</span></FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
+                    <FormField name="middleName" control={form.control} render={({ field }) => (
+                      <FormItem className="md:col-span-2"><FormLabel>Middle Name <span className="text-muted-foreground">(optional)</span></FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
 
-                <FormField
-                  control={form.control}
-                  name="tier"
-                  render={({ field }) => (
-                      <FormItem>
-                      <FormLabel>Age Group</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                          <SelectTrigger>
-                              <SelectValue placeholder="Select an age group" />
-                          </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                              {settings.ageGroups.map(group => <SelectItem key={group.id} value={group.name}>{group.name}</SelectItem>)}
-                          </SelectContent>
-                      </Select>
-                      <FormMessage />
-                      </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="gender"
-                  render={({ field }) => (
-                      <FormItem>
-                      <FormLabel>Gender</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                          <SelectTrigger>
-                              <SelectValue placeholder="Select gender" />
-                          </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                          <SelectItem value="male">Male</SelectItem>
-                          <SelectItem value="female">Female</SelectItem>
-                          </SelectContent>
-                      </Select>
-                      <FormMessage />
-                      </FormItem>
-                  )}
-                />
-                
-                <FormField control={form.control} name="family" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Family</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange} disabled={!!familyToAddTo}>
-                      <FormControl>
-                        <SelectTrigger><SelectValue placeholder="Select a family" /></SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {families.sort((a,b) => a.name.localeCompare(b.name)).map((f) => <SelectItem key={f.id} value={f.name}>{f.name}</SelectItem>)}
-                        <SelectItem value="new" className="font-bold text-primary">Create new family...</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                
-                {familyValue === 'new' && (
                     <FormField
-                        control={form.control}
-                        name="newFamilyName"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>New Family Name</FormLabel>
-                                <FormControl>
-                                    <Input {...field} placeholder="Enter family name" />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                )}
-
-                <FormField name="email" control={form.control} render={({ field }) => (
-                  <FormItem className={familyValue === 'new' ? '' : 'md:col-span-2'}>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl><Input type="email" placeholder="Email is required for an invite" {...field} value={field.value ?? ''} /></FormControl><FormMessage />
-                  </FormItem>
-                )} />
-
-                <FormItem className="md:col-span-2">
-                  <FormLabel>Phone <span className="text-muted-foreground">(optional)</span></FormLabel>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                     <FormField name="phoneCountryCode" control={form.control} render={({ field }) => (
-                        <FormItem className="w-full">
-                          <Select value={field.value} onValueChange={field.onChange}>
-                            <FormControl>
-                              <SelectTrigger><SelectValue placeholder="Code" /></SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {COUNTRY_OPTIONS.map((opt, idx) => (
-                                <SelectItem key={`${opt.code}-${idx}`} value={opt.code}>
-                                  {opt.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
+                      control={form.control}
+                      name="tier"
+                      render={({ field }) => (
+                          <FormItem>
+                          <FormLabel>Age Group</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                              <SelectTrigger>
+                                  <SelectValue placeholder="Select an age group" />
+                              </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                  {settings.ageGroups.map(group => <SelectItem key={group.id} value={group.name}>{group.name}</SelectItem>)}
+                              </SelectContent>
                           </Select>
                           <FormMessage />
-                        </FormItem>
-                     )} />
-                    <FormField name="phone" control={form.control} render={({ field }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormControl><Input type="tel" {...field} value={field.value ?? ''} /></FormControl>
+                          </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="gender"
+                      render={({ field }) => (
+                          <FormItem>
+                          <FormLabel>Gender</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                              <SelectTrigger>
+                                  <SelectValue placeholder="Select gender" />
+                              </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                              <SelectItem value="male">Male</SelectItem>
+                              <SelectItem value="female">Female</SelectItem>
+                              </SelectContent>
+                          </Select>
+                          <FormMessage />
+                          </FormItem>
+                      )}
+                    />
+                    
+                    <FormField control={form.control} name="family" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Family</FormLabel>
+                        <Select value={field.value} onValueChange={field.onChange} disabled={!!familyToAddTo}>
+                          <FormControl>
+                            <SelectTrigger><SelectValue placeholder="Select a family" /></SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {families.sort((a,b) => a.name.localeCompare(b.name)).map((f) => <SelectItem key={f.id} value={f.name}>{f.name}</SelectItem>)}
+                            <SelectItem value="new" className="font-bold text-primary">Create new family...</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )} />
+                    
+                    {familyValue === 'new' && (
+                        <FormField
+                            control={form.control}
+                            name="newFamilyName"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>New Family Name</FormLabel>
+                                    <FormControl>
+                                        <Input {...field} placeholder="Enter family name" />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    )}
+
+                    <FormField name="email" control={form.control} render={({ field }) => (
+                      <FormItem className={familyValue === 'new' ? '' : 'md:col-span-2'}>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl><Input type="email" placeholder="Email is required for an invite" {...field} value={field.value ?? ''} /></FormControl><FormMessage />
+                      </FormItem>
+                    )} />
+
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>Phone <span className="text-muted-foreground">(optional)</span></FormLabel>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                         <FormField name="phoneCountryCode" control={form.control} render={({ field }) => (
+                            <FormItem className="w-full">
+                              <Select value={field.value} onValueChange={field.onChange}>
+                                <FormControl>
+                                  <SelectTrigger><SelectValue placeholder="Code" /></SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {COUNTRY_OPTIONS.map((opt, idx) => (
+                                    <SelectItem key={`${opt.code}-${idx}`} value={opt.code}>
+                                      {opt.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                         )} />
+                        <FormField name="phone" control={form.control} render={({ field }) => (
+                          <FormItem className="md:col-span-2">
+                            <FormControl><Input type="tel" {...field} value={field.value ?? ''} /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                      </div>
+                    </FormItem>
+
                   </div>
-                </FormItem>
+                </ScrollArea>
 
-              </div>
-            </ScrollArea>
-
-            <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>Cancel</Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Sending...' : 'Send Invite'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+                <DialogFooter className="pt-4">
+                  <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>Cancel</Button>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? 'Sending...' : 'Send Invite'}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
 }
-
-    
