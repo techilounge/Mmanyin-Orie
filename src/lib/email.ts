@@ -3,8 +3,6 @@
 import { Resend } from 'resend';
 import InvitationEmail from '@/emails/invitation-email';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 interface SendInvitationEmailParams {
   to: string;
   communityName: string;
@@ -27,6 +25,9 @@ export async function sendInvitationEmail({
   }
 
   try {
+    // Initialize Resend inside the function, only when we know the key exists.
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    
     const { data, error } = await resend.emails.send({
       from: `Mmanyin Orie <no-reply@${process.env.NEXT_PUBLIC_RESEND_DOMAIN || 'resend.dev'}>`,
       to: [to],
