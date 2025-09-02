@@ -16,18 +16,24 @@ export async function sendInvitationEmail({
   inviteLink,
   inviterName,
 }: SendInvitationEmailParams) {
-  if (!process.env.RESEND_API_KEY) {
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const resendDomain = process.env.RESEND_DOMAIN;
+
+  if (!resendApiKey) {
     console.error("RESEND_API_KEY is not set. Cannot send email.");
-    // Throw an error that can be caught by the calling function
     throw new Error("Email sending is not configured. Administrator must set a Resend API key.");
+  }
+  
+  if (!resendDomain) {
+    console.error("RESEND_DOMAIN is not set. Cannot send email.");
+    throw new Error("Email sending is not configured. Administrator must set a Resend domain.");
   }
 
   try {
-    // Initialize Resend inside the function, only when we know the key exists.
-    const resend = new Resend(process.env.RESEND_API_KEY);
+    const resend = new Resend(resendApiKey);
     
     const { data, error } = await resend.emails.send({
-      from: `Mmanyin Orie <no-reply@${process.env.RESEND_DOMAIN || 'resend.dev'}>`,
+      from: `Mmanyin Orie <no-reply@${resendDomain}>`,
       to: [to],
       subject: `Invitation to join ${communityName}`,
       react: InvitationEmail({ communityName, inviteLink, inviterName }),
@@ -35,13 +41,13 @@ export async function sendInvitationEmail({
     });
 
     if (error) {
-      throw error;
+      console.error('Resend API Error:', error);
+      throw new Error(error.message);
     }
 
     return data;
   } catch (error) {
     console.error("Failed to send invitation email:", error);
-    // Re-throw the error so it can be caught by the calling function
-    throw new Error("Could not send the invitation email.");
+    throw new Error("Could not send the invitation email. Please check server logs for details.");
   }
 }
