@@ -19,7 +19,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({ user: null, appUser: null, loading: true, communityRole: null });
 
-const publicPaths = ['/', '/auth/sign-in', '/auth/sign-up', '/auth/accept-invite', '/subscribe', '/create-community'];
+const publicPaths = ['/', '/auth/sign-in', '/auth/sign-up', '/auth/accept-invite', '/subscribe', '/create-community', '/privacy', '/terms'];
 const isAuthPage = (path: string) => path.startsWith('/auth');
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -82,6 +82,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         });
     } else if (!user) {
         setCommunityRole(null);
+    } else {
+        // If there's a user but no communityId in path, we are not in a community context
+        // But we still need to set loading to false.
+        setLoading(false);
     }
 
     return () => {

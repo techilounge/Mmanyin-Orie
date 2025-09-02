@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { useToast } from '@/hooks/use-toast';
 import { Chrome } from 'lucide-react';
 import { signInWithGoogle, ensureUserDocument } from '@/lib/google-auth';
-import { doc, getDoc, updateDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, writeBatch, serverTimestamp, arrayUnion } from 'firebase/firestore';
 import type { Invitation } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/lib/auth';
@@ -57,16 +57,9 @@ export default function AcceptInvitePage() {
         // 3. Ensure the user document is created and add the new membership
         const userDocRef = doc(db, 'users', user.uid);
         const userSnap = await getDoc(userDocRef);
-
-        const primaryCommunityId = userSnap.exists() && userSnap.data().primaryCommunityId
-            ? userSnap.data().primaryCommunityId
-            : invitation.communityId;
-
-        const memberships = userSnap.exists() ? [...new Set([...(userSnap.data().memberships || []), invitation.communityId])] : [invitation.communityId];
-
+        
         const userData: { [key: string]: any } = {
-            primaryCommunityId,
-            memberships,
+            memberships: arrayUnion(invitation.communityId),
             displayName: user.displayName,
             email: user.email,
             photoURL: user.photoURL,
@@ -81,7 +74,7 @@ export default function AcceptInvitePage() {
         }
         
         await batch.commit();
-        router.push(`/app/${invitation.communityId}`);
+        router.push(`/app/switch-community`);
 
     } catch (error: any) {
         console.error("Error processing invite:", error);

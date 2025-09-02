@@ -7,10 +7,11 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Loader2, Check, Star } from 'lucide-react';
+import { Loader2, Check, Star, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Community } from '@/lib/types';
 import Image from 'next/image';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface CommunityWithDetails extends Community {
   id: string;
@@ -102,6 +103,16 @@ export default function SwitchCommunityPage() {
             <h1 className="text-3xl font-bold">Select a Community</h1>
             <p className="text-muted-foreground mt-2">Choose which community you would like to manage.</p>
         </div>
+
+        {!appUser?.primaryCommunityId && communities.length > 1 && (
+            <Alert className="mb-8 max-w-2xl">
+                <Info className="h-4 w-4" />
+                <AlertTitle>Set Your Primary Community</AlertTitle>
+                <AlertDescription>
+                    You belong to multiple communities. Set one as primary for a quicker login experience next time.
+                </AlertDescription>
+            </Alert>
+        )}
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
             {communities.map(community => {

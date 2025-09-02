@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { db } from '@/lib/firebase';
-import { addDoc, collection, doc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, doc, serverTimestamp, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -64,8 +64,7 @@ export default function CreateCommunityPage() {
             // 3. Update the user's document with the new membership
             const userDocRef = doc(db, 'users', user.uid);
             await updateDoc(userDocRef, {
-                primaryCommunityId: communityRef.id,
-                memberships: [communityRef.id]
+                memberships: arrayUnion(communityRef.id)
             });
             
             // 4. Redirect to the new community app
