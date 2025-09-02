@@ -16,7 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { COUNTRY_OPTIONS } from '@/lib/countries';
 import type { NewMemberData } from '@/lib/types';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Loader2 } from 'lucide-react';
 
 const formSchema = z.object({
   firstName: z.string().min(1, 'First name is required.'),
@@ -284,7 +284,7 @@ export function InviteMemberDialog() {
                 <DialogFooter className="pt-4">
                   <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>Cancel</Button>
                   <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? 'Sending...' : 'Send Invite'}
+                    {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Sending...</> : 'Send Invite'}
                   </Button>
                 </DialogFooter>
               </form>

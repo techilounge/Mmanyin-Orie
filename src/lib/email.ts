@@ -1,3 +1,4 @@
+
 'use server';
 import { Resend } from 'resend';
 import InvitationEmail from '@/emails/invitation-email';
@@ -19,13 +20,15 @@ export async function sendInvitationEmail({
   const resendDomain = process.env.RESEND_DOMAIN;
 
   if (!resendApiKey) {
-    console.error("RESEND_API_KEY is not set. Cannot send email.");
-    throw new Error("Email sending is not configured. Administrator must set a Resend API key.");
+    const message = "Email sending is not configured. Administrator must set a Resend API key.";
+    console.error(message);
+    throw new Error(message);
   }
   
   if (!resendDomain) {
-    console.error("RESEND_DOMAIN is not set. Cannot send email.");
-    throw new Error("Email sending is not configured. Administrator must set a Resend domain.");
+    const message = "Email sending is not configured. Administrator must set a Resend domain.";
+    console.error(message);
+    throw new Error(message);
   }
 
   try {
@@ -47,6 +50,7 @@ export async function sendInvitationEmail({
     return data;
   } catch (error) {
     console.error("Failed to send invitation email:", error);
-    throw new Error("Could not send the invitation email. Please check server logs for details.");
+    // Re-throw the original error to be handled by the caller
+    throw error;
   }
 }
