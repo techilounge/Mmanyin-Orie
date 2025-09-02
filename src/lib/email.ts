@@ -27,7 +27,7 @@ export async function sendInvitationEmail({
     const resend = new Resend(process.env.RESEND_API_KEY);
     
     const { data, error } = await resend.emails.send({
-      from: `Mmanyin Orie <no-reply@${process.env.NEXT_PUBLIC_RESEND_DOMAIN || 'resend.dev'}>`,
+      from: `Mmanyin Orie <no-reply@${process.env.RESEND_DOMAIN || 'resend.dev'}>`,
       to: [to],
       subject: `Invitation to join ${communityName}`,
       react: InvitationEmail({ communityName, inviteLink, inviterName }),
