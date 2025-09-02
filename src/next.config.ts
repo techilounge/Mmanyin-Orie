@@ -31,11 +31,6 @@ const nextConfig: NextConfig = {
         source: '/profile',
         destination: '/app/profile',
         permanent: true
-      },
-      {
-        source: '/switch-community',
-        destination: '/app/switch-community',
-        permanent: true
       }
     ]
   },
