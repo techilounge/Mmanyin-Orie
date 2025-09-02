@@ -1,4 +1,3 @@
-
 'use server';
 import { Resend } from 'resend';
 import InvitationEmail from '@/emails/invitation-email';
@@ -7,7 +6,7 @@ interface SendInvitationEmailParams {
   to: string;
   communityName: string;
   inviteLink: string;
-  inviterName: string;
+  inviterName:string;
 }
 
 export async function sendInvitationEmail({

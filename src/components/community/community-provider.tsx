@@ -771,7 +771,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         await updateDoc(contribDocRef, dataToUpdate);
         toast({ title: "Template Updated", description: `"${updatedContribution.name}" has been updated.` });
         closeDialog();
-    } catch (error: any) {
+    } catch (error: any).
         toast({ variant: "destructive", title: "Error updating template", description: error.message });
     }
   };
