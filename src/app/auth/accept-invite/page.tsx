@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { createUserWithEmailAndPassword, updateProfile, setPersistence, browserLocalPersistence, UserCredential } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile, setPersistence, browserLocalPersistence, type User } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,12 +11,14 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Chrome } from 'lucide-react';
-import { signInWithGoogle, completeGoogleRedirect, ensureUserDocument } from '@/lib/google-auth';
-import { doc, getDoc, updateDoc, writeBatch, setDoc, serverTimestamp } from 'firebase/firestore';
+import { signInWithGoogle, ensureUserDocument } from '@/lib/google-auth';
+import { doc, getDoc, updateDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import type { Invitation } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/lib/auth';
 
 export default function AcceptInvitePage() {
+  const { user: loggedInUser, loading: authLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -31,39 +33,7 @@ export default function AcceptInvitePage() {
   const { toast } = useToast();
   const token = searchParams.get('token');
 
-  useEffect(() => {
-    const fetchInvite = async () => {
-      if (!token) {
-        setError("No invitation token provided. Please use the link from your email.");
-        setIsProcessingInvite(false);
-        return;
-      }
-      try {
-        const inviteRef = doc(db, 'invitations', token);
-        const inviteSnap = await getDoc(inviteRef);
-        if (inviteSnap.exists()) {
-          const inviteData = inviteSnap.data() as Invitation;
-           if (inviteData.status !== 'pending') {
-             setError("This invitation has already been used or has expired.");
-           } else {
-            setInvitation(inviteData);
-            setEmail(inviteData.email);
-            setDisplayName(`${inviteData.firstName} ${inviteData.lastName}`);
-           }
-        } else {
-          setError("This invitation is invalid or could not be found.");
-        }
-      } catch (e) {
-        console.error("Error fetching invitation: ", e);
-        setError("Failed to retrieve invitation details. This could be due to a network issue or invalid security rules.");
-      } finally {
-        setIsProcessingInvite(false);
-      }
-    };
-    fetchInvite();
-  }, [token]);
-
-  const processAcceptedInvite = async (user: UserCredential['user']) => {
+  const processAcceptedInvite = async (user: User) => {
     if (!invitation || !token) return;
     setIsProcessingInvite(true);
     try {
@@ -94,7 +64,7 @@ export default function AcceptInvitePage() {
 
         const memberships = userSnap.exists() ? [...new Set([...(userSnap.data().memberships || []), invitation.communityId])] : [invitation.communityId];
 
-        const userData = {
+        const userData: { [key: string]: any } = {
             primaryCommunityId,
             memberships,
             displayName: user.displayName,
@@ -106,7 +76,8 @@ export default function AcceptInvitePage() {
         if (userSnap.exists()) {
              batch.update(userDocRef, userData);
         } else {
-            batch.set(userDocRef, { ...userData, createdAt: serverTimestamp() });
+            userData.createdAt = serverTimestamp();
+            batch.set(userDocRef, userData);
         }
         
         await batch.commit();
@@ -119,6 +90,61 @@ export default function AcceptInvitePage() {
     }
   };
 
+  // Effect to handle already logged-in users
+  useEffect(() => {
+    if (!authLoading && loggedInUser && invitation) {
+        // If logged in user's email matches invitation, process it.
+        if (loggedInUser.email === invitation.email) {
+            processAcceptedInvite(loggedInUser);
+        } else {
+        // If email doesn't match, it's an invite for a different account.
+        // Sign out and let them sign in to the correct one.
+            auth.signOut().then(() => {
+                toast({ title: 'Account Mismatch', description: 'This invitation is for a different email. Please sign in to the correct account.' });
+                // Let the regular flow handle the rest after sign out.
+            });
+        }
+    }
+  }, [authLoading, loggedInUser, invitation]);
+
+
+  useEffect(() => {
+    const fetchInvite = async () => {
+      if (!token) {
+        setError("No invitation token provided. Please use the link from your email.");
+        setIsProcessingInvite(false);
+        return;
+      }
+      try {
+        const inviteRef = doc(db, 'invitations', token);
+        const inviteSnap = await getDoc(inviteRef);
+        if (inviteSnap.exists()) {
+          const inviteData = inviteSnap.data() as Invitation;
+           if (inviteData.status !== 'pending') {
+             setError("This invitation has already been used or has expired.");
+           } else {
+            setInvitation(inviteData);
+            setEmail(inviteData.email);
+            setDisplayName(`${inviteData.firstName} ${inviteData.lastName}`);
+           }
+        } else {
+          setError("This invitation is invalid or could not be found.");
+        }
+      } catch (e) {
+        console.error("Error fetching invitation: ", e);
+        setError("Failed to retrieve invitation details. This could be due to a network issue or invalid security rules.");
+      } finally {
+        // Only set processing to false if we are not already handling a logged-in user
+        if (!loggedInUser) {
+           setIsProcessingInvite(false);
+        }
+      }
+    };
+    if (!authLoading) {
+        fetchInvite();
+    }
+  }, [token, authLoading, loggedInUser]);
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password.length < 6) {
@@ -130,13 +156,7 @@ export default function AcceptInvitePage() {
       await setPersistence(auth, browserLocalPersistence);
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(userCredential.user, { displayName });
-      // Re-fetch user to get the updated profile
-      const updatedUser = auth.currentUser;
-      if (updatedUser) {
-        await processAcceptedInvite(updatedUser as any);
-      } else {
-        throw new Error("Could not get updated user details.");
-      }
+      await processAcceptedInvite(userCredential.user);
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Sign Up Failed', description: error.message });
       setIsLoading(false);
@@ -162,7 +182,7 @@ export default function AcceptInvitePage() {
     }
   };
 
-  if (isProcessingInvite) {
+  if (isProcessingInvite || authLoading) {
       return (
         <Card className="w-full">
             <CardHeader><CardTitle>Verifying Invitation...</CardTitle></CardHeader>
