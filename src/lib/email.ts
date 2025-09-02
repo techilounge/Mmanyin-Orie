@@ -17,11 +17,9 @@ export async function sendInvitationEmail({
   inviterName,
 }: SendInvitationEmailParams) {
   if (!process.env.RESEND_API_KEY) {
-    console.warn("RESEND_API_KEY is not set. Skipping email sending.");
-    // In a real app, you might want to throw an error or handle this differently.
-    // For this context, we will log a warning and proceed without sending an email
-    // to prevent the app from breaking if the user hasn't set up their key yet.
-    return;
+    console.error("RESEND_API_KEY is not set. Cannot send email.");
+    // Throw an error that can be caught by the calling function
+    throw new Error("Email sending is not configured. Administrator must set a Resend API key.");
   }
 
   try {
