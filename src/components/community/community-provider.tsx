@@ -357,7 +357,8 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
       const inviteSnap = await getDoc(inviteRef);
 
       if (inviteSnap.exists() && inviteSnap.data().status === 'pending') {
-          return `${window.location.origin}/auth/accept-invite?token=${inviteId}`;
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+          return `${appUrl}/auth/accept-invite?token=${inviteId}`;
       }
       
       return null;
@@ -479,7 +480,8 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
 
         await batch.commit();
         
-        const inviteLink = `${window.location.origin}/auth/accept-invite?token=${inviteDocRef.id}`;
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+        const inviteLink = `${appUrl}/auth/accept-invite?token=${inviteDocRef.id}`;
 
         // Send email using Resend
         await sendInvitationEmail({
