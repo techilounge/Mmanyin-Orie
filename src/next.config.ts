@@ -35,30 +35,29 @@ const nextConfig: NextConfig = {
     ]
   },
   async headers() {
-    // Allow embedding only in dev/Studio when flag is set; keep strict in prod
-    const allowIframe = process.env.NEXT_PUBLIC_ALLOW_IFRAME === '1' || process.env.NODE_ENV !== 'production';
-
     const csp = [
       "default-src 'self'",
+      "base-uri 'self'",
+      // Fonts and inline images (favicons, data URLs)
       "font-src 'self' data:",
-      "img-src 'self' data: https: https://firebasestorage.googleapis.com",
+      "img-src 'self' data: blob: https://firebasestorage.googleapis.com https://*.googleusercontent.com https://lh3.googleusercontent.com https://mmanyin-orie.firebasestorage.app",
+      // Uploads / downloads (XHR/fetch/WebSocket)
+      "connect-src 'self' https://*.firebaseio.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://apis.google.com https://accounts.google.com https://www.googleapis.com https://firebasestorage.googleapis.com https://mmanyin-orie.firebasestorage.app",
+      // Optional if you use <video>/<audio> directly from Storage
+      "media-src 'self' blob: https://firebasestorage.googleapis.com https://mmanyin-orie.firebasestorage.app",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com",
       "style-src 'self' 'unsafe-inline'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://apis.google.com https://accounts.google.com",
-      "connect-src 'self' https://*.firebaseio.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://apis.google.com https://accounts.google.com https://*.cloudworkstations.dev https://firebasestorage.googleapis.com",
-      "frame-src 'self' https://accounts.google.com https://*.firebaseapp.com https://*.cloudworkstations.dev",
+      "frame-src https://accounts.google.com"
     ].join('; ');
 
     return [
       {
-        source: '/(.*)',
+        source: '/:path*',
         headers: [
-          // Only send X-Frame-Options in prod; omit in Studio/dev so embedding works
-          ...(!allowIframe ? [{ key: 'X-Frame-Options', value: 'SAMEORIGIN' }] : []),
-          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
           { key: 'Content-Security-Policy', value: csp },
-        ],
-      },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' }
+        ]
+      }
     ];
   },
 };
