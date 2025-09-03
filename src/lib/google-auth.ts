@@ -5,8 +5,6 @@ import { auth, db } from '@/lib/firebase';
 import {
   GoogleAuthProvider,
   signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
   setPersistence,
   browserLocalPersistence,
   UserCredential,
@@ -33,27 +31,12 @@ export async function signInWithGoogle(loginHint?: string): Promise<UserCredenti
     const cred = await signInWithPopup(auth, provider);
     return cred;
   } catch (e: any) {
-    const code = e?.code ?? '';
-    if (
-      code === 'auth/popup-blocked' ||
-      code === 'auth/operation-not-supported-in-this-environment' ||
-      code === 'auth/internal-error'
-    ) {
-      await signInWithRedirect(auth, provider);
+    if (e.code === 'auth/popup-closed-by-user') {
       return null;
     }
+    // For other errors, re-throw them to be caught by the caller.
     throw e;
   }
-}
-
-/** Call on auth pages to complete redirect flows & create/update /users doc. */
-export async function completeGoogleRedirect(): Promise<UserCredential | null> {
-  await setPersistence(auth, browserLocalPersistence);
-  const result = await getRedirectResult(auth).catch(() => null);
-  if (result?.user) {
-    await ensureUserDocument(result.user);
-  }
-  return result;
 }
 
 export async function ensureUserDocument(user: FirebaseUser, extraData?: Partial<AppUser>) {

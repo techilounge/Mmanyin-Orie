@@ -1,6 +1,6 @@
 
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword, updateProfile, setPersistence, browserLocalPersistence } from 'firebase/auth';
@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Chrome } from 'lucide-react';
-import { signInWithGoogle, completeGoogleRedirect, ensureUserDocument } from '@/lib/google-auth';
+import { signInWithGoogle, ensureUserDocument } from '@/lib/google-auth';
 
 
 export default function SignUpPage() {
@@ -22,13 +22,6 @@ export default function SignUpPage() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
-
-  useEffect(() => {
-    // finish redirect flows quietly
-    completeGoogleRedirect().then((res) => {
-      if (res?.user) router.push('/subscribe');
-    });
-  }, [router]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
