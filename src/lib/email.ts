@@ -25,7 +25,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Prefer RESEND_FROM = "Mmanyin Orie <no-reply@mmanyinorie.com>"
 function buildFrom(): string {
   const fromEnv = process.env.RESEND_FROM?.trim();
-  const domainEnv = process.env.RESEND_DOMAIN?.trim();
+  const domainEnv = process.env.RESEND_DOMAIN?.trim() || process.env.NEXT_PUBLIC_APP_URL?.trim();
 
   if (fromEnv) {
     // Allow "email@domain" or "Name <email@domain>"
@@ -47,12 +47,12 @@ function buildFrom(): string {
 
     const email = `no-reply@${domain}`;
     if (!EMAIL_RE.test(email)) {
-      throw new Error('RESEND_DOMAIN must be a bare domain like "example.com" (no https://, no path).');
+      throw new Error('RESEND_DOMAIN/NEXT_PUBLIC_APP_URL must be a bare domain like "example.com" (no https://, no path).');
     }
     return `Mmanyin Orie <${email}>`;
   }
 
-  throw new Error('Email sending is not configured. Set RESEND_FROM or RESEND_DOMAIN.');
+  throw new Error('Email sending is not configured. Set RESEND_FROM, RESEND_DOMAIN, or NEXT_PUBLIC_APP_URL.');
 }
 
 function sanitizeRecipient(v: string): string {

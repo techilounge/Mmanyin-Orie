@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- **Email Notifications**: Fixed a critical bug in the server-side email utility that prevented new member notifications from being sent. The function for constructing the "from" address was corrected to handle different environment variable configurations, ensuring reliable email delivery.
+
 ### Added
 - **New Member Notifications**: Implemented email notifications to community owners and admins when a new member joins, either through manual addition or by accepting an invitation.
 
@@ -23,4 +26,3 @@ All notable changes to this project will be documented in this file.
 - **Invitation Links**: Ensured that generated invitation links use the correct custom domain specified in the environment variables.
 - **Build Errors**: Corrected various syntax errors in `.tsx` files that were causing the Next.js build to fail.
 - **Multi-Community Routing**: Fixed a bug where a user belonging to multiple communities was not prompted to select a community on login. The logic was corrected to route them to the `/app/switch-community` page if no primary community is set.
-
