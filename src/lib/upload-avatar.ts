@@ -1,34 +1,27 @@
-'use client';
-
-import { getAuth } from 'firebase/auth';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { storage } from '@/lib/firebase'
 
 export type UploadAvatarResult = {
-  ok: true;
-  url: string;
-  path: string;
-  bucket: string;
-};
+  ok: true
+  url: string
+  path: string
+  bucket: string
+}
 
-export async function uploadAvatarViaApi(file: File): Promise<UploadAvatarResult> {
-  const auth = getAuth();
-  const user = auth.currentUser;
-  if (!user) throw new Error('You must be signed in');
+export async function uploadAvatarDirect(file: File, uid: string): Promise<UploadAvatarResult> {
+  const path = `avatars/${uid}/profile.png`
+  const objectRef = ref(storage, path)
 
-  const idToken = await user.getIdToken();
+  // Upload the file
+  await uploadBytes(objectRef, file, {
+    contentType: file.type || 'image/png'
+  })
 
-  const form = new FormData();
-  form.append('file', file);
+  // Get a download URL for immediate preview
+  const url = await getDownloadURL(objectRef)
 
-  const res = await fetch('/api/upload-avatar', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${idToken}` },
-    body: form,
-  });
+  // Bucket is derived from config; we include it for completeness
+  const bucket = (process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET as string) || ''
 
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({} as any));
-    throw new Error(data?.error || `Upload failed (${res.status})`);
-  }
-
-  return (await res.json()) as UploadAvatarResult;
+  return { ok: true, url, path, bucket }
 }

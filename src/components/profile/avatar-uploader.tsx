@@ -1,80 +1,111 @@
-'use client';
+'use client'
 
-import { useState, useRef } from 'react';
-import { useAuth } from '@/lib/auth';
-import { db } from '@/lib/firebase';
-import { updateProfile } from 'firebase/auth';
-import { doc, updateDoc } from 'firebase/firestore';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2, User, Upload, Trash2 } from 'lucide-react';
-import { uploadAvatarViaApi } from '@/lib/upload-avatar';
+import { useState, useRef } from 'react'
+import Image from 'next/image'
+import { useAuthState } from 'react-firebase-hooks/auth'
+import { auth, db } from '@/lib/firebase'
+import { doc, updateDoc } from 'firebase/firestore'
+import { uploadAvatarDirect } from '@/lib/upload-avatar'
+import { Button } from '@/components/ui/button'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { useToast } from '@/hooks/use-toast'
+import { Loader2, Upload, Trash2 } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { useAuth } from '@/lib/auth'
+
+
+function initialsFromName(name?: string | null) {
+  if (!name) return 'U'
+  const parts = name.trim().split(/\s+/)
+  const first = parts[0]?.[0] ?? ''
+  const last = parts.length > 1 ? parts[parts.length - 1][0] ?? '' : ''
+  return (first + last).toUpperCase() || 'U'
+}
 
 export function AvatarUploader() {
   const { user } = useAuth();
-  const { toast } = useToast();
-  const [isUploading, setIsUploading] = useState(false);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(user?.photoURL || null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const { toast } = useToast()
+  const [isSaving, setIsSaving] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setAvatarFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
-    }
-  };
+  const currentPhoto = previewUrl || user?.photoURL || null
 
-  const handleUpload = async () => {
-    if (!user || !avatarFile) return;
+  const onPickFile = () => fileInputRef.current?.click()
+
+  const onFileChosen: React.ChangeEventHandler<HTMLInputElement> = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    // Show a quick local preview
+    const local = URL.createObjectURL(file)
+    setPreviewUrl(local)
 
     try {
-      setIsUploading(true);
+      await doUpload(file)
+    } finally {
+      // Revoke local preview URL after upload (avoid memory leaks)
+      setTimeout(() => URL.revokeObjectURL(local), 5000)
+    }
+  }
 
-      const { url } = await uploadAvatarViaApi(avatarFile);
+  async function doUpload(file: File) {
+    if (!user) {
+      toast({ title: 'You must be signed in', variant: 'destructive' })
+      return
+    }
 
-      // Update Firebase Auth profile + Firestore doc
-      await updateProfile(user, { photoURL: url }).catch(() => {});
-      await updateDoc(doc(db, 'users', user.uid), { photoURL: url });
+    setIsSaving(true)
+    try {
+      const res = await uploadAvatarDirect(file, user.uid)
 
-      setPreviewUrl(url);
-      setAvatarFile(null);
-      toast({ title: 'Avatar updated' });
+      // Optional: append a cache-busting query so <img> refreshes instantly
+      const busted = `${res.url}${res.url.includes('?') ? '&' : '?'}v=${Date.now()}`
+
+      // Persist on the user document (keeps your UI consistent everywhere)
+      await updateDoc(doc(db, 'users', user.uid), {
+        photoURL: busted,
+        photoPath: res.path,
+        updatedAt: new Date(),
+      })
+
+      setPreviewUrl(busted)
+      toast({ title: 'Avatar updated ✅' })
     } catch (err: any) {
-      console.error('Avatar upload failed:', err);
+      console.error('Avatar upload failed:', err)
       toast({
         title: 'Upload failed',
-        description: err?.message || 'Please try again.',
+        description:
+          err?.message ??
+          'Unable to upload your avatar right now. Please try again.',
         variant: 'destructive',
-      });
+      })
     } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      setIsSaving(false)
     }
-  };
+  }
 
-  const handleRemoveAvatar = async () => {
-    if (!user) return;
+  const handleRemove = async () => {
+    if (!user) return
+    setIsSaving(true)
     try {
-      setIsUploading(true);
-      await updateProfile(user, { photoURL: null }).catch(() => {});
-      await updateDoc(doc(db, 'users', user.uid), { photoURL: null });
-      setPreviewUrl(null);
-      toast({ title: 'Avatar removed' });
+      await updateDoc(doc(db, 'users', user.uid), {
+        photoURL: null,
+        photoPath: null,
+        updatedAt: new Date(),
+      })
+      setPreviewUrl(null)
+      toast({ title: 'Avatar removed' })
     } catch (err: any) {
+      console.error(err)
       toast({
-        title: 'Failed to remove avatar',
-        description: err?.message || 'Please try again.',
+        title: 'Could not remove avatar',
+        description: err?.message ?? 'Please try again.',
         variant: 'destructive',
-      });
+      })
     } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      setIsSaving(false)
     }
-  };
+  }
 
   return (
     <Card>
@@ -82,58 +113,42 @@ export function AvatarUploader() {
         <CardTitle>Avatar</CardTitle>
         <CardDescription>Change your profile picture.</CardDescription>
       </CardHeader>
-
       <CardContent className="flex flex-col items-center gap-6">
-        <Avatar className="h-24 w-24">
-          <AvatarImage src={previewUrl ?? undefined} alt="Profile" />
-          <AvatarFallback>
-            <User className="h-8 w-8" />
-          </AvatarFallback>
-        </Avatar>
-
         <input
-          ref={fileInputRef}
-          type="file"
-          className="hidden"
-          accept="image/*"
-          onChange={handleFileChange}
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={onFileChosen}
         />
 
-        <div className="flex items-center gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
-          >
-            <Upload className="mr-2 h-4 w-4" />
-            Change Photo
-          </Button>
+        <Avatar className="h-24 w-24">
+            {currentPhoto ? (
+            <AvatarImage asChild>
+                <Image
+                src={currentPhoto}
+                alt="Avatar"
+                fill
+                sizes="96px"
+                style={{ objectFit: 'cover' }}
+                priority
+                />
+            </AvatarImage>
+            ) : null}
+            <AvatarFallback>{initialsFromName(user?.displayName)}</AvatarFallback>
+        </Avatar>
 
-          <Button
-            type="button"
-            variant="destructive"
-            onClick={handleRemoveAvatar}
-            disabled={isUploading}
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Remove
-          </Button>
+        <div className="flex gap-3">
+            <Button variant="outline" onClick={onPickFile} disabled={isSaving}>
+                 <Upload className="mr-2 h-4 w-4" />
+                {isSaving ? 'Uploading...' : 'Change Photo'}
+            </Button>
+            <Button variant="destructive" onClick={handleRemove} disabled={isSaving}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Remove
+            </Button>
         </div>
       </CardContent>
-
-      <CardFooter className="border-t px-6 py-4">
-        <Button onClick={handleUpload} disabled={!avatarFile || isUploading}>
-          {isUploading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            'Save Changes'
-          )}
-        </Button>
-      </CardFooter>
     </Card>
-  );
+  )
 }
