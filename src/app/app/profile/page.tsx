@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProfileForm } from "@/components/profile/profile-form";
-import { AvatarUploader } from "@/components/profile/avatar-uploader";
+import AvatarUploader from "@/components/profile/avatar-uploader";
 import { SecuritySettings } from "@/components/profile/security-settings";
 import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/firebase";
