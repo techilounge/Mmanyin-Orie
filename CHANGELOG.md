@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Firestore Security Rules**: Created `firebase.rules` and implemented security rules to allow authenticated users to trigger email notifications, and to secure community and user data.
 - **New Member Notifications**: Implemented a robust email notification system using the "Trigger Email" Firebase Extension. Community owners and admins are now notified when a new member joins.
 
 ### Fixed
