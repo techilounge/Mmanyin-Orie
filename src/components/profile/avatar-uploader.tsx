@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { useAuthState } from 'react-firebase-hooks/auth'
 import { auth, db } from '@/lib/firebase'
 import { doc, updateDoc } from 'firebase/firestore'
+import { updateProfile } from 'firebase/auth'
 import { uploadAvatarDirect } from '@/lib/upload-avatar'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -35,52 +36,50 @@ export function AvatarUploader() {
 
   const onFileChosen: React.ChangeEventHandler<HTMLInputElement> = async (e) => {
     const file = e.target.files?.[0]
-    if (!file) return
-    // Show a quick local preview
-    const local = URL.createObjectURL(file)
-    setPreviewUrl(local)
+    if (!file || !user) return
 
-    try {
-      await doUpload(file)
-    } finally {
-      // Revoke local preview URL after upload (avoid memory leaks)
-      setTimeout(() => URL.revokeObjectURL(local), 5000)
-    }
-  }
-
-  async function doUpload(file: File) {
-    if (!user) {
-      toast({ title: 'You must be signed in', variant: 'destructive' })
-      return
-    }
+    // Local preview first (works with <img src="blob:...">)
+    const localPreview = URL.createObjectURL(file)
+    setPreviewUrl(localPreview)
 
     setIsSaving(true)
     try {
-      const res = await uploadAvatarDirect(file, user.uid)
+      const result = await uploadAvatarDirect(file, user.uid)
 
-      // Optional: append a cache-busting query so <img> refreshes instantly
-      const busted = `${res.url}${res.url.includes('?') ? '&' : '?'}v=${Date.now()}`
+      // cache-bust the CDN url so it refreshes immediately
+      const busted = `${result.url}${result.url.includes('?') ? '&' : '?'}v=${Date.now()}`
 
-      // Persist on the user document (keeps your UI consistent everywhere)
+      // 1) update Firestore user doc
       await updateDoc(doc(db, 'users', user.uid), {
         photoURL: busted,
-        photoPath: res.path,
+        photoPath: result.path,
         updatedAt: new Date(),
       })
 
+      // 2) update Firebase Auth profile so the avatar persists across routes/reloads
+      if (auth.currentUser) {
+        await updateProfile(auth.currentUser, { photoURL: busted })
+      }
+
+      // 3) swap the preview to the real URL
       setPreviewUrl(busted)
+
       toast({ title: 'Avatar updated ✅' })
     } catch (err: any) {
       console.error('Avatar upload failed:', err)
       toast({
         title: 'Upload failed',
-        description:
-          err?.message ??
-          'Unable to upload your avatar right now. Please try again.',
+        description: err?.message ?? 'Please try again.',
         variant: 'destructive',
       })
+      // if upload failed, drop the temporary preview
+      setPreviewUrl(null)
     } finally {
+      // clean up the blob URL after a moment
+      setTimeout(() => URL.revokeObjectURL(localPreview), 5000)
       setIsSaving(false)
+      // reset the input so picking the same file again works
+      if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
 
@@ -93,6 +92,9 @@ export function AvatarUploader() {
         photoPath: null,
         updatedAt: new Date(),
       })
+      if (auth.currentUser) {
+        await updateProfile(auth.currentUser, { photoURL: null })
+      }
       setPreviewUrl(null)
       toast({ title: 'Avatar removed' })
     } catch (err: any) {
@@ -124,16 +126,12 @@ export function AvatarUploader() {
 
         <Avatar className="h-24 w-24">
             {currentPhoto ? (
-            <AvatarImage asChild>
-                <Image
+            <AvatarImage
                 src={currentPhoto}
                 alt="Avatar"
-                fill
-                sizes="96px"
-                style={{ objectFit: 'cover' }}
-                priority
-                />
-            </AvatarImage>
+                referrerPolicy="no-referrer"
+                crossOrigin="anonymous"
+            />
             ) : null}
             <AvatarFallback>{initialsFromName(user?.displayName)}</AvatarFallback>
         </Avatar>
