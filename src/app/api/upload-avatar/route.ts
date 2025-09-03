@@ -1,75 +1,44 @@
 // src/app/api/upload-avatar/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { getAdminAuth, getAdminStorage } from '@/lib/firebase-admin';
 
-export const runtime = 'nodejs';          // ensure Node.js, not Edge
-export const dynamic = 'force-dynamic';   // avoid static optimization
+export const runtime = 'nodejs'; // ensure Node runtime (not edge)
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST,OPTIONS',
-  'Access-Control-Allow-Headers': 'Authorization, Content-Type',
-};
-
-export async function OPTIONS() {
-  return NextResponse.json({}, { headers: CORS_HEADERS });
-}
-
+// Accepts multipart/form-data with key "file" and Authorization: Bearer <idToken>
 export async function POST(req: NextRequest) {
   try {
-    // --- Auth: verify Firebase ID token from Authorization header
-    const authHeader = req.headers.get('authorization') || '';
-    const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
-
-    if (!idToken) {
-      return NextResponse.json(
-        { error: 'Missing Authorization header' },
-        { status: 401, headers: CORS_HEADERS }
-      );
+    const authHeader = req.headers.get('authorization') ?? req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Missing Authorization: Bearer <ID token>' }, { status: 401 });
     }
+    const idToken = authHeader.slice('Bearer '.length);
 
-    const { getAdminAuth, getAdminStorage } = await import('@/lib/firebase-admin');
+    // Verifies against the correct project because projectId was set in firebase-admin.ts
     const auth = getAdminAuth();
     const decoded = await auth.verifyIdToken(idToken);
-    const uid = decoded.uid;
-
-    // --- Read file from multipart/form-data
-    const ct = req.headers.get('content-type') || '';
-    if (!ct.toLowerCase().includes('multipart/form-data')) {
-      return NextResponse.json(
-        { error: 'Content-Type must be multipart/form-data' },
-        { status: 400, headers: CORS_HEADERS }
-      );
-    }
 
     const form = await req.formData();
-    const file = form.get('file');
-
-    if (!(file instanceof File)) {
-      return NextResponse.json(
-        { error: "Missing 'file' field" },
-        { status: 400, headers: CORS_HEADERS }
-      );
+    const file = form.get('file') as File | null;
+    if (!file) {
+      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
     const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const bytes = Buffer.from(arrayBuffer);
     const contentType = file.type || 'application/octet-stream';
+    const ext = (contentType.split('/')[1] || 'png').toLowerCase();
+    const path = `avatars/${decoded.uid}/profile.${ext}`;
 
-    // --- Upload to Storage
     const storage = getAdminStorage();
-    const bucket = storage.bucket(); // uses default bucket from FIREBASE_CONFIG
-    const path = `avatars/${uid}/profile.png`;
-
+    const bucket = storage.bucket(); // uses storageBucket from admin init
     const token = crypto.randomUUID();
 
-    await bucket.file(path).save(buffer, {
+    await bucket.file(path).save(bytes, {
       resumable: false,
       contentType,
       metadata: {
-        cacheControl: 'public, max-age=3600',
-        metadata: {
-          firebaseStorageDownloadTokens: token,
-        },
+        cacheControl: 'public,max-age=3600',
+        metadata: { firebaseStorageDownloadTokens: token },
       },
     });
 
@@ -77,14 +46,9 @@ export async function POST(req: NextRequest) {
       path
     )}?alt=media&token=${token}`;
 
-    return NextResponse.json(
-      { ok: true, url, path, bucket: bucket.name },
-      { headers: CORS_HEADERS }
-    );
+    return NextResponse.json({ ok: true, url, path, bucket: bucket.name });
   } catch (err: any) {
-    console.error('Upload avatar failed:', err);
-    const message =
-      typeof err?.message === 'string' ? err.message : 'Internal Server Error';
-    return NextResponse.json({ error: message }, { status: 500, headers: CORS_HEADERS });
+    // Surface auth/audience errors to the client for easier debugging
+    return NextResponse.json({ error: err?.message || 'Upload failed' }, { status: 500 });
   }
 }

@@ -3,17 +3,19 @@ import { getApps, initializeApp, applicationDefault } from 'firebase-admin/app';
 import { getAuth as _getAuth } from 'firebase-admin/auth';
 import { getStorage as _getStorage } from 'firebase-admin/storage';
 
-type FbCfg = { projectId?: string; storageBucket?: string };
+type Cfg = { projectId?: string; storageBucket?: string };
 
-function readFirebaseConfig(): FbCfg {
-  // App Hosting / Studio injects FIREBASE_CONFIG, and we also fall back to
-  // FIREBASE_WEBAPP_CONFIG or env vars while developing locally.
+function readCfg(): Cfg {
+  // App Hosting / Studio injects FIREBASE_CONFIG. Fall back to web config/env.
   try {
-    if (process.env.FIREBASE_CONFIG) return JSON.parse(process.env.FIREBASE_CONFIG);
+    if (process.env.FIREBASE_CONFIG) {
+      return JSON.parse(process.env.FIREBASE_CONFIG);
+    }
   } catch {}
   try {
-    if (process.env.FIREBASE_WEBAPP_CONFIG)
+    if (process.env.FIREBASE_WEBAPP_CONFIG) {
       return JSON.parse(process.env.FIREBASE_WEBAPP_CONFIG);
+    }
   } catch {}
 
   return {
@@ -29,13 +31,20 @@ function getAdminApp() {
   const existing = getApps()[0];
   if (existing) return existing;
 
-  const cfg = readFirebaseConfig();
+  const cfg = readCfg();
+  const projectId =
+    cfg.projectId ||
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
+    'mmanyin-orie'; // safe fallback
 
-  // CRITICAL: Set projectId so verifyIdToken expects the correct "aud"
+  const storageBucket =
+    cfg.storageBucket || process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+
+  // CRITICAL: set projectId so verifyIdToken expects the real project (not "monospace-1")
   return initializeApp({
     credential: applicationDefault(),
-    projectId: cfg.projectId,               // <- fixes "aud" mismatch
-    storageBucket: cfg.storageBucket,
+    projectId,
+    storageBucket,
   });
 }
 
