@@ -1,36 +1,46 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import Image from 'next/image'
-import { useAuthState } from 'react-firebase-hooks/auth'
+import { useEffect, useRef, useState } from 'react'
 import { auth, db } from '@/lib/firebase'
+import { useAuthState } from 'react-firebase-hooks/auth'
 import { doc, updateDoc } from 'firebase/firestore'
 import { updateProfile } from 'firebase/auth'
 import { uploadAvatarDirect } from '@/lib/upload-avatar'
 import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useToast } from '@/hooks/use-toast'
-import { Loader2, Upload, Trash2 } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { useAuth } from '@/lib/auth'
+import { Loader2, Upload, Trash2 } from 'lucide-react'
 
 
 function initialsFromName(name?: string | null) {
   if (!name) return 'U'
   const parts = name.trim().split(/\s+/)
   const first = parts[0]?.[0] ?? ''
-  const last = parts.length > 1 ? parts[parts.length - 1][0] ?? '' : ''
+  const last = parts.length > 1 ? parts.at(-1)?.[0] ?? '' : ''
   return (first + last).toUpperCase() || 'U'
 }
 
 export function AvatarUploader() {
-  const { user } = useAuth();
+  const { user } = useAuth()
   const { toast } = useToast()
   const [isSaving, setIsSaving] = useState(false)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+
+  // local preview URL (blob:) or the final Storage URL
+  const [localUrl, setLocalUrl] = useState<string | null>(null)
+
+  // when true, we show the initials fallback instead of the <img>
+  const [imgError, setImgError] = useState(false)
+
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const currentPhoto = previewUrl || user?.photoURL || null
+  const currentPhoto = localUrl ?? user?.photoURL ?? null
+  const initials = initialsFromName(user?.displayName)
+
+  // reset image error whenever the src changes
+  useEffect(() => {
+    setImgError(false)
+  }, [currentPhoto])
 
   const onPickFile = () => fileInputRef.current?.click()
 
@@ -38,32 +48,33 @@ export function AvatarUploader() {
     const file = e.target.files?.[0]
     if (!file || !user) return
 
-    // Local preview first (works with <img src="blob:...">)
-    const localPreview = URL.createObjectURL(file)
-    setPreviewUrl(localPreview)
+    // instant local preview
+    const preview = URL.createObjectURL(file)
+    setLocalUrl(preview)
 
     setIsSaving(true)
     try {
+      // upload to Firebase Storage and get a download URL
       const result = await uploadAvatarDirect(file, user.uid)
 
-      // cache-bust the CDN url so it refreshes immediately
+      // cache-bust so the CDN shows the fresh image right away
       const busted = `${result.url}${result.url.includes('?') ? '&' : '?'}v=${Date.now()}`
 
-      // 1) update Firestore user doc
+      // 1) Firestore user doc
       await updateDoc(doc(db, 'users', user.uid), {
         photoURL: busted,
         photoPath: result.path,
         updatedAt: new Date(),
       })
 
-      // 2) update Firebase Auth profile so the avatar persists across routes/reloads
+      // 2) Firebase Auth profile (and force a reload so hooks see it)
       if (auth.currentUser) {
         await updateProfile(auth.currentUser, { photoURL: busted })
+        await auth.currentUser.reload()
       }
 
-      // 3) swap the preview to the real URL
-      setPreviewUrl(busted)
-
+      // 3) Swap preview to the real URL
+      setLocalUrl(busted)
       toast({ title: 'Avatar updated ✅' })
     } catch (err: any) {
       console.error('Avatar upload failed:', err)
@@ -72,13 +83,12 @@ export function AvatarUploader() {
         description: err?.message ?? 'Please try again.',
         variant: 'destructive',
       })
-      // if upload failed, drop the temporary preview
-      setPreviewUrl(null)
+      // rollback preview
+      setLocalUrl(null)
     } finally {
-      // clean up the blob URL after a moment
-      setTimeout(() => URL.revokeObjectURL(localPreview), 5000)
       setIsSaving(false)
-      // reset the input so picking the same file again works
+      // cleanup preview blob
+      setTimeout(() => URL.revokeObjectURL(preview), 5000)
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
@@ -94,8 +104,9 @@ export function AvatarUploader() {
       })
       if (auth.currentUser) {
         await updateProfile(auth.currentUser, { photoURL: null })
+        await auth.currentUser.reload()
       }
-      setPreviewUrl(null)
+      setLocalUrl(null)
       toast({ title: 'Avatar removed' })
     } catch (err: any) {
       console.error(err)
@@ -124,17 +135,22 @@ export function AvatarUploader() {
             onChange={onFileChosen}
         />
 
-        <Avatar className="h-24 w-24">
-            {currentPhoto ? (
-            <AvatarImage
+        {/* Avatar circle with robust fallback */}
+        <div className="h-24 w-24 rounded-full overflow-hidden bg-muted flex items-center justify-center">
+            {currentPhoto && !imgError ? (
+            <img
                 src={currentPhoto}
-                alt="Avatar"
+                alt=""               // don’t show alt text if it fails
+                className="h-full w-full object-cover"
                 referrerPolicy="no-referrer"
                 crossOrigin="anonymous"
+                onError={() => setImgError(true)}
+                loading="lazy"
             />
-            ) : null}
-            <AvatarFallback>{initialsFromName(user?.displayName)}</AvatarFallback>
-        </Avatar>
+            ) : (
+            <div className="text-xl font-semibold select-none">{initials}</div>
+            )}
+        </div>
 
         <div className="flex gap-3">
             <Button variant="outline" onClick={onPickFile} disabled={isSaving}>
