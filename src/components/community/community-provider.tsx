@@ -22,7 +22,8 @@ import {
   setDoc,
   Timestamp,
 } from 'firebase/firestore';
-import { sendInvitationEmail, sendNewMemberNotificationEmail } from '@/lib/email';
+import { sendInvitationEmail } from '@/lib/email';
+import { notifyAdminsOwnerNewMember } from '@/lib/notify-new-member';
 
 interface CommunityContextType {
   members: Member[];
@@ -279,10 +280,11 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         await batch.commit();
 
         // 3. Send notification email
-        await sendNewMemberNotificationEmail({
+        await notifyAdminsOwnerNewMember({
             communityId: activeCommunityId,
             communityName: communityName,
-            newMemberName: familyName,
+            memberUid: memberDocRef.id,
+            memberDisplayName: familyName,
         });
 
         toast({ title: 'Family Created', description: `The "${familyName}" family has been added with ${trimmedFirstName} as the head.` });
@@ -408,13 +410,15 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         const contribution = getContribution(memberBase, customContributions);
         const newMember = { ...memberBase, contribution };
         
-        await addDoc(collection(db, `communities/${activeCommunityId}/members`), newMember);
+        const memberDocRef = await addDoc(collection(db, `communities/${activeCommunityId}/members`), newMember);
         
         // Send notification email
-        await sendNewMemberNotificationEmail({
+        await notifyAdminsOwnerNewMember({
             communityId: activeCommunityId,
             communityName: communityName,
-            newMemberName: fullName,
+            memberUid: memberDocRef.id,
+            memberDisplayName: fullName,
+            memberEmail: data.email,
         });
 
         toast({ title: "Member Added", description: `${fullName} has been added to the registry.` });

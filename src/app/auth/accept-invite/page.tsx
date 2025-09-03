@@ -16,7 +16,7 @@ import { doc, getDoc, updateDoc, writeBatch, serverTimestamp, arrayUnion } from 
 import type { Invitation } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/lib/auth';
-import { sendNewMemberNotificationEmail } from '@/lib/email';
+import { notifyAdminsOwnerNewMember } from '@/lib/notify-new-member';
 
 export default function AcceptInvitePage() {
   const { user: loggedInUser, loading: authLoading } = useAuth();
@@ -77,10 +77,12 @@ export default function AcceptInvitePage() {
         await batch.commit();
 
         // 4. Send notification email to admins
-        await sendNewMemberNotificationEmail({
+        await notifyAdminsOwnerNewMember({
             communityId: invitation.communityId,
             communityName: invitation.communityName,
-            newMemberName: user.displayName || 'A new member',
+            memberUid: user.uid,
+            memberEmail: user.email,
+            memberDisplayName: user.displayName,
         });
 
         router.push(`/app/switch-community`);

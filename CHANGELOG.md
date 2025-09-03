@@ -4,13 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-### Fixed
-- **Email Notifications**: Fixed a critical bug in the server-side email utility that prevented new member notifications from being sent. The function for constructing the "from" address was corrected to handle different environment variable configurations, ensuring reliable email delivery.
-
 ### Added
-- **New Member Notifications**: Implemented email notifications to community owners and admins when a new member joins, either through manual addition or by accepting an invitation.
+- **New Member Notifications**: Implemented a robust email notification system using the "Trigger Email" Firebase Extension. Community owners and admins are now notified when a new member joins.
 
 ### Fixed
+- **Email Notifications**: Replaced a fragile client-side email trigger with a reliable server-side solution leveraging the "Trigger Email" extension, ensuring notifications are sent consistently when members are added or accept invitations.
 - **Avatar Upload**: Switched from an unreliable server-side API route to a direct client-side upload using the Firebase Web SDK. This resolves persistent CORS and token audience (`aud`) mismatch errors encountered in the Firebase Studio preview environment by no longer using the Admin SDK for this operation. The `lib/upload-avatar.ts` file has been updated with the new client-side logic, and the unused API route at `src/app/api/upload-avatar/route.ts` has been stubbed out.
 
 ### Added
