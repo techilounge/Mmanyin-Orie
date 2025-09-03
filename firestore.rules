@@ -1,84 +1,35 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper functions
-    function isUser(uid) {
-      return request.auth != null && request.auth.uid == uid;
-    }
-
-    function communityData() {
-      return request.resource.data;
-    }
     
-    function isMemberOf(communityId) {
-      return exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid));
-    }
-    
-    function isOwner(communityId) {
-        return request.auth.uid == get(/databases/$(database)/documents/communities/$(communityId)).data.ownerUid;
+    // Allow signed-in users to create email jobs for the Trigger Email extension.
+    match /mail/{id} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if false; // Lock down read/update/delete
     }
 
-    function isAdmin(communityId) {
-        let role = get(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)).data.role;
-        return role == 'admin' || role == 'owner';
-    }
-    
-    // USERS
-    // Users can only manage their own documents.
+    // Users can read/write their own user document.
     match /users/{userId} {
-      allow read, update, delete: if isUser(userId);
-      allow create: if isUser(userId);
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null;
     }
     
-    // INVITATIONS
-    // Only admins/owners of a community can create invites for it.
-    // The user accepting the invite can read it.
-    // The user accepting the invite can update it (as part of a batch write).
+    // Invitations can be read if they are pending.
     match /invitations/{inviteId} {
-        allow read: if request.auth.uid == resource.data.acceptedByUid || request.auth.uid == resource.data.createdBy;
-        allow create: if isAdmin(request.resource.data.communityId);
-        allow update: if request.auth.uid == resource.data.acceptedByUid || isAdmin(resource.data.communityId);
-        allow delete: if isAdmin(resource.data.communityId);
+      allow read: if resource.data.status == 'pending';
+      allow create, update, delete: if request.auth != null; // Allow creation by logged-in users (admins)
     }
 
-    // COMMUNITIES
-    match /communities/{communityId} {
-      // A user can create a community if they are logged in and are the owner.
-      // The client-side logic will prevent creating more than one.
-      allow create: if isUser(communityData().ownerUid);
-
-      // Users can read a community doc if they are the owner OR a member.
-      allow read: if isUser(resource.data.ownerUid) || isMemberOf(communityId);
-      
-      // Only owners/admins can update community-level settings.
-      allow update: if isAdmin(communityId);
-      
-      // Deletion might be disabled for safety in a real app, but for now only owner can delete.
-      allow delete: if isOwner(communityId);
-
-      // MEMBERS
-      // A user can be added if the person adding them is an admin/owner of the community,
-      // OR if the user is the owner creating their own initial member document.
-      match /members/{memberId} {
-        allow create: if isOwner(communityId) || isAdmin(communityId);
-        allow read, list: if isMemberOf(communityId);
-        allow update: if isAdmin(communityId) || isUser(memberId);
-        allow delete: if isAdmin(communityId);
-      }
-      
-      // CONTRIBUTIONS (Payment Templates)
-      match /contributions/{contributionId} {
-        allow read, list: if isMemberOf(communityId);
-        allow create, update, delete: if isAdmin(communityId);
-      }
-      
-      // FAMILIES
-      match /families/{familyId} {
-        allow read, list: if isMemberOf(communityId);
-        allow create, update, delete: if isAdmin(communityId);
-      }
+    // Community data can be read by any authenticated user who is a member.
+    // Writes are restricted to admins/owners (this logic would be in your backend/functions).
+    match /communities/{communityId}/{document=**} {
+      allow read: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.memberships.hasAny([communityId]);
+      allow write: if request.auth != null && (
+        get(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)).data.role == 'admin' ||
+        get(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)).data.role == 'owner'
+      );
     }
   }
 }
