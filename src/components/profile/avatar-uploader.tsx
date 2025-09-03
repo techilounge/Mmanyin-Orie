@@ -5,7 +5,7 @@ import { auth, db } from '@/lib/firebase';
 import type { User } from 'firebase/auth';
 import { onAuthStateChanged, updateProfile } from 'firebase/auth';
 import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
-import { uploadAvatarDirect } from '@/lib/upload-avatar';
+import { uploadAvatarViaApi } from '@/lib/upload-avatar';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 
@@ -109,7 +109,7 @@ export default function AvatarUploader() {
     setIsSaving(true);
     try {
       // Upload the file to Storage and get the download URL
-      const result = await uploadAvatarDirect(file, uid);
+      const result = await uploadAvatarViaApi(file);
 
       // cache-bust the final URL
       const finalUrl = `${result.url}${result.url.includes('?') ? '&' : '?'}v=${Date.now()}`;
