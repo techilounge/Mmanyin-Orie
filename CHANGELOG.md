@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- **Invitation Flow**: Replaced the entire invitation sending and accepting logic with a more robust system. This resolves a critical bug where users clicking on older, stale invitation links would see an "invite already used" error. The new system now revokes old links when a new one is sent and automatically redirects the user from a stale link to the newest valid one, ensuring a smooth user experience.
+
 ### Changed
 - **Member Deletion**: Implemented a "clean delete" process. When deleting a member, the system now checks if they belong to other communities. If it's their last community, their user document and avatar are deleted from Firestore. If they belong to multiple communities, they are only removed from the current one, preserving their main user account.
 

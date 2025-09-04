@@ -26,6 +26,8 @@ import {
 import { ref, deleteObject } from 'firebase/storage';
 import { sendInvitationEmail } from '@/lib/email';
 import { notifyAdminsOwnerNewMember } from '@/lib/notify-new-member';
+import { createOrResendInvite } from '@/lib/invitations';
+
 
 interface CommunityContextType {
   members: Member[];
@@ -81,17 +83,6 @@ const DEFAULT_SETTINGS: Settings = {
   ageGroups: [],
 };
 
-// Helper to generate a random string for the invite code
-const generateInviteCode = (length = 8) => {
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < length; i++) {
-    result += characters.charAt(Math.floor(Math.random() * characters.length));
-  }
-  return result;
-};
-
-
 export function CommunityProvider({ children, communityId: activeCommunityId }: { children: ReactNode, communityId: string | null }) {
   const { user } = useAuth();
   const [members, setMembers] = useState<Member[]>([]);
@@ -109,9 +100,6 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
 
   // Set up Firestore listeners
   useEffect(() => {
-    // If there's no active community or no authenticated user, don't set up listeners.
-    // This is the key fix: it ensures that on logout (when user becomes null),
-    // the cleanup function from the previous render is called, unsubscribing the listeners.
     if (!activeCommunityId || !user) {
         setIsLoading(!user); 
         setMembers([]);
@@ -164,14 +152,12 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     
     const timer = setTimeout(() => setIsLoading(false), 300);
 
-    // This cleanup function is crucial. It runs when the component unmounts
-    // or when the dependencies (activeCommunityId, user) change.
     return () => {
         unsubscribes.forEach(unsub => unsub());
         clearTimeout(timer);
     };
 
-  }, [activeCommunityId, user]); // Adding `user` to the dependency array is the fix.
+  }, [activeCommunityId, user]);
 
  const getContribution = useCallback((member: Omit<Member, 'id' | 'contribution'>, currentCustomContributions: CustomContribution[]) => {
     const applicableContributions = currentCustomContributions.filter(c => c.tiers.includes(member.tier || ''));
@@ -247,11 +233,9 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     try {
         const batch = writeBatch(db);
 
-        // 1. Create the family document
         const familyDocRef = doc(collection(db, `communities/${activeCommunityId}/families`));
         batch.set(familyDocRef, { name: familyName });
 
-        // 2. Create the patriarch member document
         const joinDate = new Date().toISOString();
 
         const patriarchMemberBase = {
@@ -270,7 +254,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
             joinDate: joinDate,
             role: 'user' as const,
             status: 'active' as const,
-            uid: doc(collection(db, 'dummy')).id, // Placeholder
+            uid: doc(collection(db, 'dummy')).id, 
         };
 
         const contribution = getContribution(patriarchMemberBase, customContributions);
@@ -281,7 +265,6 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
 
         await batch.commit();
 
-        // 3. Send notification email
         await notifyAdminsOwnerNewMember({
             communityId: activeCommunityId,
             communityName: communityName,
@@ -304,10 +287,6 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         toast({ variant: "destructive", title: "Error", description: "Family name cannot be empty." });
         return;
     }
-    
-    // As family name is now derived from patriarch, this function should update the patriarch's name,
-    // which in turn updates the family name for all members.
-    // For now, we prevent direct editing of family name. The logic should be tied to editing the patriarch member.
     toast({
         variant: "default",
         title: "Info",
@@ -321,23 +300,19 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     const batch = writeBatch(db);
   
     try {
-      // 1. Query for all members of the family
       const membersQuery = query(
         collection(db, `communities/${activeCommunityId}/members`),
         where("family", "==", family.name)
       );
       const membersSnapshot = await getDocs(membersQuery);
   
-      // 2. Delete each member in the family
       membersSnapshot.forEach((memberDoc) => {
         batch.delete(memberDoc.ref);
       });
   
-      // 3. Delete the family document itself
       const familyDocRef = doc(db, `communities/${activeCommunityId}/families`, family.id);
       batch.delete(familyDocRef);
   
-      // 4. Commit all batched writes
       await batch.commit();
       
       toast({
@@ -357,23 +332,21 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
   const getInviteLink = async (memberId: string): Promise<string | null> => {
     if (!activeCommunityId) return null;
     try {
-      const memberDocRef = doc(db, 'communities', activeCommunityId, 'members', memberId);
-      const memberSnap = await getDoc(memberDocRef);
-      const inviteId = memberSnap.data()?.inviteId;
-
-      if (!memberSnap.exists() || !inviteId) {
-        return null;
-      }
+      const q = query(
+        collection(db, 'invitations'),
+        where('communityId', '==', activeCommunityId),
+        where('memberId', '==', memberId),
+        where('status', '==', 'pending'),
+        orderBy('createdAt', 'desc'),
+        limit(1)
+      );
+      const snap = await getDocs(q);
+      if (snap.empty) return null;
       
-      const inviteRef = doc(db, 'invitations', inviteId);
-      const inviteSnap = await getDoc(inviteRef);
+      const token = snap.docs[0].id;
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+      return `${appUrl}/auth/accept-invite?token=${token}`;
 
-      if (inviteSnap.exists() && inviteSnap.data().status === 'pending') {
-          const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
-          return `${appUrl}/auth/accept-invite?token=${inviteId}`;
-      }
-      
-      return null;
     } catch (error: any) {
         console.error("Error getting invite link:", error);
         return null;
@@ -404,7 +377,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
             payments: [],
             joinDate: joinDate,
             role: 'user' as const,
-            status: 'active' as const, // Add member directly as active
+            status: 'active' as const,
             uid: null,
             isPatriarch: data.isPatriarch,
         };
@@ -414,7 +387,6 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         
         const memberDocRef = await addDoc(collection(db, `communities/${activeCommunityId}/members`), newMember);
         
-        // Send notification email
         await notifyAdminsOwnerNewMember({
             communityId: activeCommunityId,
             communityName: communityName,
@@ -439,14 +411,11 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     }
     
     try {
-        const batch = writeBatch(db);
-
-        // If a new family is being created, add it to the families collection
         let familyToUse = data.family;
         if (newFamilyName && newFamilyName.trim() && data.family === 'new') {
             familyToUse = newFamilyName.trim();
             const familyDocRef = doc(collection(db, `communities/${activeCommunityId}/families`));
-            batch.set(familyDocRef, { name: familyToUse });
+            await setDoc(familyDocRef, { name: familyToUse });
         }
 
         const fullName = [data.firstName, data.middleName, data.lastName]
@@ -454,10 +423,9 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
             .join(' ');
         
         const joinDate = new Date().toISOString();
-
-        const memberDocRef = doc(collection(db, `communities/${activeCommunityId}/members`));
-        const inviteDocRef = doc(collection(db, 'invitations'));
         
+        const memberDocRef = doc(collection(db, `communities/${activeCommunityId}/members`));
+
         const newMemberBase = {
             name: fullName,
             firstName: data.firstName,
@@ -475,40 +443,25 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
             status: 'invited' as const,
             uid: null,
             isPatriarch: data.isPatriarch,
-            inviteId: inviteDocRef.id,
         };
         
         const contribution = getContribution(newMemberBase, customContributions);
-        const newMember = { ...newMemberBase, contribution };
+        const newMember = { ...newMemberBase, contribution, id: memberDocRef.id };
         
-        batch.set(memberDocRef, newMember);
+        await setDoc(memberDocRef, newMember);
 
-        const newInvitation: Invitation = {
-            communityId: activeCommunityId,
-            communityName: communityName,
-            memberId: memberDocRef.id,
-            email: data.email,
-            firstName: data.firstName,
-            lastName: data.lastName,
-            role: 'user',
-            status: 'pending',
-            code: generateInviteCode(),
-            createdAt: new Date().toISOString(),
-            createdBy: user.uid,
-        };
+        const { url } = await createOrResendInvite({
+          communityId: activeCommunityId,
+          email: data.email,
+          inviterUid: user.uid,
+          inviterName: user.displayName || 'The community admin',
+          communityName: communityName
+        });
 
-        batch.set(inviteDocRef, newInvitation);
-
-        await batch.commit();
-        
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
-        const inviteLink = `${appUrl}/auth/accept-invite?token=${inviteDocRef.id}`;
-
-        // Send email using Resend
         await sendInvitationEmail({
           to: data.email,
           communityName: communityName,
-          inviteLink: inviteLink,
+          inviteLink: url,
           inviterName: user.displayName || 'The community admin'
         });
 
@@ -525,24 +478,26 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
   };
 
   const resendInvitation = async (member: Member) => {
-    if (!user || !member.email) {
+    if (!user || !member.email || !activeCommunityId) {
       toast({ variant: 'destructive', title: 'Error', description: 'Member does not have an email to send an invitation to.' });
       return;
     }
     try {
-      const inviteLink = await getInviteLink(member.id);
-      if (!inviteLink) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not retrieve a valid invitation link. The member may have already joined.' });
-        return;
-      }
+        const { url } = await createOrResendInvite({
+            communityId: activeCommunityId,
+            email: member.email,
+            inviterUid: user.uid,
+            inviterName: user.displayName || 'The community admin',
+            communityName: communityName
+        });
       
       await sendInvitationEmail({
         to: member.email,
         communityName: communityName,
-        inviteLink: inviteLink,
+        inviteLink: url,
         inviterName: user.displayName || 'The community admin',
       });
-      toast({ title: 'Invitation Resent', description: `An invitation email has been sent to ${member.name}.` });
+      toast({ title: 'Invitation Resent', description: `A new invitation email has been sent to ${member.name}.` });
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Failed to Resend', description: error.message });
     }
@@ -579,7 +534,6 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
 
       const batch = writeBatch(db);
 
-       // If creating a new family, add it to the families collection first
       if (updatedData.family && !families.find(f => f.name === updatedData.family)) {
         const familyDocRef = doc(collection(db, `communities/${activeCommunityId}/families`));
         batch.set(familyDocRef, { name: updatedData.family });
@@ -589,13 +543,11 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
       const { id, ...dataToSend } = memberToUpdate;
       batch.update(memberDocRef, dataToSend);
 
-      // If the patriarch's name is changing, update the family name and all members' family field
       if (updatedData.isPatriarch) {
           const oldFamilyName = updatedData.family;
           const newFamilyName = fullName;
 
           if (oldFamilyName !== newFamilyName) {
-              // Find the family document to update its name
               const familiesQuery = query(collection(db, `communities/${activeCommunityId}/families`), where("name", "==", oldFamilyName));
               const familiesSnapshot = await getDocs(familiesQuery);
               if (!familiesSnapshot.empty) {
@@ -603,7 +555,6 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
                   batch.update(familyDocRef, { name: newFamilyName });
               }
 
-              // Update all members of the old family to the new family name
               const membersQuery = query(collection(db, `communities/${activeCommunityId}/members`), where("family", "==", oldFamilyName));
               const membersSnapshot = await getDocs(membersQuery);
               membersSnapshot.forEach(memberDoc => {
@@ -638,7 +589,6 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
             return;
         }
 
-        // A member must have a UID to have a user account
         if (!memberData.uid) {
             await deleteDoc(memberDocRef);
             toast({ title: "Invited Member Removed", description: `${memberData.name}'s invitation has been revoked.` });
@@ -654,9 +604,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
             
             const batch = writeBatch(db);
 
-            // Case 1: Member of multiple communities
             if (memberships.length > 1) {
-                // Just remove from this community
                 batch.delete(memberDocRef);
                 batch.update(userDocRef, {
                     memberships: arrayRemove(activeCommunityId)
@@ -664,11 +612,10 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
                 await batch.commit();
                 toast({ title: "Member Removed", description: `${memberData.name} has been removed from this community.` });
 
-            } else { // Case 2: Member of only this community (full delete)
+            } else { 
                 batch.delete(memberDocRef);
                 batch.delete(userDocRef);
                 
-                // Delete avatar from storage if it exists
                 if (appUser.photoPath) {
                     const avatarRef = ref(storage, appUser.photoPath);
                     await deleteObject(avatarRef).catch(err => console.warn("Could not delete avatar:", err));
@@ -676,9 +623,6 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
 
                 await batch.commit();
                 
-                // Deleting from Auth needs to be handled separately, often with a Cloud Function
-                // for security reasons, as it's a privileged operation.
-                // For now, the user is orphaned in Auth but removed from the app's data.
                 console.log(`User ${memberData.uid} deleted from Firestore. Auth user must be deleted separately.`);
                 toast({ 
                     title: "Member Deleted", 
@@ -686,7 +630,6 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
                 });
             }
         } else {
-            // User doc doesn't exist, just delete the member doc
             await deleteDoc(memberDocRef);
             toast({ title: "Member Removed", description: `${memberData.name} has been removed.` });
         }
@@ -704,7 +647,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         if (memberSnapshot.exists()) {
             const memberData = memberSnapshot.data() as Member;
             const newPayment: Partial<Payment> = { 
-                id: doc(collection(db, 'dummy')).id, // Generate a client-side ID
+                id: doc(collection(db, 'dummy')).id,
                 contributionId,
                 amount: paymentData.amount,
                 date: paymentData.date,
@@ -825,7 +768,6 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     try {
         const communityDocRef = doc(db, 'communities', activeCommunityId);
         await updateDoc(communityDocRef, { name: newName.trim() });
-        // No toast here, handled by the calling component
     } catch (error: any) {
         toast({ variant: "destructive", title: "Error updating name", description: error.message });
     }
