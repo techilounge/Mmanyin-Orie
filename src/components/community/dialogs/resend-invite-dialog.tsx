@@ -18,26 +18,39 @@ export function ResendInviteDialog() {
   
   const member = dialogState?.type === 'resend-invite' ? dialogState.member : null;
   
-  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [hasCopied, setHasCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isResending, setIsResending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const isOpen = dialogState?.type === 'resend-invite';
 
   useEffect(() => {
-    if (isOpen && member && isLoading) {
-        getInviteLink(member.id).then(link => {
-            setInviteLink(link);
+    if (isOpen && member) {
+        setIsLoading(true);
+        setError(null);
+        getInviteLink(member.id).then(res => {
+            if (res) {
+                setInviteUrl(res.url);
+            } else {
+                setError('No pending invitation found for this member. Please create a new one if needed.');
+                setInviteUrl(null);
+            }
+        }).catch(e => {
+            setError(e.message || 'An unexpected error occurred.');
+            setInviteUrl(null);
+        }).finally(() => {
             setIsLoading(false);
         });
     }
-  }, [isOpen, member, getInviteLink, isLoading]);
+  }, [isOpen, member, getInviteLink]);
 
   const handleClose = () => {
-    setInviteLink(null);
+    setInviteUrl(null);
     setHasCopied(false);
     setIsLoading(true);
+    setError(null);
     closeDialog(); 
   };
   
@@ -50,8 +63,8 @@ export function ResendInviteDialog() {
   }
 
   const copyToClipboard = () => {
-    if (inviteLink) {
-        navigator.clipboard.writeText(inviteLink);
+    if (inviteUrl) {
+        navigator.clipboard.writeText(inviteUrl);
         setHasCopied(true);
         toast({ title: 'Copied!', description: 'The invitation link has been copied to your clipboard.'})
         setTimeout(() => setHasCopied(false), 2000);
@@ -72,29 +85,27 @@ export function ResendInviteDialog() {
             <div className="flex items-center justify-center p-8">
                 <Loader2 className="h-8 w-8 animate-spin text-primary"/>
             </div>
-          ) : inviteLink ? (
+          ) : error ? (
+            <Alert variant="destructive">
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          ) : inviteUrl ? (
             <Alert>
                 <AlertTitle>Shareable Invite Link</AlertTitle>
                 <AlertDescription className="break-all text-primary">
-                    {inviteLink}
+                    {inviteUrl}
                 </AlertDescription>
             </Alert>
-          ) : (
-             <Alert variant="destructive">
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription>
-                    Could not retrieve the invitation link. The invitation might have been accepted or there was an error.
-                </AlertDescription>
-            </Alert>
-          )}
+          ) : null}
 
           <DialogFooter className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4">
               <Button variant="outline" onClick={handleClose} className="sm:col-span-1">Done</Button>
-              <Button onClick={copyToClipboard} disabled={!inviteLink || isLoading}>
+              <Button onClick={copyToClipboard} disabled={!inviteUrl || isLoading}>
                   {hasCopied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
                   {hasCopied ? 'Copied!' : 'Copy Link'}
               </Button>
-              <Button onClick={handleResend} disabled={!inviteLink || isLoading || isResending}>
+              <Button onClick={handleResend} disabled={!inviteUrl || isLoading || isResending}>
                   {isResending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
                   {isResending ? 'Sending...' : 'Resend Email'}
               </Button>

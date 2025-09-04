@@ -22,11 +22,13 @@ import {
   setDoc,
   Timestamp,
   arrayRemove,
+  orderBy,
+  limit,
 } from 'firebase/firestore';
 import { ref, deleteObject } from 'firebase/storage';
 import { sendInvitationEmail } from '@/lib/email';
-import { notifyAdminsOwnerNewMember } from '@/lib/notify-new-member';
 import { createOrResendInvite } from '@/lib/invitations';
+import { notifyAdminsOwnerNewMember } from '@/lib/notify-new-member';
 
 
 interface CommunityContextType {
@@ -41,7 +43,7 @@ interface CommunityContextType {
   
   addMember: (newMemberData: NewMemberData) => Promise<void>;
   inviteMember: (newMemberData: NewMemberData, newFamilyName?: string) => Promise<boolean>;
-  getInviteLink: (memberId: string) => Promise<string | null>;
+  getInviteLink: (memberId: string) => Promise<{ inviteId: string, url: string } | null>;
   resendInvitation: (member: Member) => Promise<void>;
   updateMember: (updatedMemberData: Member) => Promise<void>;
   deleteMember: (id: string) => Promise<void>;
@@ -329,28 +331,31 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     }
   };
 
-  const getInviteLink = async (memberId: string): Promise<string | null> => {
-    if (!activeCommunityId) return null;
-    try {
-      const q = query(
-        collection(db, 'invitations'),
-        where('communityId', '==', activeCommunityId),
-        where('memberId', '==', memberId),
-        where('status', '==', 'pending'),
-        orderBy('createdAt', 'desc'),
-        limit(1)
-      );
-      const snap = await getDocs(q);
-      if (snap.empty) return null;
-      
-      const token = snap.docs[0].id;
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
-      return `${appUrl}/auth/accept-invite?token=${token}`;
+  const getInviteLink = async (memberUid: string): Promise<{ inviteId: string, url: string } | null> => {
+    if (!activeCommunityId) throw new Error('No active community');
 
-    } catch (error: any) {
-        console.error("Error getting invite link:", error);
-        return null;
+    const invitationsCol = collection(db, 'invitations');
+    const q = query(
+      invitationsCol,
+      where('communityId', '==', activeCommunityId),
+      where('uid', '==', memberUid), // Match against the member's UID
+      where('status', '==', 'pending'),
+      orderBy('createdAt', 'desc'),
+      limit(1)
+    );
+
+    const snap = await getDocs(q);
+
+    if (snap.empty) {
+      return null;
     }
+
+    const docSnap = snap.docs[0];
+    const token = docSnap.id;
+
+    const url = `${window.location.origin}/auth/accept-invite?token=${encodeURIComponent(token)}`;
+
+    return { inviteId: docSnap.id, url };
   };
   
   const addMember = async (data: NewMemberData) => {
@@ -589,13 +594,15 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
             return;
         }
 
-        if (!memberData.uid) {
+        const userUid = memberData.uid;
+
+        if (!userUid) { // This is an invited member who hasn't signed up. Just delete the member doc.
             await deleteDoc(memberDocRef);
             toast({ title: "Invited Member Removed", description: `${memberData.name}'s invitation has been revoked.` });
             return;
         }
 
-        const userDocRef = doc(db, "users", memberData.uid);
+        const userDocRef = doc(db, "users", userUid);
         const userDocSnap = await getDoc(userDocRef);
 
         if (userDocSnap.exists()) {
@@ -604,32 +611,30 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
             
             const batch = writeBatch(db);
 
-            if (memberships.length > 1) {
-                batch.delete(memberDocRef);
+            // This is the member's only community, perform a full account deletion.
+            if (memberships.length <= 1) {
+                if (appUser.photoPath) {
+                    const avatarRef = ref(storage, appUser.photoPath);
+                    await deleteObject(avatarRef).catch(err => console.warn("Could not delete avatar during cleanup:", err));
+                }
+                batch.delete(userDocRef);
+                // Note: Deleting the Firebase Auth user must be done with a Cloud Function for security.
+                // The client can't delete other users. This will be handled separately.
+                console.log(`User ${userUid} data deleted from Firestore. Auth user must be deleted from the Firebase Console or via a backend process.`);
+            } else {
+                // Member belongs to other communities, just remove from this one.
                 batch.update(userDocRef, {
                     memberships: arrayRemove(activeCommunityId)
                 });
-                await batch.commit();
-                toast({ title: "Member Removed", description: `${memberData.name} has been removed from this community.` });
-
-            } else { 
-                batch.delete(memberDocRef);
-                batch.delete(userDocRef);
-                
-                if (appUser.photoPath) {
-                    const avatarRef = ref(storage, appUser.photoPath);
-                    await deleteObject(avatarRef).catch(err => console.warn("Could not delete avatar:", err));
-                }
-
-                await batch.commit();
-                
-                console.log(`User ${memberData.uid} deleted from Firestore. Auth user must be deleted separately.`);
-                toast({ 
-                    title: "Member Deleted", 
-                    description: `${memberData.name}'s account and data have been fully deleted.` 
-                });
             }
+            
+            // In both cases, delete the member document from the current community
+            batch.delete(memberDocRef);
+            await batch.commit();
+
+            toast({ title: "Member Removed", description: `${memberData.name} has been removed from this community.` });
         } else {
+            // User doc doesn't exist, which is unusual but we can still clean up the member doc.
             await deleteDoc(memberDocRef);
             toast({ title: "Member Removed", description: `${memberData.name} has been removed.` });
         }

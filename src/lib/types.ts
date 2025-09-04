@@ -1,5 +1,4 @@
 
-
 export interface Payment {
   id: string; // Firestore document ID
   contributionId: string; // Links payment to a specific CustomContribution
@@ -27,9 +26,6 @@ export interface Member {
   role: 'owner' | 'admin' | 'user';
   status: 'active' | 'invited';
   uid: string | null; // Firebase Auth UID, null if invited but not yet signed up
-  // The following are added when accepting an invite, to satisfy security rules
-  inviteId?: string;
-  inviteCode?: string;
 }
 
 export interface Family {
@@ -90,17 +86,17 @@ export interface Community {
 export interface Invitation {
     communityId: string;
     communityName: string;
-    memberId: string;
     email: string;
-    firstName: string;
-    lastName: string;
     role: 'user' | 'admin';
     status: 'pending' | 'accepted';
-    code: string; // The secret code for this invite
     createdAt: any;
     createdBy: string; // UID of admin/owner
     acceptedAt?: any;
     acceptedByUid?: string;
+    // The following fields are not part of the old schema
+    // and are added by the new one.
+    uid?: string;
+    token?: string;
 }
 
 
