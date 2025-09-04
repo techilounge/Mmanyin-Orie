@@ -30,9 +30,7 @@ type CreateArgs = {
 
 export function buildInviteUrl(token: string) {
   // works in Studio preview and prod
-  const base = typeof window !== 'undefined'
-    ? window.location.origin
-    : process.env.NEXT_PUBLIC_APP_URL || 'https://mmanyinorie.com';
+  const base = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'https://mmanyinorie.com');
   return `${base}/auth/accept-invite?token=${encodeURIComponent(token)}`;
 }
 
@@ -72,7 +70,7 @@ export async function getOrCreateInviteLink(
       where('memberId', '==', memberId),
     ]);
     if (d) {
-      const token = d.get('token') as string;
+      const token = d.id;
       return { token, link: buildInviteUrl(token) };
     }
   }
@@ -84,7 +82,7 @@ export async function getOrCreateInviteLink(
       where('uid', '==', uid),
     ]);
     if (d) {
-      const token = d.get('token') as string;
+      const token = d.id;
       return { token, link: buildInviteUrl(token) };
     }
   }
@@ -96,7 +94,7 @@ export async function getOrCreateInviteLink(
       where('email', '==', email.toLowerCase()),
     ]);
     if (d) {
-      const token = d.get('token') as string;
+      const token = d.id;
       return { token, link: buildInviteUrl(token) };
     }
   }
