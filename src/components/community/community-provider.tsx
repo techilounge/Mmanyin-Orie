@@ -27,7 +27,7 @@ import {
 } from 'firebase/firestore';
 import { ref, deleteObject } from 'firebase/storage';
 import { sendInvitationEmail } from '@/lib/email';
-import { createOrResendInvite } from '@/lib/invitations';
+import { getOrCreateInviteLink } from '@/lib/invitations';
 import { notifyAdminsOwnerNewMember } from '@/lib/notify-new-member';
 
 
@@ -43,7 +43,6 @@ interface CommunityContextType {
   
   addMember: (newMemberData: NewMemberData) => Promise<void>;
   inviteMember: (newMemberData: NewMemberData, newFamilyName?: string) => Promise<boolean>;
-  getInviteLink: (memberId: string) => Promise<{ inviteId: string, url: string } | null>;
   resendInvitation: (member: Member) => Promise<void>;
   updateMember: (updatedMemberData: Member) => Promise<void>;
   deleteMember: (id: string) => Promise<void>;
@@ -331,33 +330,6 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     }
   };
 
-  const getInviteLink = async (memberUid: string): Promise<{ inviteId: string, url: string } | null> => {
-    if (!activeCommunityId) throw new Error('No active community');
-
-    const invitationsCol = collection(db, 'invitations');
-    const q = query(
-      invitationsCol,
-      where('communityId', '==', activeCommunityId),
-      where('uid', '==', memberUid), // Match against the member's UID
-      where('status', '==', 'pending'),
-      orderBy('createdAt', 'desc'),
-      limit(1)
-    );
-
-    const snap = await getDocs(q);
-
-    if (snap.empty) {
-      return null;
-    }
-
-    const docSnap = snap.docs[0];
-    const token = docSnap.id;
-
-    const url = `${window.location.origin}/auth/accept-invite?token=${encodeURIComponent(token)}`;
-
-    return { inviteId: docSnap.id, url };
-  };
-  
   const addMember = async (data: NewMemberData) => {
     if (!activeCommunityId) return;
 
@@ -455,7 +427,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         
         await setDoc(memberDocRef, newMember);
 
-        const { url } = await createOrResendInvite({
+        const { url } = await getOrCreateInviteLink({
           communityId: activeCommunityId,
           email: data.email,
           inviterUid: user.uid,
@@ -488,7 +460,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
       return;
     }
     try {
-        const { url } = await createOrResendInvite({
+        const { url } = await getOrCreateInviteLink({
             communityId: activeCommunityId,
             email: member.email,
             inviterUid: user.uid,
@@ -823,7 +795,6 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     updateCommunityName,
     addMember,
     inviteMember,
-    getInviteLink,
     resendInvitation,
     updateMember,
     deleteMember,
@@ -850,7 +821,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     getBalanceForContribution,
   }), [
     members, families, settings, customContributions, isLoading, activeCommunityId, communityName, dialogState, 
-    getContribution, addFamily, addMember, inviteMember, getInviteLink, resendInvitation, updateMember, deleteMember, updateFamily, deleteFamily, updateSettings, addAgeGroup, updateAgeGroup, deleteAgeGroup, updateCommunityName, addCustomContribution, updateCustomContribution, deleteCustomContribution, recordPayment, updatePayment, deletePayment, openDialog, closeDialog, getPaidAmount, getBalance, getPaidAmountForContribution, getBalanceForContribution
+    getContribution, addFamily, addMember, inviteMember, resendInvitation, updateMember, deleteMember, updateFamily, deleteFamily, updateSettings, addAgeGroup, updateAgeGroup, deleteAgeGroup, updateCommunityName, addCustomContribution, updateCustomContribution, deleteCustomContribution, recordPayment, updatePayment, deletePayment, openDialog, closeDialog, getPaidAmount, getBalance, getPaidAmountForContribution, getBalanceForContribution
   ]);
 
   return (

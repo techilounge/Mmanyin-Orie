@@ -11,9 +11,10 @@ import type { Member } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Check, Copy, PartyPopper, Loader2, Send, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { getOrCreateInviteLink } from '@/lib/invitations';
 
 export function ResendInviteDialog() {
-  const { dialogState, closeDialog, getInviteLink, resendInvitation } = useCommunity();
+  const { dialogState, closeDialog, resendInvitation, communityId } = useCommunity();
   const { toast } = useToast();
   
   const member = dialogState?.type === 'resend-invite' ? dialogState.member : null;
@@ -27,14 +28,19 @@ export function ResendInviteDialog() {
   const isOpen = dialogState?.type === 'resend-invite';
 
   useEffect(() => {
-    if (isOpen && member) {
+    if (isOpen && member && communityId) {
         setIsLoading(true);
         setError(null);
-        getInviteLink(member.id).then(res => {
+        getOrCreateInviteLink({
+          communityId: communityId,
+          memberId: member.id,
+          uid: member.uid,
+          email: member.email,
+        }).then(res => {
             if (res) {
-                setInviteUrl(res.url);
+                setInviteUrl(res.link);
             } else {
-                setError('No pending invitation found for this member. Please create a new one if needed.');
+                setError('Could not retrieve the invitation link.');
                 setInviteUrl(null);
             }
         }).catch(e => {
@@ -44,7 +50,7 @@ export function ResendInviteDialog() {
             setIsLoading(false);
         });
     }
-  }, [isOpen, member, getInviteLink]);
+  }, [isOpen, member, communityId]);
 
   const handleClose = () => {
     setInviteUrl(null);
