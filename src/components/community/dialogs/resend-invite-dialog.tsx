@@ -11,10 +11,12 @@ import type { Member } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Check, Copy, PartyPopper, Loader2, Send, ExternalLink, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getOrCreateInviteLink } from '@/lib/invitations';
+import { createOrResendInvite } from '@/lib/invitations';
+import { useAuth } from '@/lib/auth';
 
 export function ResendInviteDialog() {
-  const { dialogState, closeDialog, resendInvitation, communityId } = useCommunity();
+  const { dialogState, closeDialog, resendInvitation, communityId, communityName } = useCommunity();
+  const { user } = useAuth();
   const { toast } = useToast();
   
   const member = dialogState?.type === 'resend-invite' ? dialogState.member : null;
@@ -37,18 +39,20 @@ export function ResendInviteDialog() {
   };
 
   useEffect(() => {
-    if (isOpen && member && communityId) {
+    if (isOpen && member && communityId && user) {
         setIsLoading(true);
         setError(null);
         setIndexCreationUrl(null);
-        getOrCreateInviteLink({
+        createOrResendInvite({
           communityId: communityId,
           memberId: member.id,
-          uid: member.uid,
           email: member.email,
+          communityName: communityName,
+          inviterName: user?.displayName || 'The community admin',
+          inviterUid: user?.uid,
         }).then(res => {
-            if (res) {
-                setInviteUrl(res.link);
+            if (res && res.url) {
+                setInviteUrl(res.url);
             } else {
                 setError('Could not retrieve the invitation link.');
                 setInviteUrl(null);
@@ -66,7 +70,7 @@ export function ResendInviteDialog() {
             setIsLoading(false);
         });
     }
-  }, [isOpen, member, communityId]);
+  }, [isOpen, member, communityId, communityName, user]);
 
   const handleClose = () => {
     setInviteUrl(null);
