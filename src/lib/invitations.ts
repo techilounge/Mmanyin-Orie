@@ -4,7 +4,6 @@ import {
   orderBy, limit, serverTimestamp, setDoc, updateDoc
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Member } from './types';
 
 export type InviteStatus = 'pending' | 'accepted' | 'revoked' | 'expired';
 
@@ -23,10 +22,6 @@ export type InviteDoc = {
   acceptedAt?: any;
 };
 
-function makeToken() {
-  // Random id for the document (readable as “token” in the URL)
-  return crypto.randomUUID().replace(/-/g, '');
-}
 
 /**
  * Creates a NEW invite token for {communityId, email}, revoking any older
@@ -34,19 +29,20 @@ function makeToken() {
  */
 export async function createOrResendInvite(params: {
   communityId: string;
-  email: string;
   memberId: string;
+  email: string;
   inviterUid?: string;
   inviterName?: string;
   communityName?: string;
   // optional: in days; set to 0/undefined to not expire
   ttlDays?: number;
-  origin?: string; // e.g. window.location.origin
 }) {
   const {
     communityId, email, inviterUid, inviterName,
-    communityName, memberId, ttlDays = 14, origin = typeof window !== 'undefined' ? window.location.origin : ''
+    communityName, memberId, ttlDays = 14
   } = params;
+
+  const origin = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : '');
 
   // 1) Revoke any existing PENDING invites for the same email + community
   const q = query(
@@ -57,18 +53,18 @@ export async function createOrResendInvite(params: {
     orderBy('createdAt', 'desc')
   );
   const prev = await getDocs(q);
-  let replacedIds: string[] = [];
+  const replacedIds: string[] = [];
   prev.forEach(d => replacedIds.push(d.id));
 
   // 2) Create a new invite
-  const token = makeToken();
-  const ref = doc(db, 'invitations', token);
+  const ref = doc(collection(db, 'invitations'));
+  const token = ref.id;
   const expiresAt =
     ttlDays && ttlDays > 0
       ? new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000)
       : undefined;
 
-  const payload: Omit<InviteDoc, 'acceptedAt' | 'acceptedByUid'> = {
+  const payload: Omit<InviteDoc, 'id' | 'acceptedAt' | 'acceptedByUid'> = {
     communityId,
     email,
     memberId,

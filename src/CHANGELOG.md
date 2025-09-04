@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
-- **Resend Invite**: Fixed a build error where the Resend Invite dialog was importing a non-existent function (`getOrCreateInviteLink` instead of `createOrResendInvite`).
+- **Invitation Links**: Corrected the invitation URL generation logic to consistently use the custom domain specified in the environment variables, resolving an issue where links reverted to the internal preview URL.
 - **Resend Invite**: The dialog for resending invites now properly displays the full Firestore index creation URL when an index is missing, making the error actionable. Previously, the URL was truncated in the error toast.
 - **Invitation Flow**: Replaced the invitation sending and resending logic with a more robust "find or create" pattern. This resolves a critical bug where resending an invite for a member without a pending invitation would fail. The new system ensures a valid link is always available.
 - **Invitation Flow**: The "Resend Invite" feature was crashing due to a missing Firestore import (`orderBy`). This has been fixed. The dialog for resending invites has also been made more robust to gracefully handle cases where no pending invitation is found for a member.
