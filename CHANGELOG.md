@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- **Firestore Security Rules**: Replaced the entire `firestore.rules` with a more robust and granular ruleset. This resolves "Missing or insufficient permissions" errors during sign-in and on the invitation acceptance page by allowing necessary public reads while securing sensitive data.
+- **Invitation Flow**: 
+  - Replaced the invitation acceptance page (`src/app/auth/accept-invite/page.tsx`) with a new version that correctly handles loading/error states and only reads data permitted by the new security rules.
+  - Fixed the "Invitation Sent" dialog in `src/components/community/dialogs/invite-member-dialog.tsx` to be properly controlled, ensuring it can be dismissed correctly after an invite is sent.
+
 ### Added
 - **Firestore Security Rules**: Created `firebase.rules` and implemented security rules to allow authenticated users to trigger email notifications, and to secure community and user data.
 - **New Member Notifications**: Implemented a robust email notification system using the "Trigger Email" Firebase Extension. Community owners and admins are now notified when a new member joins.

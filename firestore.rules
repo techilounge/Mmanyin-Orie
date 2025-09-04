@@ -1,35 +1,62 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Allow signed-in users to create email jobs for the Trigger Email extension.
+
+    // 1) Trigger Email extension jobs – only allow creation by signed-in users
     match /mail/{id} {
       allow create: if request.auth != null;
-      allow read, update, delete: if false; // Lock down read/update/delete
+      allow read, update, delete: if false;
     }
 
-    // Users can read/write their own user document.
+    // 2) Each user can read/update their own user doc
     match /users/{userId} {
-      allow read, update: if request.auth != null && request.auth.uid == userId;
+      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
       allow create: if request.auth != null;
     }
-    
-    // Invitations can be read if they are pending.
+
+    // 3) Invitations – readable so invite landing can show details; writes require auth
     match /invitations/{inviteId} {
-      allow read: if resource.data.status == 'pending';
-      allow create, update, delete: if request.auth != null; // Allow creation by logged-in users (admins)
+      // If you want to be stricter, change to: allow read: if resource.data.status == "pending";
+      allow read: if true;
+      allow create, update, delete: if request.auth != null;
     }
 
-    // Community data can be read by any authenticated user who is a member.
-    // Writes are restricted to admins/owners (this logic would be in your backend/functions).
-    match /communities/{communityId}/{document=**} {
-      allow read: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.memberships.hasAny([communityId]);
-      allow write: if request.auth != null && (
-        get(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)).data.role == 'admin' ||
-        get(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)).data.role == 'owner'
+    // 4) Communities root document – readable so the invite page and pre-membership
+    // UI can show basic details (name, logo, etc.). Writes limited to admins/owners.
+    match /communities/{communityId} {
+      allow read: if true; // or (request.auth != null) if you prefer
+      allow write: if request.auth != null
+        && get(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)).data.role
+           in ['owner', 'admin'];
+    }
+
+    // 5) Members sub-collection – readable by the member themselves,
+    // readable/writable by community admins/owners.
+    match /communities/{communityId}/members/{uid} {
+      function roleOf(userId) {
+        return get(/databases/$(database)/documents/communities/$(communityId)/members/$(userId)).data.role;
+      }
+
+      allow read: if request.auth != null && (
+        uid == request.auth.uid || roleOf(request.auth.uid) in ['owner','admin']
       );
+
+      allow create, update, delete: if request.auth != null && roleOf(request.auth.uid) in ['owner','admin'];
+    }
+
+    // 6) Everything else under a community – readable by members; writes by admins/owners.
+    match /communities/{communityId}/{sub=**} {
+      function isMember(userId) {
+        return exists(/databases/$(database)/documents/communities/$(communityId)/members/$(userId));
+      }
+      function isAdmin(userId) {
+        return get(/databases/$(database)/documents/communities/$(communityId)/members/$(userId)).data.role
+               in ['owner','admin'];
+      }
+
+      allow read: if request.auth != null && isMember(request.auth.uid);
+      allow write: if request.auth != null && isAdmin(request.auth.uid);
     }
   }
 }

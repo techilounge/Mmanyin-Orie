@@ -1,4 +1,3 @@
-
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -43,7 +42,7 @@ export default function AcceptInvitePage() {
         // 1. Update the member document with the new UID and set status to active
         const memberRef = doc(db, 'communities', invitation.communityId, 'members', invitation.memberId);
         
-        const memberUpdatePayload = { 
+        const memberUpdatePayload: Record<string, any> = { 
           uid: user.uid, 
           status: 'active' as const,
           email: user.email, // Use the verified email from the auth provider
