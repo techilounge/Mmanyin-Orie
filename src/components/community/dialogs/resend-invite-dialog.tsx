@@ -31,11 +31,9 @@ export function ResendInviteDialog() {
   const isOpen = dialogState?.type === 'resend-invite';
 
   const extractFirestoreIndexUrl = (errorMessage: string): string | null => {
-      const urlRegex = /(https?:\/\/[^\s]+)/;
+      const urlRegex = /(https?:\/\/[^\s)]+)/;
       const match = errorMessage.match(urlRegex);
-      if (!match) return null;
-      // Clean up the URL by removing trailing characters that aren't part of it.
-      return match[0].split('?')[0];
+      return match ? match[0] : null;
   };
 
   useEffect(() => {
