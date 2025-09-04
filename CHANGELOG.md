@@ -4,17 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-### Fixed
-- **Firestore Security Rules**: Replaced the entire `firestore.rules` with a more robust and granular ruleset. This resolves "Missing or insufficient permissions" errors during sign-in and on the invitation acceptance page by allowing necessary public reads while securing sensitive data.
-- **Invitation Flow**: 
-  - Replaced the invitation acceptance page (`src/app/auth/accept-invite/page.tsx`) with a new version that correctly handles loading/error states and only reads data permitted by the new security rules.
-  - Fixed the "Invitation Sent" dialog in `src/components/community/dialogs/invite-member-dialog.tsx` to be properly controlled, ensuring it can be dismissed correctly after an invite is sent.
+### Changed
+- **Member Deletion**: Implemented a "clean delete" process. When deleting a member, the system now checks if they belong to other communities. If it's their last community, their user document and avatar are deleted from Firestore. If they belong to multiple communities, they are only removed from the current one, preserving their main user account.
 
 ### Added
-- **Firestore Security Rules**: Created `firebase.rules` and implemented security rules to allow authenticated users to trigger email notifications, and to secure community and user data.
+- **Firestore Security Rules**: Replaced the entire `firestore.rules` with a more robust and granular ruleset. This resolves "Missing or insufficient permissions" errors during sign-in and on the invitation acceptance page by allowing necessary public reads while securing sensitive data.
 - **New Member Notifications**: Implemented a robust email notification system using the "Trigger Email" Firebase Extension. Community owners and admins are now notified when a new member joins.
 
 ### Fixed
+- **Invitation Flow**: 
+  - Replaced the invitation acceptance page (`src/app/auth/accept-invite/page.tsx`) with a new version that correctly handles loading/error states and only reads data permitted by the new security rules.
+  - Fixed the "Invitation Sent" dialog in `src/components/community/dialogs/invite-member-dialog.tsx` to be properly controlled, ensuring it can be dismissed correctly after an invite is sent.
 - **Email Notifications**: Replaced a fragile client-side email trigger with a reliable server-side solution leveraging the "Trigger Email" extension, ensuring notifications are sent consistently when members are added or accept invitations.
 - **Avatar Upload**: Switched from an unreliable server-side API route to a direct client-side upload using the Firebase Web SDK. This resolves persistent CORS and token audience (`aud`) mismatch errors encountered in the Firebase Studio preview environment by no longer using the Admin SDK for this operation. The `lib/upload-avatar.ts` file has been updated with the new client-side logic, and the unused API route at `src/app/api/upload-avatar/route.ts` has been stubbed out.
 

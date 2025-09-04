@@ -2,11 +2,11 @@
 'use client';
 import type { ReactNode } from 'react';
 import React, { createContext, useState, useEffect, useMemo, useCallback } from 'react';
-import type { Member, Family, Settings, CustomContribution, NewMemberData, NewCustomContributionData, DialogState, NewPaymentData, Payment, Invitation, AgeGroup } from '@/lib/types';
+import type { Member, Family, Settings, CustomContribution, NewMemberData, NewCustomContributionData, DialogState, NewPaymentData, Payment, Invitation, AgeGroup, AppUser } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getMonth, getYear } from 'date-fns';
 import { useAuth } from '@/lib/auth';
-import { db } from '@/lib/firebase';
+import { db, storage } from '@/lib/firebase';
 import {
   collection,
   doc,
@@ -21,7 +21,9 @@ import {
   getDoc,
   setDoc,
   Timestamp,
+  arrayRemove,
 } from 'firebase/firestore';
+import { ref, deleteObject } from 'firebase/storage';
 import { sendInvitationEmail } from '@/lib/email';
 import { notifyAdminsOwnerNewMember } from '@/lib/notify-new-member';
 
@@ -620,22 +622,79 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
 
   const deleteMember = async (id: string) => {
     if (!activeCommunityId) return;
+
     try {
         const memberDocRef = doc(db, `communities/${activeCommunityId}/members`, id);
         const memberSnap = await getDoc(memberDocRef);
-        const memberData = memberSnap.data();
-        if (memberData?.isPatriarch) {
+
+        if (!memberSnap.exists()) {
+            toast({ variant: "destructive", title: "Error", description: "Member not found." });
+            return;
+        }
+
+        const memberData = memberSnap.data() as Member;
+        if (memberData.isPatriarch) {
             toast({ variant: "destructive", title: "Action Not Allowed", description: "The head of the family cannot be deleted. You must delete the entire family instead." });
             return;
         }
 
-        const memberName = memberData?.name || 'Member';
-        await deleteDoc(memberDocRef);
-        toast({ title: "Member Deleted", description: `${memberName} has been removed.` });
-    } catch(error: any) {
+        // A member must have a UID to have a user account
+        if (!memberData.uid) {
+            await deleteDoc(memberDocRef);
+            toast({ title: "Invited Member Removed", description: `${memberData.name}'s invitation has been revoked.` });
+            return;
+        }
+
+        const userDocRef = doc(db, "users", memberData.uid);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (userDocSnap.exists()) {
+            const appUser = userDocSnap.data() as AppUser;
+            const memberships = appUser.memberships || [];
+            
+            const batch = writeBatch(db);
+
+            // Case 1: Member of multiple communities
+            if (memberships.length > 1) {
+                // Just remove from this community
+                batch.delete(memberDocRef);
+                batch.update(userDocRef, {
+                    memberships: arrayRemove(activeCommunityId)
+                });
+                await batch.commit();
+                toast({ title: "Member Removed", description: `${memberData.name} has been removed from this community.` });
+
+            } else { // Case 2: Member of only this community (full delete)
+                batch.delete(memberDocRef);
+                batch.delete(userDocRef);
+                
+                // Delete avatar from storage if it exists
+                if (appUser.photoPath) {
+                    const avatarRef = ref(storage, appUser.photoPath);
+                    await deleteObject(avatarRef).catch(err => console.warn("Could not delete avatar:", err));
+                }
+
+                await batch.commit();
+                
+                // Deleting from Auth needs to be handled separately, often with a Cloud Function
+                // for security reasons, as it's a privileged operation.
+                // For now, the user is orphaned in Auth but removed from the app's data.
+                console.log(`User ${memberData.uid} deleted from Firestore. Auth user must be deleted separately.`);
+                toast({ 
+                    title: "Member Deleted", 
+                    description: `${memberData.name}'s account and data have been fully deleted.` 
+                });
+            }
+        } else {
+            // User doc doesn't exist, just delete the member doc
+            await deleteDoc(memberDocRef);
+            toast({ title: "Member Removed", description: `${memberData.name} has been removed.` });
+        }
+    } catch (error: any) {
+        console.error("Failed to delete member:", error);
         toast({ variant: "destructive", title: "Error deleting member", description: error.message });
     }
-  };
+};
 
   const recordPayment = async (memberId: string, contributionId: string, paymentData: Omit<NewPaymentData, 'contributionId'>) => {
     if (!activeCommunityId) return;

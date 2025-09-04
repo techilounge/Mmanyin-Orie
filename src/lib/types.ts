@@ -63,6 +63,7 @@ export interface AppUser {
     displayName: string | null;
     email: string | null;
     photoURL: string | null;
+    photoPath?: string | null;
     primaryCommunityId?: string;
     createdAt: any;
     lastLoginAt: any;
