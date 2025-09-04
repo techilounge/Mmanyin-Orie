@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **Invitation Flow**: Refactored the invitation acceptance process to be more robust by creating a dedicated `complete-invite` page. This resolves a critical bug where accepting an invitation would fail and incorrectly display an "invite already used" error. The new flow cleanly separates invite validation from the final action of joining a community.
 - **Resend Invite**: The dialog for resending invites now properly displays the full Firestore index creation URL when an index is missing, making the error actionable. Previously, the URL was truncated in the error toast.
 - **Invitation Flow**: Replaced the invitation sending and resending logic with a more robust "find or create" pattern. This resolves a critical bug where resending an invite for a member without a pending invitation would fail. The new system ensures a valid link is always available.
 - **Invitation Flow**: The "Resend Invite" feature was crashing due to a missing Firestore import (`orderBy`). This has been fixed. The dialog for resending invites has also been made more robust to gracefully handle cases where no pending invitation is found for a member.

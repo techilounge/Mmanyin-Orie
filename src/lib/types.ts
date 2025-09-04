@@ -88,7 +88,7 @@ export interface Invitation {
     communityName: string;
     email: string;
     role: 'user' | 'admin';
-    status: 'pending' | 'accepted';
+    status: 'pending' | 'accepted' | 'revoked' | 'expired';
     createdAt: any;
     createdBy: string; // UID of admin/owner
     acceptedAt?: any;
@@ -97,6 +97,7 @@ export interface Invitation {
     // and are added by the new one.
     uid?: string;
     token?: string;
+    memberId: string;
 }
 
 

@@ -27,7 +27,7 @@ import {
 } from 'firebase/firestore';
 import { ref, deleteObject } from 'firebase/storage';
 import { sendInvitationEmail } from '@/lib/email';
-import { getOrCreateInviteLink } from '@/lib/invitations';
+import { createOrResendInvite } from '@/lib/invitations';
 import { notifyAdminsOwnerNewMember } from '@/lib/notify-new-member';
 
 
@@ -427,16 +427,19 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         
         await setDoc(memberDocRef, newMember);
 
-        const { link } = await getOrCreateInviteLink({
+        const { url } = await createOrResendInvite({
           communityId: activeCommunityId,
           memberId: memberDocRef.id,
           email: data.email,
+          communityName: communityName,
+          inviterName: user.displayName || 'The community admin',
+          inviterUid: user.uid,
         });
 
         await sendInvitationEmail({
           to: data.email,
           communityName: communityName,
-          inviteLink: link,
+          inviteLink: url,
           inviterName: user.displayName || 'The community admin'
         });
 
@@ -458,16 +461,19 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
       return;
     }
     try {
-        const { link } = await getOrCreateInviteLink({
+        const { url } = await createOrResendInvite({
             communityId: activeCommunityId,
             memberId: member.id,
             email: member.email,
+            communityName,
+            inviterUid: user.uid,
+            inviterName: user.displayName || 'The community admin',
         });
       
       await sendInvitationEmail({
         to: member.email,
         communityName: communityName,
-        inviteLink: link,
+        inviteLink: url,
         inviterName: user.displayName || 'The community admin',
       });
       toast({ title: 'Invitation Resent', description: `A new invitation email has been sent to ${member.name}.` });
