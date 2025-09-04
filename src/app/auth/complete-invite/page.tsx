@@ -1,136 +1,163 @@
-
 'use client';
-
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import {
+  collection,
+  query,
+  where,
+  limit,
+  getDocs,
+  doc,
+  runTransaction,
+  serverTimestamp,
+  getDoc,
+  writeBatch,
+  arrayUnion,
+} from 'firebase/firestore';
 import { useAuth } from '@/lib/auth';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, arrayUnion, writeBatch, collection } from 'firebase/firestore';
-import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { db, auth } from '@/lib/firebase';
 import { notifyAdminsOwnerNewMember } from '@/lib/notify-new-member';
-import type { InviteDoc } from '@/lib/invitations';
+import { Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function CompleteInvitePage() {
-  const { user, appUser } = useAuth();
   const router = useRouter();
-  const { toast } = useToast();
   const sp = useSearchParams();
-  const token = useMemo(() => sp.get('token')?.trim() ?? '', [sp]);
+  const token = sp.get('token') ?? '';
+  const [error, setError] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const processInvite = async () => {
-    if (!user || !appUser || !token) {
-      setError('You must be signed in to accept an invitation.');
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const inviteRef = doc(db, 'invitations', token);
-      const inviteSnap = await getDoc(inviteRef);
-
-      if (!inviteSnap.exists() || inviteSnap.data().status !== 'pending') {
-        setError('This invitation is invalid or has already been used.');
+  useEffect(() => {
+    if (!token) {
+        setError('Missing or invalid invitation token.');
         setIsLoading(false);
         return;
-      }
-      
-      const invite = inviteSnap.data() as InviteDoc;
-      const { communityId, memberId } = invite;
-
-      if (!memberId) {
-        throw new Error("This invitation is corrupted and not linked to a member.");
-      }
-
-      if (appUser.memberships?.includes(communityId)) {
-        // Already a member. Just mark as accepted and redirect.
-        await updateDoc(inviteRef, { status: 'accepted' });
-        toast({ title: "Already a member", description: "You are already a member of this community." });
-        router.push(`/app/${communityId}`);
-        return;
-      }
-
-      const batch = writeBatch(db);
-
-      // 1. Update the user document with the new membership
-      const userDocRef = doc(db, 'users', user.uid);
-      batch.update(userDocRef, { memberships: arrayUnion(communityId) });
-      
-      // 2. Update the member document using the stable memberId from the invite
-      const memberRef = doc(db, 'communities', communityId, 'members', memberId);
-      batch.update(memberRef, {
-        status: 'active',
-        uid: user.uid,
-        email: user.email, // Sync email on join
-        name: user.displayName, // Sync name on join
-      });
-
-      // 3. Mark the invitation as accepted
-      batch.update(inviteRef, {
-        status: 'accepted',
-        acceptedByUid: user.uid,
-        acceptedAt: new Date(),
-      })
-
-      await batch.commit();
-      
-      await notifyAdminsOwnerNewMember({
-        communityId: communityId,
-        communityName: invite.communityName || 'your community',
-        memberUid: user.uid,
-        memberDisplayName: user.displayName,
-        memberEmail: user.email,
-      });
-
-      toast({
-        title: 'Welcome!',
-        description: `You have successfully joined ${invite.communityName || 'the community'}.`,
-      });
-
-      router.push(`/app/${communityId}`);
-
-    } catch (err: any) {
-      console.error("Failed to process invitation:", err);
-      setError(err.message || 'Failed to process your invitation. Please contact support.');
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: err.message || 'An unknown error occurred.',
-      });
-      setIsLoading(false);
     }
-  };
+
+    if (!user) {
+        // Auth context is loading or user is not signed in.
+        // The auth guard will handle redirection to sign-in page.
+        return;
+    }
+
+    const processInvite = async () => {
+      setIsLoading(true);
+      try {
+        const invitesRef = collection(db, 'invitations');
+        const q = query(invitesRef, where('token', '==', token), limit(1));
+        const snap = await getDocs(q);
+
+        if (snap.empty) {
+          throw new Error('This invitation link is invalid or has expired.');
+        }
+
+        const inviteDoc = snap.docs[0];
+        const invite = inviteDoc.data() as any;
+
+        if (invite.status !== 'pending') {
+          throw new Error('This invitation has already been used or has expired.');
+        }
+        if (invite.expiresAt?.toDate && invite.expiresAt.toDate() < new Date()) {
+           throw new Error('This invitation has expired.');
+        }
+
+        const communityId: string = invite.communityId;
+        const invitedMemberId: string = invite.memberId;
+        
+        if (!communityId || !invitedMemberId) {
+            throw new Error('This invitation is corrupted and cannot be processed.');
+        }
+        
+        // Use a write batch for atomic operations
+        const batch = writeBatch(db);
+
+        // 1. Get the original member document created at invite time
+        const memberSrcRef = doc(db, 'communities', communityId, 'members', invitedMemberId);
+        const srcSnap = await getDoc(memberSrcRef);
+        if (!srcSnap.exists()) {
+          throw new Error('The original member record for this invite could not be found.');
+        }
+        const srcData = srcSnap.data();
+
+        // 2. Define the new member document reference using the user's actual UID
+        const memberDstRef = doc(db, 'communities', communityId, 'members', user.uid);
+        
+        // 3. Create or update the definitive member document
+        const mergedMemberData = {
+          ...srcData,
+          uid: user.uid,
+          email: user.email ?? srcData.email,
+          name: user.displayName ?? srcData.name,
+          status: 'active',
+          joinDate: new Date().toISOString(), // Or keep original invite date if preferred
+        };
+        batch.set(memberDstRef, mergedMemberData, { merge: true });
+        
+        // 4. If the source ID is different, delete the original temporary member doc
+        if (memberSrcRef.id !== memberDstRef.id) {
+          batch.delete(memberSrcRef);
+        }
+
+        // 5. Update the user's main document with the new community membership
+        const userRef = doc(db, 'users', user.uid);
+        batch.update(userRef, {
+            memberships: arrayUnion(communityId)
+        });
+
+        // 6. Mark the invitation as accepted
+        batch.update(inviteDoc.ref, {
+          status: 'accepted',
+          acceptedByUid: user.uid,
+          acceptedAt: serverTimestamp(),
+        });
+
+        // Commit all changes at once
+        await batch.commit();
+
+        // Notify admins (best-effort, after the critical transaction)
+        await notifyAdminsOwnerNewMember({
+            communityId,
+            communityName: invite.communityName || 'the community',
+            memberUid: user.uid,
+            memberDisplayName: user.displayName,
+            memberEmail: user.email,
+        }).catch(e => console.warn("Failed to send new member notification:", e));
+
+        // Redirect to the community
+        router.replace(`/app/${communityId}`);
+        
+      } catch (e: any) {
+        setError(e?.message ?? 'An unknown error occurred. Please contact support.');
+        setIsLoading(false);
+      }
+    };
+
+    processInvite();
+
+  }, [token, router, user]);
+
+  if (isLoading) {
+      return (
+        <div className="mx-auto max-w-md py-16 text-center">
+            <div className="flex items-center justify-center gap-2">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <h1 className="text-2xl font-semibold">Completing your invitation...</h1>
+            </div>
+            <p className="mt-4 text-muted-foreground">Please wait while we set up your account.</p>
+        </div>
+      );
+  }
 
   if (error) {
-     return (
+    return (
       <div className="mx-auto max-w-md py-16 text-center">
-        <h1 className="mb-2 text-xl font-semibold">Invitation Error</h1>
+        <h1 className="mb-2 text-xl font-semibold text-destructive">Invitation Error</h1>
         <p className="mb-6 text-muted-foreground">{error}</p>
-        <Button onClick={() => router.push('/auth/sign-in')}>Return to Sign In</Button>
+        <Button onClick={() => router.push('/')}>Return to Home</Button>
       </div>
     );
   }
 
-  return (
-    <div className="mx-auto max-w-md py-16 text-center">
-        <h1 className="text-2xl font-bold mb-4">Finalizing your membership...</h1>
-        <p className="text-muted-foreground mb-8">
-            Click the button below to complete the process and join the community.
-        </p>
-        <Button onClick={processInvite} disabled={isLoading}>
-            {isLoading ? (
-                <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Joining...
-                </>
-            ) : "Complete My Invitation"}
-        </Button>
-    </div>
-  );
+  return null; // Should redirect on success
 }

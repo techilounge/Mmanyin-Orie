@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { ReactNode } from 'react';
@@ -19,8 +18,10 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({ user: null, appUser: null, loading: true, communityRole: null });
 
-const publicPaths = ['/', '/auth/sign-in', '/auth/sign-up', '/auth/accept-invite', '/subscribe', '/create-community', '/privacy', '/terms'];
+const publicPaths = ['/', '/auth/sign-in', '/auth/sign-up', '/auth/accept-invite', '/auth/complete-invite', '/subscribe', '/create-community', '/privacy', '/terms'];
 const isAuthPage = (path: string) => path.startsWith('/auth');
+const isInviteFlow = (path: string) => path.startsWith('/auth/accept-invite') || path.startsWith('/auth/complete-invite');
+
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -48,7 +49,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else {
           setAppUser(null);
         }
-        // Moved loading(false) to the role listener to wait for all data
       }, (error) => {
         console.error("Error listening to user document:", error);
         setAppUser(null);
@@ -83,8 +83,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } else if (!user) {
         setCommunityRole(null);
     } else {
-        // If there's a user but no communityId in path, we are not in a community context
-        // But we still need to set loading to false.
         setLoading(false);
     }
 
@@ -101,49 +99,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!mounted || loading) return;
 
     const pathIsPublic = publicPaths.some(p => pathname.startsWith(p));
-    const isOnAppPath = pathname.startsWith('/app');
 
     if (!user && !pathIsPublic) {
       router.push('/auth/sign-in');
       return;
     }
     
-    if (user && appUser) {
-      const memberships = appUser.memberships || [];
-      const hasCommunity = memberships.length > 0;
-
-      if (isAuthPage(pathname) && !pathname.startsWith('/auth/accept-invite')) {
-        if (hasCommunity) {
-          router.push('/app');
-        } else {
-          router.push('/subscribe');
-        }
-        return;
-      }
-      
-      if (!hasCommunity && !pathIsPublic) {
-        router.push('/subscribe');
-        return;
-      }
-      
-      if (hasCommunity && (pathname === '/subscribe' || pathname === '/create-community')) {
+    if (user) {
+       if (isAuthPage(pathname) && !isInviteFlow(pathname)) {
           router.push('/app');
           return;
-      }
+       }
+      
+      if (appUser) {
+        const memberships = appUser.memberships || [];
+        const hasCommunity = memberships.length > 0;
+        
+        if (!hasCommunity && !pathIsPublic) {
+          router.push('/subscribe');
+          return;
+        }
+        
+        if (hasCommunity && (pathname === '/subscribe' || pathname === '/create-community')) {
+            router.push('/app');
+            return;
+        }
 
-      if (pathname === '/app') {
-          if (appUser.primaryCommunityId) {
-              router.replace(`/app/${appUser.primaryCommunityId}`);
-          } else if (memberships.length > 1) {
-              router.replace('/app/switch-community');
-          } else if (memberships.length === 1) {
-              router.replace(`/app/${memberships[0]}`);
-          } else {
-              router.replace('/subscribe');
-          }
+        if (pathname === '/app') {
+            if (appUser.primaryCommunityId) {
+                router.replace(`/app/${appUser.primaryCommunityId}`);
+            } else if (memberships.length > 1) {
+                router.replace('/app/switch-community');
+            } else if (memberships.length === 1) {
+                router.replace(`/app/${memberships[0]}`);
+            } else {
+                router.replace('/subscribe');
+            }
+        }
       }
     }
-
   }, [user, appUser, loading, router, pathname, mounted]);
   
   if (!mounted) {

@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **Invitation Flow**: Overhauled the invitation acceptance flow to fix a persistent "invitation already used" error loop. The auth guard now correctly allows users to complete the flow after signing in. The `complete-invite` page logic was replaced with a robust, transactional process that moves the temporary member document to a new document using the user's UID as the ID. This guarantees data consistency, aligns with Firestore security rules, and ensures a smooth user experience.
 - **Invitation Flow**: Resolved a persistent "invitation already used" error loop by overhauling the `complete-invite` page. The logic now correctly finds the member document associated with an invitation and uses an atomic `writeBatch` to update the user, member, and invitation documents simultaneously, guaranteeing data consistency.
 - **Invitation Flow**: Replaced the entire invitation sending and accepting logic with a more robust system. This resolves a critical bug where users clicking on older, stale invitation links would see an "invite already used" error. The new system now revokes old links when a new one is sent and automatically redirects the user from a stale link to the newest valid one, ensuring a smooth user experience.
 - **Resend Invite**: The dialog for resending invites now properly displays the full Firestore index creation URL when an index is missing, making the error actionable. Previously, the URL was truncated in the error toast.
