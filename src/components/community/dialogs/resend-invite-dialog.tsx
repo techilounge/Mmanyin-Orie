@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import type { Member } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Check, Copy, PartyPopper, Loader2, Send, Mail } from 'lucide-react';
+import { Check, Copy, PartyPopper, Loader2, Send, ExternalLink, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getOrCreateInviteLink } from '@/lib/invitations';
 
@@ -24,13 +24,21 @@ export function ResendInviteDialog() {
   const [isLoading, setIsLoading] = useState(true);
   const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [indexCreationUrl, setIndexCreationUrl] = useState<string | null>(null);
 
   const isOpen = dialogState?.type === 'resend-invite';
+
+  const extractFirestoreIndexUrl = (errorMessage: string): string | null => {
+      const urlRegex = /(https?:\/\/[^\s]+)/;
+      const match = errorMessage.match(urlRegex);
+      return match ? match[0] : null;
+  };
 
   useEffect(() => {
     if (isOpen && member && communityId) {
         setIsLoading(true);
         setError(null);
+        setIndexCreationUrl(null);
         getOrCreateInviteLink({
           communityId: communityId,
           memberId: member.id,
@@ -44,7 +52,13 @@ export function ResendInviteDialog() {
                 setInviteUrl(null);
             }
         }).catch(e => {
-            setError(e.message || 'An unexpected error occurred.');
+            const url = extractFirestoreIndexUrl(e.message);
+            if (url) {
+                setError('A database index is required to perform this action.');
+                setIndexCreationUrl(url);
+            } else {
+                 setError(e.message || 'An unexpected error occurred.');
+            }
             setInviteUrl(null);
         }).finally(() => {
             setIsLoading(false);
@@ -57,6 +71,7 @@ export function ResendInviteDialog() {
     setHasCopied(false);
     setIsLoading(true);
     setError(null);
+    setIndexCreationUrl(null);
     closeDialog(); 
   };
   
@@ -93,8 +108,21 @@ export function ResendInviteDialog() {
             </div>
           ) : error ? (
             <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
+                <AlertDescription>
+                    {error}
+                    {indexCreationUrl && (
+                        <a 
+                            href={indexCreationUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="mt-2 block break-all text-xs font-mono underline hover:text-destructive-foreground/80"
+                        >
+                            Create required index <ExternalLink className="inline-block h-3 w-3 ml-1"/>
+                        </a>
+                    )}
+                </AlertDescription>
             </Alert>
           ) : inviteUrl ? (
             <Alert>
@@ -118,5 +146,5 @@ export function ResendInviteDialog() {
           </DialogFooter>
       </DialogContent>
       </Dialog>
-  )
+  );
 }

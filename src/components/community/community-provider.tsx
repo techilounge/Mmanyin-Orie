@@ -427,18 +427,16 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         
         await setDoc(memberDocRef, newMember);
 
-        const { url } = await getOrCreateInviteLink({
+        const { link } = await getOrCreateInviteLink({
           communityId: activeCommunityId,
+          memberId: memberDocRef.id,
           email: data.email,
-          inviterUid: user.uid,
-          inviterName: user.displayName || 'The community admin',
-          communityName: communityName
         });
 
         await sendInvitationEmail({
           to: data.email,
           communityName: communityName,
-          inviteLink: url,
+          inviteLink: link,
           inviterName: user.displayName || 'The community admin'
         });
 
@@ -460,18 +458,16 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
       return;
     }
     try {
-        const { url } = await getOrCreateInviteLink({
+        const { link } = await getOrCreateInviteLink({
             communityId: activeCommunityId,
+            memberId: member.id,
             email: member.email,
-            inviterUid: user.uid,
-            inviterName: user.displayName || 'The community admin',
-            communityName: communityName
         });
       
       await sendInvitationEmail({
         to: member.email,
         communityName: communityName,
-        inviteLink: url,
+        inviteLink: link,
         inviterName: user.displayName || 'The community admin',
       });
       toast({ title: 'Invitation Resent', description: `A new invitation email has been sent to ${member.name}.` });
