@@ -45,7 +45,7 @@ export default function CompleteInvitePage() {
       }
       
       const invite = inviteSnap.data() as InviteDoc;
-      const { communityId, email: inviteEmail } = invite;
+      const { communityId, email: inviteEmail, memberId } = invite;
 
       if (inviteEmail.toLowerCase() !== user.email?.toLowerCase()) {
           setError("This invitation is for a different email address.");
@@ -70,7 +70,8 @@ export default function CompleteInvitePage() {
       });
       
       // 2. Find the invited member doc and update its status and UID
-      const memberRef = doc(db, 'communities', communityId, 'members', invite.memberId);
+      // Use the memberId from the invite, which is the correct, stable ID.
+      const memberRef = doc(db, 'communities', communityId, 'members', memberId);
       batch.update(memberRef, {
         status: 'active',
         uid: user.uid
