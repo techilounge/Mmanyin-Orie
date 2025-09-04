@@ -381,9 +381,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
 
   const inviteMember = async (data: NewMemberData, newFamilyName?: string): Promise<boolean> => {
     if (!activeCommunityId || !user || !data.email) {
-      if (!data.email) {
-        toast({ variant: "destructive", title: "Email Required", description: "An email is required to invite a member." });
-      }
+      if (!data.email) toast({ variant: "destructive", title: "Email Required", description: "An email is required to invite a member." });
       return false;
     }
     
@@ -395,19 +393,16 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
             await setDoc(familyDocRef, { name: familyToUse });
         }
 
-        const fullName = [data.firstName, data.middleName, data.lastName]
-            .filter(part => part && part.trim())
-            .join(' ');
+        const fullName = [data.firstName, data.middleName, data.lastName].filter(Boolean).join(' ');
         
-        const joinDate = new Date().toISOString();
-        
+        // 1. Create the member document first to get a stable ID
         const memberDocRef = doc(collection(db, `communities/${activeCommunityId}/members`));
 
         const newMemberBase = {
             name: fullName,
             firstName: data.firstName,
-            middleName: data.middleName || '',
             lastName: data.lastName,
+            middleName: data.middleName || '',
             family: familyToUse,
             email: data.email,
             phone: data.phone || '',
@@ -415,7 +410,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
             gender: data.gender,
             tier: data.tier,
             payments: [],
-            joinDate: joinDate,
+            joinDate: new Date().toISOString(),
             role: 'user' as const,
             status: 'invited' as const,
             uid: null,
@@ -423,19 +418,21 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         };
         
         const contribution = getContribution(newMemberBase, customContributions);
-        const newMember = { ...newMemberBase, contribution, id: memberDocRef.id };
+        const newMember = { ...newMemberBase, contribution };
         
         await setDoc(memberDocRef, newMember);
 
+        // 2. Create the invitation, now with the stable memberId
         const { url } = await createOrResendInvite({
           communityId: activeCommunityId,
-          memberId: memberDocRef.id,
+          memberId: memberDocRef.id, // Use the new stable ID
           email: data.email,
           communityName: communityName,
           inviterName: user.displayName || 'The community admin',
           inviterUid: user.uid,
         });
 
+        // 3. Send the email
         await sendInvitationEmail({
           to: data.email,
           communityName: communityName,
@@ -443,10 +440,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
           inviterName: user.displayName || 'The community admin'
         });
 
-        toast({ 
-            title: "Invitation Sent", 
-            description: `An invitation email has been sent to ${fullName}.`
-        });
+        toast({ title: "Invitation Sent", description: `An invitation email has been sent to ${fullName}.`});
         return true;
 
     } catch(error: any) {

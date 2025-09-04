@@ -1,3 +1,4 @@
+
 // src/lib/invitations.ts
 import {
   collection, doc, getDocs, getDoc, query, where,
@@ -64,11 +65,11 @@ export async function createOrResendInvite(params: {
       ? new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000)
       : undefined;
 
-  const payload: Omit<InviteDoc, 'id' | 'acceptedAt' | 'acceptedByUid'> = {
+  const payload = {
     communityId,
-    email,
-    memberId,
-    status: 'pending',
+    email: email.toLowerCase(),
+    memberId, // Now correctly included
+    status: 'pending' as InviteStatus,
     createdAt: serverTimestamp(),
     inviterUid,
     inviterName,

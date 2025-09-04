@@ -5,15 +5,12 @@ import { useEffect, useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, arrayUnion, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, arrayUnion, writeBatch, collection } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { markInviteAccepted } from '@/lib/invitations';
 import { notifyAdminsOwnerNewMember } from '@/lib/notify-new-member';
 import type { InviteDoc } from '@/lib/invitations';
-import type { AppUser } from '@/lib/types';
-
 
 export default function CompleteInvitePage() {
   const { user, appUser } = useAuth();
@@ -45,17 +42,15 @@ export default function CompleteInvitePage() {
       }
       
       const invite = inviteSnap.data() as InviteDoc;
-      const { communityId, email: inviteEmail, memberId } = invite;
+      const { communityId, memberId } = invite;
 
-      if (inviteEmail.toLowerCase() !== user.email?.toLowerCase()) {
-          setError("This invitation is for a different email address.");
-          setIsLoading(false);
-          return;
+      if (!memberId) {
+        throw new Error("This invitation is corrupted and not linked to a member.");
       }
 
-      // Check if user is already a member of this community
       if (appUser.memberships?.includes(communityId)) {
-        await markInviteAccepted(token); // Mark as used anyway
+        // Already a member. Just mark as accepted and redirect.
+        await updateDoc(inviteRef, { status: 'accepted' });
         toast({ title: "Already a member", description: "You are already a member of this community." });
         router.push(`/app/${communityId}`);
         return;
@@ -65,35 +60,32 @@ export default function CompleteInvitePage() {
 
       // 1. Update the user document with the new membership
       const userDocRef = doc(db, 'users', user.uid);
-      batch.update(userDocRef, {
-        memberships: arrayUnion(communityId)
-      });
+      batch.update(userDocRef, { memberships: arrayUnion(communityId) });
       
-      // 2. Find the invited member doc and update its status and UID
-      // Use the memberId from the invite, which is the correct, stable ID.
+      // 2. Update the member document using the stable memberId from the invite
       const memberRef = doc(db, 'communities', communityId, 'members', memberId);
       batch.update(memberRef, {
         status: 'active',
-        uid: user.uid
+        uid: user.uid,
+        email: user.email, // Sync email on join
+        name: user.displayName, // Sync name on join
       });
 
       // 3. Mark the invitation as accepted
       batch.update(inviteRef, {
-          status: 'accepted',
-          acceptedByUid: user.uid,
-          acceptedAt: new Date(),
+        status: 'accepted',
+        acceptedByUid: user.uid,
+        acceptedAt: new Date(),
       })
 
-      // Commit all writes
       await batch.commit();
       
-      // Send notification email
       await notifyAdminsOwnerNewMember({
         communityId: communityId,
         communityName: invite.communityName || 'your community',
         memberUid: user.uid,
         memberDisplayName: user.displayName,
-        memberEmail: user.email
+        memberEmail: user.email,
       });
 
       toast({
@@ -105,7 +97,7 @@ export default function CompleteInvitePage() {
 
     } catch (err: any) {
       console.error("Failed to process invitation:", err);
-      setError('Failed to process your invitation. Please contact support.');
+      setError(err.message || 'Failed to process your invitation. Please contact support.');
       toast({
         variant: 'destructive',
         title: 'Error',
