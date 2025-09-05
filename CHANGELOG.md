@@ -16,7 +16,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 - **Avatar Upload**: Implemented a server-side API route (`/api/upload-avatar`) to handle avatar uploads. This bypasses client-side CSP restrictions in Firebase Studio. The client-side code in `avatar-uploader.tsx` now posts to this route instead of directly to Firebase Storage.
-- **Avatar Upload**: Added `firebase-admin` dependency and a dedicated Admin SDK initializer (`src/lib/firebase-admin.ts`) to ensure robust and correctly configured server-side operations.
+- **Avatar Upload**: Added `firebase-admin` dependency and a dedicated Admin SDK initializer (`src/src/lib/firebase-admin.ts`) to ensure robust and correctly configured server-side operations.
 - **Email Sending**: Resolved a persistent issue with sending invitation emails via the Resend API.
   - Corrected the `.env.local` variable usage for server-side functions.
   - Fixed the construction of the "from" email address in `src/lib/email.ts` to match Resend's required format (`Name <email@domain.com>`), resolving the "Invalid `from` field" error.
