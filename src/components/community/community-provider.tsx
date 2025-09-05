@@ -350,6 +350,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
       const inviteId = memberSnap.data()?.inviteId;
 
       if (!memberSnap.exists() || !inviteId) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Member has no pending invitation.' });
         return null;
       }
       
@@ -511,7 +512,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     try {
       const inviteLink = await getInviteLink(member.id);
       if (!inviteLink) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not retrieve a valid invitation link. The member may have already joined.' });
+        // The getInviteLink function already shows a toast on failure, so no need for another one here.
         return;
       }
       

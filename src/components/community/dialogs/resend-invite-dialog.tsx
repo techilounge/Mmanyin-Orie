@@ -26,13 +26,14 @@ export function ResendInviteDialog() {
   const isOpen = dialogState?.type === 'resend-invite';
 
   useEffect(() => {
-    if (isOpen && member && isLoading) {
+    if (isOpen && member) {
+        setIsLoading(true);
         getInviteLink(member.id).then(link => {
             setInviteLink(link);
             setIsLoading(false);
         });
     }
-  }, [isOpen, member, getInviteLink, isLoading]);
+  }, [isOpen, member, getInviteLink]);
 
   const handleClose = () => {
     setInviteLink(null);
