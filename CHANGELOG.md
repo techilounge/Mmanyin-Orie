@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **Community Loading**: Corrected Firestore security rules to allow a user to read the top-level document of communities they are a member of. This resolves a critical "Missing or insufficient permissions" error on the "Switch Community" page, which prevented users from loading their list of communities.
+
+### Fixed
 - **Permissions and State Management**: 
   - Corrected Firestore security rules to grant appropriate read permissions to members with the 'user' role, allowing them to see community data like families, members, and payments. Write and delete permissions remain restricted to admins and owners.
   - Stabilized the `CommunityProvider` by adding the `user` object to the `useEffect` dependency array. This resolves a critical state management bug that caused the application to switch to the wrong community context for users belonging to multiple communities.
@@ -30,5 +33,6 @@ All notable changes to this project will be documented in this file.
 - **Invitation Links**: Ensured that generated invitation links use the correct custom domain specified in the environment variables.
 - **Build Errors**: Corrected various syntax errors in `.tsx` files that were causing the Next.js build to fail.
 - **Multi-Community Routing**: Fixed a bug where a user belonging to multiple communities was not prompted to select a community on login. The logic was corrected to route them to the `/app/switch-community` page if no primary community is set.
+
 
 

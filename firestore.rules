@@ -11,7 +11,7 @@ service cloud.firestore {
 
     // A user can read a community document IF they are a member of that community
     match /communities/{communityId} {
-      allow read: if request.auth != null && exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid));
+       allow read: if request.auth != null && exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid));
     }
 
     // A user can read a community's sub-collections IF they are a member of that community
@@ -46,7 +46,8 @@ service cloud.firestore {
                       
       // An invite can be updated if the signed-in user's email matches. (For accepting the invite)
       allow update: if request.auth != null
-                    && request.auth.token.email == resource.data.email;
+                    && request.auth.token.email == resource.data.email
+                    && request.resource.data.status == 'accepted';
                     
       // An invite can be created by an authenticated user (within the app, this is limited to admins/owners by UI).
       allow create: if request.auth != null;
