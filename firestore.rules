@@ -43,11 +43,9 @@ service cloud.firestore {
 
     // --- Invitations ---
     match /invitations/{inviteId} {
-      // An invite can be read if it's pending OR if the signed-in user's email matches the invite.
+      // An invite can be read if the user is authenticated and their email matches the invite.
       // This is necessary for the accept-invite page to function before and after sign-in.
-      allow read: if resource.data.status == 'pending'
-                  || (request.auth != null
-                      && request.auth.token.email == resource.data.email);
+      allow read: if request.auth != null && request.auth.token.email == resource.data.email;
                       
       // An invite can be updated if the signed-in user's email matches AND the update is to accept the invite.
       allow update: if request.auth != null

@@ -344,19 +344,15 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         const memberSnap = await getDoc(memberDocRef);
 
         if (!memberSnap.exists()) {
-            console.error(`Member with ID ${memberId} not found.`);
+            // This is not a user-facing error.
             return null;
         }
 
         const memberData = memberSnap.data() as Member;
         const inviteId = memberData?.inviteId;
-        const memberStatus = memberData?.status;
-
+        
         if (!inviteId) {
-            console.error(`No inviteId found for member ${memberId}.`);
-            // This is not a user-facing error, but a data integrity issue.
-            // We'll return null and let the UI handle it gracefully.
-            return null;
+            return null; // Let the UI handle this state.
         }
 
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
