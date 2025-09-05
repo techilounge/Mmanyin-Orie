@@ -14,6 +14,8 @@ service cloud.firestore {
     // A user can read a community document IF the communityId is in their user.memberships list
     match /communities/{communityId} {
       allow read: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.memberships.hasAny([communityId]);
+      // Only admins/owners can update the community document itself
+      allow update: if request.auth != null && get(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)).data.role in ['owner', 'admin'];
     }
 
     // A user can read a community's sub-collections IF they are a member of that community
@@ -42,16 +44,17 @@ service cloud.firestore {
     // --- Invitations ---
     match /invitations/{inviteId} {
       // An invite can be read if it's pending OR if the signed-in user's email matches the invite.
+      // This is necessary for the accept-invite page to function before and after sign-in.
       allow read: if resource.data.status == 'pending'
                   || (request.auth != null
                       && request.auth.token.email == resource.data.email);
                       
-      // An invite can be updated if the signed-in user's email matches. (For accepting the invite)
+      // An invite can be updated if the signed-in user's email matches AND the update is to accept the invite.
       allow update: if request.auth != null
                     && request.auth.token.email == resource.data.email
                     && request.resource.data.status == 'accepted';
                     
-      // An invite can be created by an authenticated user (within the app, this is limited to admins/owners by UI).
+      // An invite can be created by any authenticated user (the UI and backend logic restrict this to admins/owners).
       allow create: if request.auth != null;
       
       // Nobody can delete an invitation record directly.
