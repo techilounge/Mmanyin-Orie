@@ -347,26 +347,27 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     try {
       const memberDocRef = doc(db, 'communities', activeCommunityId, 'members', memberId);
       const memberSnap = await getDoc(memberDocRef);
-      const inviteId = memberSnap.data()?.inviteId;
+      const memberData = memberSnap.data();
+      const inviteId = memberData?.inviteId;
+      const memberStatus = memberData?.status;
 
       if (!memberSnap.exists() || !inviteId) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not find an invitation for this member.' });
+        toast({ variant: 'destructive', title: 'No Invitation Found', description: 'Could not find an invitation record for this member.' });
         return null;
       }
       
-      const inviteRef = doc(db, 'invitations', inviteId);
-      const inviteSnap = await getDoc(inviteRef);
-
-      if (inviteSnap.exists() && inviteSnap.data().status === 'pending') {
-          const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
-          return `${appUrl}/auth/accept-invite?token=${inviteId}`;
-      } else {
-         toast({ variant: 'destructive', title: 'Error', description: 'Member has no pending invitation.' });
+      if (memberStatus !== 'invited') {
+          toast({ variant: 'destructive', title: 'Invitation Already Used', description: 'This member has already accepted their invitation.' });
+          return null;
       }
-      
-      return null;
+
+      // Construct the link directly without reading the /invitations collection
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+      return `${appUrl}/auth/accept-invite?token=${inviteId}`;
+
     } catch (error: any) {
         console.error("Error getting invite link:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'An unexpected error occurred while retrieving the link.' });
         return null;
     }
   };
@@ -837,3 +838,5 @@ deleteAgeGroup,
     </CommunityContext.Provider>
   );
 }
+
+    
