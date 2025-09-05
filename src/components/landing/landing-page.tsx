@@ -233,6 +233,7 @@ export function LandingPage() {
                     width={200}
                     height={100}
                     className="absolute top-1/4 left-4 lg:left-12 xl:left-24 opacity-20 pointer-events-none hidden md:block"
+                    style={{ height: 'auto' }}
                     aria-hidden="true"
                     data-ai-hint="background kola nuts"
                 />
@@ -242,6 +243,7 @@ export function LandingPage() {
                     width={200}
                     height={100}
                     className="absolute top-1/4 right-4 lg:right-12 xl:right-24 opacity-20 pointer-events-none hidden md:block"
+                    style={{ height: 'auto' }}
                     aria-hidden="true"
                     data-ai-hint="background kola nuts"
                 />
