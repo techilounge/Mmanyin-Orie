@@ -350,7 +350,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
       const inviteId = memberSnap.data()?.inviteId;
 
       if (!memberSnap.exists() || !inviteId) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Member has no pending invitation.' });
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not find an invitation for this member.' });
         return null;
       }
       
@@ -360,6 +360,8 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
       if (inviteSnap.exists() && inviteSnap.data().status === 'pending') {
           const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
           return `${appUrl}/auth/accept-invite?token=${inviteId}`;
+      } else {
+         toast({ variant: 'destructive', title: 'Error', description: 'Member has no pending invitation.' });
       }
       
       return null;
@@ -835,3 +837,5 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     </CommunityContext.Provider>
   );
 }
+
+    
