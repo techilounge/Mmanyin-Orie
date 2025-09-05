@@ -106,9 +106,6 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
 
   // Set up Firestore listeners
   useEffect(() => {
-    // If there's no active community or no authenticated user, don't set up listeners.
-    // This is the key fix: it ensures that on logout (when user becomes null),
-    // the cleanup function from the previous render is called, unsubscribing the listeners.
     if (!activeCommunityId || !user) {
         setIsLoading(!user); 
         setMembers([]);
@@ -161,14 +158,12 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     
     const timer = setTimeout(() => setIsLoading(false), 300);
 
-    // This cleanup function is crucial. It runs when the component unmounts
-    // or when the dependencies (activeCommunityId, user) change.
     return () => {
         unsubscribes.forEach(unsub => unsub());
         clearTimeout(timer);
     };
 
-  }, [activeCommunityId, user]); // Adding `user` to the dependency array is the fix.
+  }, [activeCommunityId, user]);
 
  const getContribution = useCallback((member: Omit<Member, 'id' | 'contribution'>, currentCustomContributions: CustomContribution[]) => {
     const applicableContributions = currentCustomContributions.filter(c => c.tiers.includes(member.tier || ''));
@@ -342,26 +337,32 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     }
   };
 
-  const getInviteLink = async (memberId: string): Promise<string | null> => {
+  const getInviteLink = useCallback(async (memberId: string): Promise<string | null> => {
     if (!activeCommunityId) return null;
     try {
       const memberDocRef = doc(db, 'communities', activeCommunityId, 'members', memberId);
       const memberSnap = await getDoc(memberDocRef);
-      const memberData = memberSnap.data();
+
+      if (!memberSnap.exists()) {
+        console.error(`Member with ID ${memberId} not found.`);
+        return null;
+      }
+
+      const memberData = memberSnap.data() as Member;
       const inviteId = memberData?.inviteId;
       const memberStatus = memberData?.status;
 
-      if (!memberSnap.exists() || !inviteId) {
-        toast({ variant: 'destructive', title: 'No Invitation Found', description: 'Could not find an invitation record for this member.' });
+      if (!inviteId) {
+        console.error(`No inviteId found for member ${memberId}.`);
         return null;
       }
       
       if (memberStatus !== 'invited') {
+          console.log(`Member ${memberId} has status '${memberStatus}', not 'invited'.`);
           toast({ variant: 'destructive', title: 'Invitation Already Used', description: 'This member has already accepted their invitation.' });
           return null;
       }
 
-      // Construct the link directly without reading the /invitations collection
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
       return `${appUrl}/auth/accept-invite?token=${inviteId}`;
 
@@ -370,7 +371,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         toast({ variant: 'destructive', title: 'Error', description: 'An unexpected error occurred while retrieving the link.' });
         return null;
     }
-  };
+  }, [activeCommunityId, toast]);
   
   const addMember = async (data: NewMemberData) => {
     if (!activeCommunityId) return;
@@ -838,5 +839,3 @@ deleteAgeGroup,
     </CommunityContext.Provider>
   );
 }
-
-    

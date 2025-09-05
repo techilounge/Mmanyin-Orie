@@ -33,7 +33,7 @@ export function ResendInviteDialog() {
             setIsLoading(false);
         });
     }
-  }, [isOpen, member, getInviteLink]);
+  }, [isOpen, member]); // Removed getInviteLink from dependency array to prevent infinite loop
 
   const handleClose = () => {
     setInviteLink(null);
@@ -82,9 +82,9 @@ export function ResendInviteDialog() {
             </Alert>
           ) : (
              <Alert variant="destructive">
-                <AlertTitle>Error</AlertTitle>
+                <AlertTitle>No Invitation Found</AlertTitle>
                 <AlertDescription>
-                    Could not retrieve the invitation link. The invitation might have been accepted or there was an error.
+                    Could not find an invitation record for this member. They may have already accepted the invite.
                 </AlertDescription>
             </Alert>
           )}

@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **Invitation Link Retrieval**: Fixed an infinite loop and multiple error toasts in the "Resend Invite" dialog. The `getInviteLink` function was removed from a `useEffect` dependency array to prevent re-renders, and its internal logic was corrected to avoid showing redundant error messages, allowing the UI to handle the error state gracefully.
 - **Invitation Link Retrieval**: Fixed a critical bug where retrieving an invitation link for a member would fail due to a Firestore security rule violation. The logic in `getInviteLink` was incorrectly trying to read the `/invitations` collection, which is restricted. The function has been simplified to construct the link directly from the `inviteId` stored on the member document, resolving the error.
 - **Permissions and State Management**: 
   - Corrected Firestore security rules to grant appropriate read permissions to members with the 'user' role, allowing them to see community data like families, members, and payments. Write and delete permissions remain restricted to admins and owners.
@@ -30,6 +31,3 @@ All notable changes to this project will be documented in this file.
 - **Invitation Links**: Ensured that generated invitation links use the correct custom domain specified in the environment variables.
 - **Build Errors**: Corrected various syntax errors in `.tsx` files that were causing the Next.js build to fail.
 - **Multi-Community Routing**: Fixed a bug where a user belonging to multiple communities was not prompted to select a community on login. The logic was corrected to route them to the `/app/switch-community` page if no primary community is set.
-
-    
-    
