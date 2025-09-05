@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **Email Sending**: Fixed a critical bug where invitation emails failed to send via Resend. The `from` address was not being formatted correctly as `Name <email@domain.com>`, which is required by the Resend API, causing silent delivery failures. The logic has been corrected to ensure proper formatting.
 - **Invitation Link Retrieval**: Fixed an infinite loop and multiple error toasts in the "Resend Invite" dialog. The `getInviteLink` function was removed from a `useEffect` dependency array to prevent re-renders, and its internal logic was corrected to avoid showing redundant error messages, allowing the UI to handle the error state gracefully.
 - **Invitation Link Retrieval**: Fixed a critical bug where retrieving an invitation link for a member would fail due to a Firestore security rule violation. The logic in `getInviteLink` was incorrectly trying to read the `/invitations` collection, which is restricted. The function has been simplified to construct the link directly from the `inviteId` stored on the member document, resolving the error.
 - **Permissions and State Management**: 
@@ -13,7 +14,7 @@ All notable changes to this project will be documented in this file.
 - **Community Loading**: Corrected Firestore security rules to allow a user to read the top-level document of communities they are a member of. This resolves a critical "Missing or insufficient permissions" error on the "Switch Community" page, which prevented users from loading their list of communities.
 
 ### Fixed
-- **Invitation Acceptance**: Corrected the Firestore security rules to allow a newly authenticated user to read and update their own invitation document. This resolves the persistent "Missing or insufficient permissions" error and allows the user to successfully join a community after accepting an invitation.
+- **Invitation Acceptance**: Corrected the Firestore security rules to allow a newly authenticated user to read and update their own invitation document. This resolves the persistent "Missing or in-sufficient permissions" error and allows the user to successfully join a community after accepting an invitation.
 
 ### Fixed
 - **Avatar Upload**: Switched from an unreliable server-side API route to a direct client-side upload using the Firebase Web SDK. This resolves persistent CORS and token audience (`aud`) mismatch errors encountered in the Firebase Studio preview environment by no longer using the Admin SDK for this operation. The `lib/upload-avatar.ts` file has been updated with the new client-side logic, and the unused API route at `src/app/api/upload-avatar/route.ts` has been stubbed out.

@@ -24,6 +24,10 @@ function buildFrom(): string {
     if (!ok) {
       throw new Error('RESEND_FROM must be "email@example.com" or "Name <email@example.com>"');
     }
+    // If only email is provided, format it correctly.
+    if (!fromEnv.includes('<')) {
+        return `Mmanyin Orie <${fromEnv}>`;
+    }
     return fromEnv;
   }
 
