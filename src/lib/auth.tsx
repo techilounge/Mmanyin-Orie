@@ -93,7 +93,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
         if (unsubscribeMemberDoc) unsubscribeMemberDoc();
     }
-  }, [user, communityId]); // IMPORTANT: Do NOT add `loading` to this array.
+  }, [user, communityId]); // IMPORTANT: User dependency is critical here.
 
   useEffect(() => {
     setMounted(true);
