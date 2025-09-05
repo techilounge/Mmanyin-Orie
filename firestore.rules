@@ -9,9 +9,9 @@ service cloud.firestore {
       allow create: if request.auth != null;
     }
 
-    // A user can read a community document IF they are a member of that community
+    // A user can read a community document IF the communityId is in their user.memberships list
     match /communities/{communityId} {
-       allow read: if request.auth != null && exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid));
+      allow read: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.memberships.hasAny([communityId]);
     }
 
     // A user can read a community's sub-collections IF they are a member of that community
