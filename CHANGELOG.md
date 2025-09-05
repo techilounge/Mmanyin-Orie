@@ -8,7 +8,6 @@ All notable changes to this project will be documented in this file.
 - **Permissions and State Management**: 
   - Corrected Firestore security rules to grant appropriate read permissions to members with the 'user' role, allowing them to see community data like families, members, and payments. Write and delete permissions remain restricted to admins and owners.
   - Stabilized the `CommunityProvider` by adding the `user` object to the `useEffect` dependency array. This resolves a critical state management bug that caused the application to switch to the wrong community context for users belonging to multiple communities.
-  - Corrected the `getInviteLink` function to provide clearer error feedback in the UI when an invitation cannot be found.
 - **Community Loading**: Corrected Firestore security rules to allow a user to read the top-level document of communities they are a member of. This resolves a critical "Missing or insufficient permissions" error on the "Switch Community" page, which prevented users from loading their list of communities.
 
 ### Fixed

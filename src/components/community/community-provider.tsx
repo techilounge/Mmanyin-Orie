@@ -811,7 +811,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     updateSettings,
     addAgeGroup,
     updateAgeGroup,
-    deleteAgeGroup,
+deleteAgeGroup,
     addCustomContribution,
     updateCustomContribution,
     deleteCustomContribution,
@@ -837,5 +837,3 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     </CommunityContext.Provider>
   );
 }
-
-    
