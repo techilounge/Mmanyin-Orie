@@ -340,31 +340,27 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
   const getInviteLink = useCallback(async (memberId: string): Promise<string | null> => {
     if (!activeCommunityId) return null;
     try {
-      const memberDocRef = doc(db, 'communities', activeCommunityId, 'members', memberId);
-      const memberSnap = await getDoc(memberDocRef);
+        const memberDocRef = doc(db, 'communities', activeCommunityId, 'members', memberId);
+        const memberSnap = await getDoc(memberDocRef);
 
-      if (!memberSnap.exists()) {
-        console.error(`Member with ID ${memberId} not found.`);
-        return null;
-      }
+        if (!memberSnap.exists()) {
+            console.error(`Member with ID ${memberId} not found.`);
+            return null;
+        }
 
-      const memberData = memberSnap.data() as Member;
-      const inviteId = memberData?.inviteId;
-      const memberStatus = memberData?.status;
+        const memberData = memberSnap.data() as Member;
+        const inviteId = memberData?.inviteId;
+        const memberStatus = memberData?.status;
 
-      if (!inviteId) {
-        console.error(`No inviteId found for member ${memberId}.`);
-        return null;
-      }
-      
-      if (memberStatus !== 'invited') {
-          console.log(`Member ${memberId} has status '${memberStatus}', not 'invited'.`);
-          toast({ variant: 'destructive', title: 'Invitation Already Used', description: 'This member has already accepted their invitation.' });
-          return null;
-      }
+        if (!inviteId) {
+            console.error(`No inviteId found for member ${memberId}.`);
+            // This is not a user-facing error, but a data integrity issue.
+            // We'll return null and let the UI handle it gracefully.
+            return null;
+        }
 
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
-      return `${appUrl}/auth/accept-invite?token=${inviteId}`;
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+        return `${appUrl}/auth/accept-invite?token=${inviteId}`;
 
     } catch (error: any) {
         console.error("Error getting invite link:", error);
@@ -515,8 +511,9 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     }
     try {
       const inviteLink = await getInviteLink(member.id);
+      
       if (!inviteLink) {
-        // The getInviteLink function already shows a toast on failure, so no need for another one here.
+        toast({ variant: 'destructive', title: 'No Invitation Found', description: 'This member may have already accepted their invite, or no invite was created.' });
         return;
       }
       

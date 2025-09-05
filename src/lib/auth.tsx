@@ -85,13 +85,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } else {
         // If there's a user but no communityId in path, we are not in a community context
         // But we still need to set loading to false.
-        setLoading(false);
+        if (loading) { // only set loading if it's currently true
+          setLoading(false);
+        }
     }
 
     return () => {
         if (unsubscribeMemberDoc) unsubscribeMemberDoc();
     }
-  }, [user, communityId]);
+  }, [user, communityId]); // IMPORTANT: Do NOT add `loading` to this array.
 
   useEffect(() => {
     setMounted(true);
@@ -101,7 +103,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!mounted || loading) return;
 
     const pathIsPublic = publicPaths.some(p => pathname.startsWith(p));
-    const isOnAppPath = pathname.startsWith('/app');
 
     if (!user && !pathIsPublic) {
       router.push('/auth/sign-in');
