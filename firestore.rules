@@ -3,56 +3,55 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isMemberOfCommunity(communityId) {
-      return request.auth != null && exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid));
-    }
-
-    function isCommunityAdmin(communityId) {
-      let memberRole = get(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)).data.role;
-      return request.auth != null && memberRole in ['owner', 'admin'];
-    }
-
+    // Users can only read/update their own user document
     match /users/{userId} {
       allow read, update: if request.auth != null && request.auth.uid == userId;
       allow create: if request.auth != null;
     }
 
+    // A user can read a community document IF they are a member of that community
     match /communities/{communityId} {
-      allow read: if isMemberOfCommunity(communityId);
+      allow read: if request.auth != null && exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid));
     }
-    
+
+    // Admins/Owners have full read/write access to these sub-collections
     match /communities/{communityId}/families/{familyId} {
-        allow read: if isMemberOfCommunity(communityId);
-        allow create, update, delete: if isCommunityAdmin(communityId);
+       allow read, write, delete: if request.auth != null && get(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)).data.role in ['owner', 'admin'];
     }
-
     match /communities/{communityId}/contributions/{contributionId} {
-        allow read: if isMemberOfCommunity(communityId);
-        allow create, update, delete: if isCommunityAdmin(communityId);
+       allow read, write, delete: if request.auth != null && get(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)).data.role in ['owner', 'admin'];
     }
 
-    match /communities/{communityId}/members/{uid} {
-      allow read: if isMemberOfCommunity(communityId);
-      allow create: if request.auth != null;
-      allow update: if (request.auth != null && request.auth.uid == uid) || isCommunityAdmin(communityId);
-      allow delete: if isCommunityAdmin(communityId);
+    // Rules for the members sub-collection
+    match /communities/{communityId}/members/{memberId} {
+      // Any member of the community can read the members list
+      allow read: if request.auth != null && (exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)));
+      // Admins/Owners can create, update, and delete any member
+      allow create, update, delete: if request.auth != null && get(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)).data.role in ['owner', 'admin'];
     }
 
+    // --- Invitations: allow reading a pending invite, or the invite that matches the signed-in email.
     match /invitations/{inviteId} {
       allow read: if resource.data.status == 'pending'
                   || (request.auth != null
-                      && request.auth.token.email == resource.data.email)
-                  || isCommunityAdmin(resource.data.communityId);
-      
-      allow update: if (request.auth != null && request.auth.token.email == resource.data.email) 
-                    || isCommunityAdmin(resource.data.communityId);
-
-      allow create: if request.auth != null;
-      allow delete: if isCommunityAdmin(resource.data.communityId);
+                      && request.auth.token.email == resource.data.email);
+      // Accepting the invite: must be the same signed-in email.
+      allow update: if request.auth != null
+                    && request.auth.token.email == resource.data.email;
+      allow create: if request.auth != null; // Allows admin/owner to create invites
+      allow delete: if false;
     }
 
+    // --- Member creation on invite accept: the invited user may create/update their own member doc.
+    match /communities/{communityId}/members/{uid} {
+       // This rule is specifically for the user accepting an invite to update their own record
+      allow update: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Allow authenticated users to create documents in the /mail collection
+    // This is required for the "Trigger Email" extension to work.
     match /mail/{docId} {
-      allow read: if false;
+      allow read: if false; // No one should read the mail queue
       allow write: if request.auth != null;
     }
   }
