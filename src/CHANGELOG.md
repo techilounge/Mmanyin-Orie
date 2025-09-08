@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **Server Crash**: Fixed a critical server crash caused by an invalid async function call in the SecuritySettings component. The logic has been correctly moved into a `useEffect` hook to follow React patterns, resolving the "invalid response" error.
 - **Finalized Security Rules**: Corrected and finalized all Firestore security rules to resolve all outstanding permission errors. This includes fixing data visibility for regular users, stabilizing the "Switch Community" page, and securing the invitation acceptance workflow. Added a rule to restrict community document updates to admins and owners.
 - **Invitation Acceptance**: Corrected the Firestore security rules to allow a newly authenticated user to read and update their own invitation document. This resolves the persistent "Missing or in-sufficient permissions" error and allows the user to successfully join a community after accepting an invitation.
 - **Email Sending**: Fixed a critical bug where invitation emails failed to send via Resend. The `from` address was not being formatted correctly as `Name <email@domain.com>`, which is required by the Resend API, causing silent delivery failures. The logic has been corrected to ensure proper formatting.
@@ -37,4 +38,3 @@ All notable changes to this project will be documented in this file.
 - **Invitation Links**: Ensured that generated invitation links use the correct custom domain specified in the environment variables.
 - **Build Errors**: Corrected various syntax errors in `.tsx` files that were causing the Next.js build to fail.
 - **Multi-Community Routing**: Fixed a bug where a user belonging to multiple communities was not prompted to select a community on login. The logic was corrected to route them to the `/app/switch-community` page if no primary community is set.
-
