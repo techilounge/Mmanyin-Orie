@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -77,26 +77,26 @@ export function SecuritySettings() {
     defaultValues: { newEmail: '', currentPassword: '' },
   });
 
+  const checkUserRole = useCallback(async () => {
+    if (appUser && appUser.memberships && appUser.memberships.length > 0) {
+      for (const communityId of appUser.memberships) {
+         const memberDocRef = doc(db, 'communities', communityId, 'members', appUser.uid);
+         const memberDocSnap = await getDoc(memberDocRef);
+         if (memberDocSnap.exists()) {
+             const memberData = memberDocSnap.data() as Member;
+             if (memberData.role === 'admin' || memberData.role === 'owner') {
+                 setCanDeleteAccount(true);
+                 return; // Found a privileged role, no need to check further
+             }
+         }
+      }
+    }
+    setCanDeleteAccount(false); // No privileged role found
+  }, [appUser]);
 
   useEffect(() => {
-    const checkUserRole = async () => {
-      if (appUser && appUser.memberships && appUser.memberships.length > 0) {
-        for (const communityId of appUser.memberships) {
-           const memberDocRef = doc(db, 'communities', communityId, 'members', appUser.uid);
-           const memberDocSnap = await getDoc(memberDocRef);
-           if (memberDocSnap.exists()) {
-               const memberData = memberDocSnap.data() as Member;
-               if (memberData.role === 'admin' || memberData.role === 'owner') {
-                   setCanDeleteAccount(true);
-                   return; // Found a privileged role, no need to check further
-               }
-           }
-        }
-      }
-      setCanDeleteAccount(false); // No privileged role found
-    };
     checkUserRole();
-  }, [appUser]);
+  }, [appUser, checkUserRole]);
 
   async function onPasswordSubmit(data: PasswordFormValues) {
     if (!user || !user.email) return;

@@ -344,7 +344,6 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         const memberSnap = await getDoc(memberDocRef);
 
         if (!memberSnap.exists()) {
-            // This is not a user-facing error.
             return null;
         }
 
@@ -352,7 +351,8 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         const inviteId = memberData?.inviteId;
         
         if (!inviteId) {
-            return null; // Let the UI handle this state.
+            // This is a valid state, let UI handle it. Don't show toast.
+            return null;
         }
 
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
@@ -360,10 +360,10 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
 
     } catch (error: any) {
         console.error("Error getting invite link:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'An unexpected error occurred while retrieving the link.' });
+        // Let UI handle showing a generic error.
         return null;
     }
-  }, [activeCommunityId, toast]);
+  }, [activeCommunityId]);
   
   const addMember = async (data: NewMemberData) => {
     if (!activeCommunityId) return;
@@ -822,7 +822,7 @@ deleteAgeGroup,
     getPaidAmountForContribution,
     getBalanceForContribution,
   }), [
-    members, families, settings, customContributions, isLoading, activeCommunityId, communityName, dialogState, 
+    members, families, settings, customContributions, isLoading, activeCommunityId, communityName, dialogState, user,
     getContribution, addFamily, addMember, inviteMember, getInviteLink, resendInvitation, updateMember, deleteMember, updateFamily, deleteFamily, updateSettings, addAgeGroup, updateAgeGroup, deleteAgeGroup, updateCommunityName, addCustomContribution, updateCustomContribution, deleteCustomContribution, recordPayment, updatePayment, deletePayment, openDialog, closeDialog, getPaidAmount, getBalance, getPaidAmountForContribution, getBalanceForContribution
   ]);
 

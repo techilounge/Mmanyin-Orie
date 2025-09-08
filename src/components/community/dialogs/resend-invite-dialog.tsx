@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useCommunity } from '@/hooks/use-community';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,16 +24,21 @@ export function ResendInviteDialog() {
   const [isResending, setIsResending] = useState(false);
 
   const isOpen = dialogState?.type === 'resend-invite';
+  
+  const fetchLink = useCallback(async () => {
+    if (member) {
+      setIsLoading(true);
+      const link = await getInviteLink(member.id);
+      setInviteLink(link);
+      setIsLoading(false);
+    }
+  }, [member, getInviteLink]);
 
   useEffect(() => {
-    if (isOpen && member) {
-        setIsLoading(true);
-        getInviteLink(member.id).then(link => {
-            setInviteLink(link);
-            setIsLoading(false);
-        });
+    if (isOpen) {
+      fetchLink();
     }
-  }, [isOpen, member]); // Removed getInviteLink from dependency array to prevent infinite loop
+  }, [isOpen, fetchLink]);
 
   const handleClose = () => {
     setInviteLink(null);
