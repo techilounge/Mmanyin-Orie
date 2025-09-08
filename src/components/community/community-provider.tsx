@@ -1,12 +1,13 @@
 
+
 'use client';
 import type { ReactNode } from 'react';
 import React, { createContext, useState, useEffect, useMemo, useCallback } from 'react';
-import type { Member, Family, Settings, CustomContribution, NewMemberData, NewCustomContributionData, DialogState, NewPaymentData, Payment, Invitation, AgeGroup, AppUser } from '@/lib/types';
+import type { Member, Family, Settings, CustomContribution, NewMemberData, NewCustomContributionData, DialogState, NewPaymentData, Payment, Invitation, AgeGroup } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getMonth, getYear } from 'date-fns';
 import { useAuth } from '@/lib/auth';
-import { db, storage } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import {
   collection,
   doc,
@@ -21,15 +22,8 @@ import {
   getDoc,
   setDoc,
   Timestamp,
-  arrayRemove,
-  orderBy,
-  limit,
 } from 'firebase/firestore';
-import { ref, deleteObject } from 'firebase/storage';
 import { sendInvitationEmail } from '@/lib/email';
-import { createOrResendInvite } from '@/lib/invitations';
-import { notifyAdminsOwnerNewMember } from '@/lib/notify-new-member';
-
 
 interface CommunityContextType {
   members: Member[];
@@ -43,6 +37,7 @@ interface CommunityContextType {
   
   addMember: (newMemberData: NewMemberData) => Promise<void>;
   inviteMember: (newMemberData: NewMemberData, newFamilyName?: string) => Promise<boolean>;
+  getInviteLink: (memberId: string) => Promise<string | null>;
   resendInvitation: (member: Member) => Promise<void>;
   updateMember: (updatedMemberData: Member) => Promise<void>;
   deleteMember: (id: string) => Promise<void>;
@@ -83,6 +78,17 @@ const DEFAULT_SETTINGS: Settings = {
   currency: '₦',
   ageGroups: [],
 };
+
+// Helper to generate a random string for the invite code
+const generateInviteCode = (length = 8) => {
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  return result;
+};
+
 
 export function CommunityProvider({ children, communityId: activeCommunityId }: { children: ReactNode, communityId: string | null }) {
   const { user } = useAuth();
@@ -234,9 +240,11 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     try {
         const batch = writeBatch(db);
 
+        // 1. Create the family document
         const familyDocRef = doc(collection(db, `communities/${activeCommunityId}/families`));
         batch.set(familyDocRef, { name: familyName });
 
+        // 2. Create the patriarch member document
         const joinDate = new Date().toISOString();
 
         const patriarchMemberBase = {
@@ -255,7 +263,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
             joinDate: joinDate,
             role: 'user' as const,
             status: 'active' as const,
-            uid: doc(collection(db, 'dummy')).id, 
+            uid: doc(collection(db, 'dummy')).id, // Placeholder
         };
 
         const contribution = getContribution(patriarchMemberBase, customContributions);
@@ -265,14 +273,6 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         batch.set(memberDocRef, patriarchMember);
 
         await batch.commit();
-
-        await notifyAdminsOwnerNewMember({
-            communityId: activeCommunityId,
-            communityName: communityName,
-            memberUid: memberDocRef.id,
-            memberDisplayName: familyName,
-        });
-
         toast({ title: 'Family Created', description: `The "${familyName}" family has been added with ${trimmedFirstName} as the head.` });
         return true;
     } catch (error: any) {
@@ -288,6 +288,10 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         toast({ variant: "destructive", title: "Error", description: "Family name cannot be empty." });
         return;
     }
+    
+    // As family name is now derived from patriarch, this function should update the patriarch's name,
+    // which in turn updates the family name for all members.
+    // For now, we prevent direct editing of family name. The logic should be tied to editing the patriarch member.
     toast({
         variant: "default",
         title: "Info",
@@ -301,19 +305,23 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     const batch = writeBatch(db);
   
     try {
+      // 1. Query for all members of the family
       const membersQuery = query(
         collection(db, `communities/${activeCommunityId}/members`),
         where("family", "==", family.name)
       );
       const membersSnapshot = await getDocs(membersQuery);
   
+      // 2. Delete each member in the family
       membersSnapshot.forEach((memberDoc) => {
         batch.delete(memberDoc.ref);
       });
   
+      // 3. Delete the family document itself
       const familyDocRef = doc(db, `communities/${activeCommunityId}/families`, family.id);
       batch.delete(familyDocRef);
   
+      // 4. Commit all batched writes
       await batch.commit();
       
       toast({
@@ -330,6 +338,34 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     }
   };
 
+  const getInviteLink = useCallback(async (memberId: string): Promise<string | null> => {
+    if (!activeCommunityId) return null;
+    try {
+        const memberDocRef = doc(db, 'communities', activeCommunityId, 'members', memberId);
+        const memberSnap = await getDoc(memberDocRef);
+
+        if (!memberSnap.exists()) {
+            return null;
+        }
+
+        const memberData = memberSnap.data() as Member;
+        const inviteId = memberData?.inviteId;
+        
+        if (!inviteId) {
+            // This is a valid state, let UI handle it. Don't show toast.
+            return null;
+        }
+
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+        return `${appUrl}/auth/accept-invite?token=${inviteId}`;
+
+    } catch (error: any) {
+        console.error("Error getting invite link:", error);
+        // Let UI handle showing a generic error.
+        return null;
+    }
+  }, [activeCommunityId]);
+  
   const addMember = async (data: NewMemberData) => {
     if (!activeCommunityId) return;
 
@@ -354,7 +390,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
             payments: [],
             joinDate: joinDate,
             role: 'user' as const,
-            status: 'active' as const,
+            status: 'active' as const, // Add member directly as active
             uid: null,
             isPatriarch: data.isPatriarch,
         };
@@ -362,15 +398,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         const contribution = getContribution(memberBase, customContributions);
         const newMember = { ...memberBase, contribution };
         
-        const memberDocRef = await addDoc(collection(db, `communities/${activeCommunityId}/members`), newMember);
-        
-        await notifyAdminsOwnerNewMember({
-            communityId: activeCommunityId,
-            communityName: communityName,
-            memberUid: memberDocRef.id,
-            memberDisplayName: fullName,
-            memberEmail: data.email,
-        });
+        await addDoc(collection(db, `communities/${activeCommunityId}/members`), newMember);
 
         toast({ title: "Member Added", description: `${fullName} has been added to the registry.` });
         closeDialog();
@@ -381,28 +409,37 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
 
   const inviteMember = async (data: NewMemberData, newFamilyName?: string): Promise<boolean> => {
     if (!activeCommunityId || !user || !data.email) {
-      if (!data.email) toast({ variant: "destructive", title: "Email Required", description: "An email is required to invite a member." });
+      if (!data.email) {
+        toast({ variant: "destructive", title: "Email Required", description: "An email is required to invite a member." });
+      }
       return false;
     }
     
     try {
+        const batch = writeBatch(db);
+
+        // If a new family is being created, add it to the families collection
         let familyToUse = data.family;
         if (newFamilyName && newFamilyName.trim() && data.family === 'new') {
             familyToUse = newFamilyName.trim();
             const familyDocRef = doc(collection(db, `communities/${activeCommunityId}/families`));
-            await setDoc(familyDocRef, { name: familyToUse });
+            batch.set(familyDocRef, { name: familyToUse });
         }
 
-        const fullName = [data.firstName, data.middleName, data.lastName].filter(Boolean).join(' ');
+        const fullName = [data.firstName, data.middleName, data.lastName]
+            .filter(part => part && part.trim())
+            .join(' ');
         
-        // 1. Create the member document first to get a stable ID
-        const memberDocRef = doc(collection(db, `communities/${activeCommunityId}/members`));
+        const joinDate = new Date().toISOString();
 
+        const memberDocRef = doc(collection(db, `communities/${activeCommunityId}/members`));
+        const inviteDocRef = doc(collection(db, 'invitations'));
+        
         const newMemberBase = {
             name: fullName,
             firstName: data.firstName,
-            lastName: data.lastName,
             middleName: data.middleName || '',
+            lastName: data.lastName,
             family: familyToUse,
             email: data.email,
             phone: data.phone || '',
@@ -410,37 +447,52 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
             gender: data.gender,
             tier: data.tier,
             payments: [],
-            joinDate: new Date().toISOString(),
+            joinDate: joinDate,
             role: 'user' as const,
             status: 'invited' as const,
             uid: null,
             isPatriarch: data.isPatriarch,
+            inviteId: inviteDocRef.id,
         };
         
         const contribution = getContribution(newMemberBase, customContributions);
         const newMember = { ...newMemberBase, contribution };
         
-        await setDoc(memberDocRef, newMember);
+        batch.set(memberDocRef, newMember);
 
-        // 2. Create the invitation, now with the stable memberId
-        const { url } = await createOrResendInvite({
-          communityId: activeCommunityId,
-          memberId: memberDocRef.id, // Use the new stable ID
-          email: data.email,
-          communityName: communityName,
-          inviterName: user.displayName || 'The community admin',
-          inviterUid: user.uid,
-        });
+        const newInvitation: Invitation = {
+            communityId: activeCommunityId,
+            communityName: communityName,
+            memberId: memberDocRef.id,
+            email: data.email,
+            firstName: data.firstName,
+            lastName: data.lastName,
+            role: 'user',
+            status: 'pending',
+            code: generateInviteCode(),
+            createdAt: new Date().toISOString(),
+            createdBy: user.uid,
+        };
 
-        // 3. Send the email
+        batch.set(inviteDocRef, newInvitation);
+
+        await batch.commit();
+        
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+        const inviteLink = `${appUrl}/auth/accept-invite?token=${inviteDocRef.id}`;
+
+        // Send email using Resend
         await sendInvitationEmail({
           to: data.email,
           communityName: communityName,
-          inviteLink: url,
+          inviteLink: inviteLink,
           inviterName: user.displayName || 'The community admin'
         });
 
-        toast({ title: "Invitation Sent", description: `An invitation email has been sent to ${fullName}.`});
+        toast({ 
+            title: "Invitation Sent", 
+            description: `An invitation email has been sent to ${fullName}.`
+        });
         return true;
 
     } catch(error: any) {
@@ -450,27 +502,25 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
   };
 
   const resendInvitation = async (member: Member) => {
-    if (!user || !member.email || !activeCommunityId) {
+    if (!user || !member.email) {
       toast({ variant: 'destructive', title: 'Error', description: 'Member does not have an email to send an invitation to.' });
       return;
     }
     try {
-        const { url } = await createOrResendInvite({
-            communityId: activeCommunityId,
-            memberId: member.id,
-            email: member.email,
-            communityName,
-            inviterUid: user.uid,
-            inviterName: user.displayName || 'The community admin',
-        });
+      const inviteLink = await getInviteLink(member.id);
+      
+      if (!inviteLink) {
+        toast({ variant: 'destructive', title: 'No Invitation Found', description: 'This member may have already accepted their invite, or no invite was created.' });
+        return;
+      }
       
       await sendInvitationEmail({
         to: member.email,
         communityName: communityName,
-        inviteLink: url,
+        inviteLink: inviteLink,
         inviterName: user.displayName || 'The community admin',
       });
-      toast({ title: 'Invitation Resent', description: `A new invitation email has been sent to ${member.name}.` });
+      toast({ title: 'Invitation Resent', description: `An invitation email has been sent to ${member.name}.` });
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Failed to Resend', description: error.message });
     }
@@ -507,6 +557,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
 
       const batch = writeBatch(db);
 
+       // If creating a new family, add it to the families collection first
       if (updatedData.family && !families.find(f => f.name === updatedData.family)) {
         const familyDocRef = doc(collection(db, `communities/${activeCommunityId}/families`));
         batch.set(familyDocRef, { name: updatedData.family });
@@ -516,11 +567,13 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
       const { id, ...dataToSend } = memberToUpdate;
       batch.update(memberDocRef, dataToSend);
 
+      // If the patriarch's name is changing, update the family name and all members' family field
       if (updatedData.isPatriarch) {
           const oldFamilyName = updatedData.family;
           const newFamilyName = fullName;
 
           if (oldFamilyName !== newFamilyName) {
+              // Find the family document to update its name
               const familiesQuery = query(collection(db, `communities/${activeCommunityId}/families`), where("name", "==", oldFamilyName));
               const familiesSnapshot = await getDocs(familiesQuery);
               if (!familiesSnapshot.empty) {
@@ -528,6 +581,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
                   batch.update(familyDocRef, { name: newFamilyName });
               }
 
+              // Update all members of the old family to the new family name
               const membersQuery = query(collection(db, `communities/${activeCommunityId}/members`), where("family", "==", oldFamilyName));
               const membersSnapshot = await getDocs(membersQuery);
               membersSnapshot.forEach(memberDoc => {
@@ -546,71 +600,22 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
 
   const deleteMember = async (id: string) => {
     if (!activeCommunityId) return;
-
     try {
         const memberDocRef = doc(db, `communities/${activeCommunityId}/members`, id);
         const memberSnap = await getDoc(memberDocRef);
-
-        if (!memberSnap.exists()) {
-            toast({ variant: "destructive", title: "Error", description: "Member not found." });
-            return;
-        }
-
-        const memberData = memberSnap.data() as Member;
-        if (memberData.isPatriarch) {
+        const memberData = memberSnap.data();
+        if (memberData?.isPatriarch) {
             toast({ variant: "destructive", title: "Action Not Allowed", description: "The head of the family cannot be deleted. You must delete the entire family instead." });
             return;
         }
 
-        const userUid = memberData.uid;
-
-        if (!userUid) { // This is an invited member who hasn't signed up. Just delete the member doc.
-            await deleteDoc(memberDocRef);
-            toast({ title: "Invited Member Removed", description: `${memberData.name}'s invitation has been revoked.` });
-            return;
-        }
-
-        const userDocRef = doc(db, "users", userUid);
-        const userDocSnap = await getDoc(userDocRef);
-
-        if (userDocSnap.exists()) {
-            const appUser = userDocSnap.data() as AppUser;
-            const memberships = appUser.memberships || [];
-            
-            const batch = writeBatch(db);
-
-            // This is the member's only community, perform a full account deletion.
-            if (memberships.length <= 1) {
-                if (appUser.photoPath) {
-                    const avatarRef = ref(storage, appUser.photoPath);
-                    await deleteObject(avatarRef).catch(err => console.warn("Could not delete avatar during cleanup:", err));
-                }
-                batch.delete(userDocRef);
-                // Note: Deleting the Firebase Auth user must be done with a Cloud Function for security.
-                // The client can't delete other users. This will be handled separately.
-                console.log(`User ${userUid} data deleted from Firestore. Auth user must be deleted from the Firebase Console or via a backend process.`);
-            } else {
-                // Member belongs to other communities, just remove from this one.
-                batch.update(userDocRef, {
-                    memberships: arrayRemove(activeCommunityId)
-                });
-            }
-            
-            // In both cases, delete the member document from the current community
-            batch.delete(memberDocRef);
-            await batch.commit();
-
-            toast({ title: "Member Removed", description: `${memberData.name} has been removed from this community.` });
-        } else {
-            // User doc doesn't exist, which is unusual but we can still clean up the member doc.
-            await deleteDoc(memberDocRef);
-            toast({ title: "Member Removed", description: `${memberData.name} has been removed.` });
-        }
-    } catch (error: any) {
-        console.error("Failed to delete member:", error);
+        const memberName = memberData?.name || 'Member';
+        await deleteDoc(memberDocRef);
+        toast({ title: "Member Deleted", description: `${memberName} has been removed.` });
+    } catch(error: any) {
         toast({ variant: "destructive", title: "Error deleting member", description: error.message });
     }
-};
+  };
 
   const recordPayment = async (memberId: string, contributionId: string, paymentData: Omit<NewPaymentData, 'contributionId'>) => {
     if (!activeCommunityId) return;
@@ -620,7 +625,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         if (memberSnapshot.exists()) {
             const memberData = memberSnapshot.data() as Member;
             const newPayment: Partial<Payment> = { 
-                id: doc(collection(db, 'dummy')).id,
+                id: doc(collection(db, 'dummy')).id, // Generate a client-side ID
                 contributionId,
                 amount: paymentData.amount,
                 date: paymentData.date,
@@ -741,6 +746,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     try {
         const communityDocRef = doc(db, 'communities', activeCommunityId);
         await updateDoc(communityDocRef, { name: newName.trim() });
+        // No toast here, handled by the calling component
     } catch (error: any) {
         toast({ variant: "destructive", title: "Error updating name", description: error.message });
     }
@@ -791,6 +797,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     updateCommunityName,
     addMember,
     inviteMember,
+    getInviteLink,
     resendInvitation,
     updateMember,
     deleteMember,
@@ -800,7 +807,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     updateSettings,
     addAgeGroup,
     updateAgeGroup,
-    deleteAgeGroup,
+deleteAgeGroup,
     addCustomContribution,
     updateCustomContribution,
     deleteCustomContribution,
@@ -816,8 +823,8 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     getPaidAmountForContribution,
     getBalanceForContribution,
   }), [
-    members, families, settings, customContributions, isLoading, activeCommunityId, communityName, dialogState, 
-    getContribution, addFamily, addMember, inviteMember, resendInvitation, updateMember, deleteMember, updateFamily, deleteFamily, updateSettings, addAgeGroup, updateAgeGroup, deleteAgeGroup, updateCommunityName, addCustomContribution, updateCustomContribution, deleteCustomContribution, recordPayment, updatePayment, deletePayment, openDialog, closeDialog, getPaidAmount, getBalance, getPaidAmountForContribution, getBalanceForContribution
+    members, families, settings, customContributions, isLoading, activeCommunityId, communityName, dialogState, user,
+    getContribution, addFamily, addMember, inviteMember, getInviteLink, resendInvitation, updateMember, deleteMember, updateFamily, deleteFamily, updateSettings, addAgeGroup, updateAgeGroup, deleteAgeGroup, updateCommunityName, addCustomContribution, updateCustomContribution, deleteCustomContribution, recordPayment, updatePayment, deletePayment, openDialog, closeDialog, getPaidAmount, getBalance, getPaidAmountForContribution, getBalanceForContribution
   ]);
 
   return (

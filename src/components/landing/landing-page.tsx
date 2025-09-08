@@ -227,24 +227,28 @@ export function LandingPage() {
         <main className="flex flex-1 flex-col items-center">
             {/* Hero Section */}
             <section className="relative flex flex-col items-center justify-center text-center py-20 sm:py-32 px-4">
-                <Image 
-                    src="/kola-nuts.png" 
-                    alt="Kola nuts decoration"
-                    width={200}
-                    height={100}
-                    className="absolute top-1/4 left-4 lg:left-12 xl:left-24 opacity-20 pointer-events-none hidden md:block"
-                    aria-hidden="true"
-                    data-ai-hint="background kola nuts"
-                />
-                <Image 
-                    src="/kola-nuts.png" 
-                    alt="Kola nuts decoration"
-                    width={200}
-                    height={100}
-                    className="absolute top-1/4 right-4 lg:right-12 xl:right-24 opacity-20 pointer-events-none hidden md:block"
-                    aria-hidden="true"
-                    data-ai-hint="background kola nuts"
-                />
+                 <div className="absolute top-1/4 left-4 lg:left-12 xl:left-24 w-[200px] h-[100px] opacity-20 pointer-events-none hidden md:block">
+                    <Image 
+                        src="/kola-nuts.png" 
+                        alt="Kola nuts decoration"
+                        fill
+                        sizes="200px"
+                        className="object-contain"
+                        aria-hidden="true"
+                        data-ai-hint="background kola nuts"
+                    />
+                </div>
+                 <div className="absolute top-1/4 right-4 lg:right-12 xl:right-24 w-[200px] h-[100px] opacity-20 pointer-events-none hidden md:block">
+                    <Image 
+                        src="/kola-nuts.png" 
+                        alt="Kola nuts decoration"
+                        fill
+                        sizes="200px"
+                        className="object-contain"
+                        aria-hidden="true"
+                        data-ai-hint="background kola nuts"
+                    />
+                </div>
                 <div className="flex flex-col items-center space-y-6">
                     <div className="flex flex-col items-center space-y-4">
                         <Image 
