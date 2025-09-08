@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **Permissions**: Corrected a critical Firestore security rule to allow members of a community to read the member list. The previous rule was causing a "Missing or insufficient permissions" error by incorrectly checking the user's top-level document instead of their existence in the community's `members` subcollection.
+- **Permissions**: Corrected Firestore security rules to grant appropriate read permissions to members with the 'user' role. This resolves a critical "Missing or insufficient permissions" error that prevented non-admins from viewing community data like families, members, and payments. Write permissions remain restricted to admins and owners.
+- **Build Failure**: Resolved a critical build failure caused by a merge conflict in `src/components/community/community-provider.tsx`. The conflicting logic for handling invitation links has been corrected, stabilizing the application.
 - **Finalized Security Rules**: Corrected and finalized all Firestore security rules to resolve all outstanding permission errors. This includes fixing data visibility for regular users, stabilizing the "Switch Community" page, and securing the invitation acceptance workflow. Added a rule to restrict community document updates to admins and owners.
 - **Invitation Acceptance**: Corrected the Firestore security rules to allow a newly authenticated user to read and update their own invitation document. This resolves the persistent "Missing or in-sufficient permissions" error and allows the user to successfully join a community after accepting an invitation.
 - **Email Sending**: Fixed a critical bug where invitation emails failed to send via Resend. The `from` address was not being formatted correctly as `Name <email@domain.com>`, which is required by the Resend API, causing silent delivery failures. The logic has been corrected to ensure proper formatting.

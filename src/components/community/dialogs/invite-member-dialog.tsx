@@ -69,7 +69,9 @@ export function InviteMemberDialog() {
   const familyValue = form.watch('family');
 
   const handleClose = () => {
-    if(!isSubmitting) {
+    // This ensures that when the dialog is closed (either by Done or X),
+    // the state is reset for the next time it opens.
+    if (!isSubmitting) {
       form.reset();
       setInviteSent(false);
       closeDialog();
@@ -78,6 +80,7 @@ export function InviteMemberDialog() {
 
   useEffect(() => {
     if (isOpen) {
+      // Reset form and states when dialog opens
       form.reset({
         firstName: '',
         lastName: '',
@@ -115,18 +118,20 @@ export function InviteMemberDialog() {
         const success = await inviteMember(memberData, newFamilyName);
         if(success) {
             setInviteSent(true);
-        } else {
-          setIsSubmitting(false);
         }
-
     } catch (error) {
         console.error("Failed to process member:", error);
-        setIsSubmitting(false);
+    } finally {
+        // Only set submitting to false if we are not in the success state.
+        // The user will click "Done" to dismiss the success message.
+        if (!inviteSent) {
+          setIsSubmitting(false);
+        }
     }
   };
   
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
       <DialogContent className="w-[calc(100vw-2rem)] max-w-lg sm:max-w-xl md:max-w-2xl">
         {inviteSent ? (
             <>

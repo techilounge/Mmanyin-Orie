@@ -11,27 +11,29 @@ service cloud.firestore {
 
     // --- Community and Sub-collection Rules ---
 
-    // A user can read a community document IF the communityId is in their user.memberships list
+    // A user can read a community document IF they are a member of that community.
+    // This is checked by seeing if a member document with their UID exists.
     match /communities/{communityId} {
-      allow read: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.memberships.hasAny([communityId]);
+      allow read: if request.auth != null && exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid));
+      
       // Only admins/owners can update the community document itself
       allow update: if request.auth != null && get(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)).data.role in ['owner', 'admin'];
     }
 
     // A user can read a community's sub-collections IF they are a member of that community
     match /communities/{communityId}/families/{familyId} {
-      allow read: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.memberships.hasAny([communityId]);
+      allow read: if request.auth != null && exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid));
       allow write, delete: if request.auth != null && get(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)).data.role in ['owner', 'admin'];
     }
     match /communities/{communityId}/contributions/{contributionId} {
-      allow read: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.memberships.hasAny([communityId]);
+      allow read: if request.auth != null && exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid));
       allow write, delete: if request.auth != null && get(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)).data.role in ['owner', 'admin'];
     }
 
     // Rules for the members sub-collection
     match /communities/{communityId}/members/{memberId} {
-      // Any member of the community can read the members list
-      allow read: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.memberships.hasAny([communityId]);
+      // Any member of the community can read the members list.
+      allow read: if request.auth != null && exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid));
 
       // Admins/Owners can create and delete any member
       allow create, delete: if request.auth != null && get(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)).data.role in ['owner', 'admin'];
