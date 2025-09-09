@@ -1,4 +1,5 @@
 
+
 'use client';
 import { useCommunity } from '@/hooks/use-community';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import type { CustomContribution } from '@/lib/types';
 
 const formSchema = z.object({
   name: z.string().min(1, 'Template name is required.'),

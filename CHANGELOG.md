@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **Build Failure**: Resolved a TypeScript build error caused by a missing `NewCustomContributionData` type in `community-provider.tsx`. The type signature has been corrected to use the appropriate `Omit<CustomContribution, 'id'>` type, stabilizing the build.
 - **Invitation Acceptance**: Corrected the invitation acceptance workflow to align with stricter Firestore security rules. The process now successfully completes by having the user create their own member document, resolving a "Missing or insufficient permissions" error that blocked users from joining a community.
 - **Firestore Rules**: Finalized Firestore security rules to be more secure and robust, using helper functions for clarity.
 - **Permissions**: Corrected a critical Firestore security rule to allow members of a community to read the member list. The previous rule was causing a "Missing or insufficient permissions" error by incorrectly checking the user's top-level document instead of their existence in the community's `members` subcollection.

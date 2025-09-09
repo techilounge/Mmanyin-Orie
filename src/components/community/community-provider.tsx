@@ -52,7 +52,7 @@ interface CommunityContextType {
   updateAgeGroup: (id: string, name: string) => Promise<void>;
   deleteAgeGroup: (id: string) => Promise<void>;
   
-  addCustomContribution: (contributionData: NewCustomContributionData) => Promise<void>;
+  addCustomContribution: (data: Omit<CustomContribution, 'id'>) => Promise<void>;
   updateCustomContribution: (updatedContribution: CustomContribution) => Promise<void>;
   deleteCustomContribution: (id: string) => Promise<void>;
 
@@ -770,7 +770,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     }
   };
 
-  const addCustomContribution = async (data: NewCustomContributionData) => {
+  const addCustomContribution = async (data: Omit<CustomContribution, 'id'>) => {
     if (!activeCommunityId) return;
     try {
         await addDoc(collection(db, `communities/${activeCommunityId}/contributions`), data);
