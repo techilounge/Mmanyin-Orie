@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -40,7 +41,7 @@ const roleColors = {
 
 export function Members() {
   const { members, families, deleteMember, openDialog, settings, getPaidAmount, getBalance } = useCommunity();
-  const { communityRole } = useAuth();
+  const { user, communityRole } = useAuth();
   const isAdmin = communityRole === 'admin' || communityRole === 'owner';
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -176,6 +177,7 @@ export function Members() {
                   const balance = getBalance(m);
                   const progress = contribution > 0 ? (paidAmount / contribution) * 100 : 0;
                   const fullPhone = m.phone ? `${m.phoneCountryCode} ${m.phone}` : '';
+                  const isPatriarchForFamily = m.isPatriarch && m.uid === user?.uid;
 
                   return (
                     <TableRow key={m.id} className={status === 'invited' ? 'bg-muted/30' : ''}>
@@ -221,7 +223,7 @@ export function Members() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {isAdmin && (
+                        {(isAdmin || isPatriarchForFamily) && (
                             <div className="flex gap-1 justify-end">
                             {status === 'invited' ? (
                                 <TooltipProvider>
@@ -261,23 +263,25 @@ export function Members() {
                                 </TooltipProvider>
                             )}
                             
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => setMemberToDelete(m)}
-                                                aria-label="Delete member"
-                                            >
-                                                <Trash2 size={16} className="text-destructive" />
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p>Delete Member</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
+                                {isAdmin && 
+                                  <TooltipProvider>
+                                      <Tooltip>
+                                          <TooltipTrigger asChild>
+                                              <Button
+                                                  variant="ghost"
+                                                  size="icon"
+                                                  onClick={() => setMemberToDelete(m)}
+                                                  aria-label="Delete member"
+                                              >
+                                                  <Trash2 size={16} className="text-destructive" />
+                                              </Button>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                              <p>Delete Member</p>
+                                          </TooltipContent>
+                                      </Tooltip>
+                                  </TooltipProvider>
+                                }
                             </div>
                         )}
                       </TableCell>

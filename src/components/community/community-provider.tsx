@@ -3,7 +3,7 @@
 'use client';
 import type { ReactNode } from 'react';
 import React, { createContext, useState, useEffect, useMemo, useCallback } from 'react';
-import type { Member, Family, Settings, CustomContribution, NewMemberData, NewCustomContributionData, DialogState, NewPaymentData, Payment, Invitation, AgeGroup } from '@/lib/types';
+import type { Member, Family, Settings, CustomContribution, NewMemberData, DialogState, NewPaymentData, Payment, Invitation, AgeGroup } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getMonth, getYear } from 'date-fns';
 import { useAuth } from '@/lib/auth';
@@ -24,6 +24,7 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { sendInvitationEmail } from '@/lib/email';
+import { addMemberAsPatriarchAction, inviteMemberAsPatriarchAction } from '@/lib/patriarch-actions';
 
 interface CommunityContextType {
   members: Member[];
@@ -91,7 +92,7 @@ const generateInviteCode = (length = 8) => {
 
 
 export function CommunityProvider({ children, communityId: activeCommunityId }: { children: ReactNode, communityId: string | null }) {
-  const { user } = useAuth();
+  const { user, communityRole } = useAuth();
   const [members, setMembers] = useState<Member[]>([]);
   const [families, setFamilies] = useState<Family[]>([]);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
@@ -367,43 +368,55 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
   }, [activeCommunityId]);
   
   const addMember = async (data: NewMemberData) => {
-    if (!activeCommunityId) return;
+    if (!user || !activeCommunityId) return;
+    
+    // Admins use the standard client-side method
+    if (communityRole === 'admin' || communityRole === 'owner') {
+      try {
+          const fullName = [data.firstName, data.middleName, data.lastName]
+              .filter(part => part && part.trim())
+              .join(' ');
+          
+          const joinDate = new Date().toISOString();
 
-    try {
-        const fullName = [data.firstName, data.middleName, data.lastName]
-            .filter(part => part && part.trim())
-            .join(' ');
-        
-        const joinDate = new Date().toISOString();
+          const memberBase = {
+              name: fullName,
+              firstName: data.firstName,
+              middleName: data.middleName || '',
+              lastName: data.lastName,
+              family: data.family,
+              email: data.email || '',
+              phone: data.phone || '',
+              phoneCountryCode: data.phoneCountryCode || '',
+              gender: data.gender,
+              tier: data.tier,
+              payments: [],
+              joinDate: joinDate,
+              role: 'user' as const,
+              status: 'active' as const, // Add member directly as active
+              uid: null,
+              isPatriarch: data.isPatriarch,
+          };
+          
+          const contribution = getContribution(memberBase, customContributions);
+          const newMember = { ...memberBase, contribution };
+          
+          await addDoc(collection(db, `communities/${activeCommunityId}/members`), newMember);
 
-        const memberBase = {
-            name: fullName,
-            firstName: data.firstName,
-            middleName: data.middleName || '',
-            lastName: data.lastName,
-            family: data.family,
-            email: data.email || '',
-            phone: data.phone || '',
-            phoneCountryCode: data.phoneCountryCode || '',
-            gender: data.gender,
-            tier: data.tier,
-            payments: [],
-            joinDate: joinDate,
-            role: 'user' as const,
-            status: 'active' as const, // Add member directly as active
-            uid: null,
-            isPatriarch: data.isPatriarch,
-        };
-        
-        const contribution = getContribution(memberBase, customContributions);
-        const newMember = { ...memberBase, contribution };
-        
-        await addDoc(collection(db, `communities/${activeCommunityId}/members`), newMember);
-
-        toast({ title: "Member Added", description: `${fullName} has been added to the registry.` });
-        closeDialog();
-    } catch(error: any) {
-        toast({ variant: "destructive", title: "Error adding member", description: error.message });
+          toast({ title: "Member Added", description: `${fullName} has been added to the registry.` });
+          closeDialog();
+      } catch(error: any) {
+          toast({ variant: "destructive", title: "Error adding member", description: error.message });
+      }
+    } else {
+      // Patriarchs use the secure server action
+      const result = await addMemberAsPatriarchAction(activeCommunityId, user.uid, data);
+      if (result.success) {
+          toast({ title: "Member Added", description: result.message });
+          closeDialog();
+      } else {
+          toast({ variant: "destructive", title: "Error", description: result.message });
+      }
     }
   };
 
@@ -414,90 +427,95 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
       }
       return false;
     }
-    
-    try {
-        const batch = writeBatch(db);
 
-        // If a new family is being created, add it to the families collection
-        let familyToUse = data.family;
-        if (newFamilyName && newFamilyName.trim() && data.family === 'new') {
-            familyToUse = newFamilyName.trim();
-            const familyDocRef = doc(collection(db, `communities/${activeCommunityId}/families`));
-            batch.set(familyDocRef, { name: familyToUse });
-        }
+    // Admins use the standard client-side method
+    if (communityRole === 'admin' || communityRole === 'owner') {
+      try {
+          const batch = writeBatch(db);
 
-        const fullName = [data.firstName, data.middleName, data.lastName]
-            .filter(part => part && part.trim())
-            .join(' ');
-        
-        const joinDate = new Date().toISOString();
+          let familyToUse = data.family;
+          if (newFamilyName && newFamilyName.trim() && data.family === 'new') {
+              familyToUse = newFamilyName.trim();
+              const familyDocRef = doc(collection(db, `communities/${activeCommunityId}/families`));
+              batch.set(familyDocRef, { name: familyToUse });
+          }
 
-        const memberDocRef = doc(collection(db, `communities/${activeCommunityId}/members`));
-        const inviteDocRef = doc(collection(db, 'invitations'));
-        
-        const newMemberBase = {
-            name: fullName,
-            firstName: data.firstName,
-            middleName: data.middleName || '',
-            lastName: data.lastName,
-            family: familyToUse,
-            email: data.email,
-            phone: data.phone || '',
-            phoneCountryCode: data.phoneCountryCode || '',
-            gender: data.gender,
-            tier: data.tier,
-            payments: [],
-            joinDate: joinDate,
-            role: 'user' as const,
-            status: 'invited' as const,
-            uid: null,
-            isPatriarch: data.isPatriarch,
-            inviteId: inviteDocRef.id,
-        };
-        
-        const contribution = getContribution(newMemberBase, customContributions);
-        const newMember = { ...newMemberBase, contribution };
-        
-        batch.set(memberDocRef, newMember);
+          const fullName = [data.firstName, data.middleName, data.lastName]
+              .filter(part => part && part.trim())
+              .join(' ');
+          
+          const joinDate = new Date().toISOString();
+          const memberDocRef = doc(collection(db, `communities/${activeCommunityId}/members`));
+          const inviteDocRef = doc(collection(db, 'invitations'));
+          
+          const newMemberBase = {
+              name: fullName,
+              firstName: data.firstName,
+              middleName: data.middleName || '',
+              lastName: data.lastName,
+              family: familyToUse,
+              email: data.email,
+              phone: data.phone || '',
+              phoneCountryCode: data.phoneCountryCode || '',
+              gender: data.gender,
+              tier: data.tier,
+              payments: [],
+              joinDate: joinDate,
+              role: 'user' as const,
+              status: 'invited' as const,
+              uid: null,
+              isPatriarch: data.isPatriarch,
+              inviteId: inviteDocRef.id,
+          };
+          
+          const contribution = getContribution(newMemberBase, customContributions);
+          const newMember = { ...newMemberBase, contribution };
+          
+          batch.set(memberDocRef, newMember);
 
-        const newInvitation: Invitation = {
-            communityId: activeCommunityId,
+          batch.set(inviteDocRef, {
+              communityId: activeCommunityId,
+              communityName: communityName,
+              memberId: memberDocRef.id,
+              email: data.email,
+              firstName: data.firstName,
+              lastName: data.lastName,
+              role: 'user',
+              status: 'pending',
+              code: generateInviteCode(),
+              createdAt: new Date().toISOString(),
+              createdBy: user.uid,
+          });
+
+          await batch.commit();
+          
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+          const inviteLink = `${appUrl}/auth/accept-invite?token=${inviteDocRef.id}`;
+
+          await sendInvitationEmail({
+            to: data.email,
             communityName: communityName,
-            memberId: memberDocRef.id,
-            email: data.email,
-            firstName: data.firstName,
-            lastName: data.lastName,
-            role: 'user',
-            status: 'pending',
-            code: generateInviteCode(),
-            createdAt: new Date().toISOString(),
-            createdBy: user.uid,
-        };
+            inviteLink: inviteLink,
+            inviterName: user.displayName || 'The community admin'
+          });
 
-        batch.set(inviteDocRef, newInvitation);
+          toast({ title: "Invitation Sent", description: `An invitation email has been sent to ${fullName}.` });
+          return true;
 
-        await batch.commit();
-        
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
-        const inviteLink = `${appUrl}/auth/accept-invite?token=${inviteDocRef.id}`;
-
-        // Send email using Resend
-        await sendInvitationEmail({
-          to: data.email,
-          communityName: communityName,
-          inviteLink: inviteLink,
-          inviterName: user.displayName || 'The community admin'
-        });
-
-        toast({ 
-            title: "Invitation Sent", 
-            description: `An invitation email has been sent to ${fullName}.`
-        });
-        return true;
-
-    } catch(error: any) {
-        toast({ variant: "destructive", title: "Error inviting member", description: error.message });
-        return false;
+      } catch(error: any) {
+          toast({ variant: "destructive", title: "Error inviting member", description: error.message });
+          return false;
+      }
+    } else {
+      // Patriarchs use the secure server action
+      const result = await inviteMemberAsPatriarchAction(activeCommunityId, user.uid, communityName, user.displayName || 'Family Head', data);
+      if (result.success) {
+          toast({ title: "Invitation Sent", description: result.message });
+          return true;
+      } else {
+          toast({ variant: "destructive", title: "Error", description: result.message });
+          return false;
+      }
     }
   };
 
@@ -823,7 +841,7 @@ deleteAgeGroup,
     getPaidAmountForContribution,
     getBalanceForContribution,
   }), [
-    members, families, settings, customContributions, isLoading, activeCommunityId, communityName, dialogState, user,
+    members, families, settings, customContributions, isLoading, activeCommunityId, communityName, communityRole, dialogState, user,
     getContribution, addFamily, addMember, inviteMember, getInviteLink, resendInvitation, updateMember, deleteMember, updateFamily, deleteFamily, updateSettings, addAgeGroup, updateAgeGroup, deleteAgeGroup, updateCommunityName, addCustomContribution, updateCustomContribution, deleteCustomContribution, recordPayment, updatePayment, deletePayment, openDialog, closeDialog, getPaidAmount, getBalance, getPaidAmountForContribution, getBalanceForContribution
   ]);
 

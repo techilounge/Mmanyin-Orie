@@ -102,14 +102,16 @@ export function Families() {
                             <CardDescription>Manage family members and track contributions.</CardDescription>
                         </div>
                         <div className='flex items-center'>
-                            {isAdmin && (
+                            {(isAdmin || isPatriarchForThisFamily) && (
                                 <>
                                 <Button variant="ghost" size="icon" onClick={() => openDialog({ type: 'edit-family', family })} aria-label="Edit Family">
                                 <Edit className="h-4 w-4 text-primary" />
                                 </Button>
-                                <Button variant="ghost" size="icon" onClick={() => setFamilyToDelete(family)} aria-label="Delete Family">
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
+                                {isAdmin &&
+                                  <Button variant="ghost" size="icon" onClick={() => setFamilyToDelete(family)} aria-label="Delete Family">
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                }
                                 </>
                             )}
                              <CollapsibleTrigger asChild>
@@ -156,7 +158,7 @@ export function Families() {
                               </div>
                               <div className="flex items-center gap-2">
                                   <Badge variant="default" className="text-xs bg-primary/80">Father</Badge>
-                                   {isAdmin && (
+                                   {(isAdmin || isPatriarchForThisFamily) && (
                                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDialog({ type: 'edit-member', member: patriarch })} aria-label={`Edit ${patriarch.name}`}>
                                           <Edit className="h-4 w-4 text-primary" />
                                       </Button>
@@ -178,7 +180,7 @@ export function Families() {
                                   tier.includes('Group 2') ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200' :
                                   ''
                               }`}>{tier}</Badge>
-                               {isAdmin && (
+                               {(isAdmin || isPatriarchForThisFamily) && (
                                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDialog({ type: 'edit-member', member })} aria-label={`Edit ${member.name}`}>
                                       <Edit className="h-4 w-4 text-primary" />
                                   </Button>
