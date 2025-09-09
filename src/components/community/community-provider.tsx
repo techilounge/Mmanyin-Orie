@@ -26,6 +26,13 @@ import {
 import { sendInvitationEmail } from '@/lib/email';
 import { addMemberAsPatriarchAction, inviteMemberAsPatriarchAction } from '@/lib/patriarch-actions';
 
+// Keep build-safe: legacy type alias used by this module only
+type NewCustomContributionData = Omit<CustomContribution, 'id'>;
+
+// Allow member reads that may include an invite link reference
+type MemberWithInvite = Member & { inviteId?: string | null };
+
+
 interface CommunityContextType {
   members: Member[];
   families: Family[];
@@ -52,7 +59,7 @@ interface CommunityContextType {
   updateAgeGroup: (id: string, name: string) => Promise<void>;
   deleteAgeGroup: (id: string) => Promise<void>;
   
-  addCustomContribution: (data: Omit<CustomContribution, 'id'>) => Promise<void>;
+  addCustomContribution: (data: NewCustomContributionData) => Promise<void>;
   updateCustomContribution: (updatedContribution: CustomContribution) => Promise<void>;
   deleteCustomContribution: (id: string) => Promise<void>;
 
@@ -349,7 +356,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
             return null;
         }
 
-        const memberData = memberSnap.data() as Member;
+        const memberData = memberSnap.data() as MemberWithInvite;
         const inviteId = memberData?.inviteId;
         
         if (!inviteId) {
@@ -770,7 +777,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
     }
   };
 
-  const addCustomContribution = async (data: Omit<CustomContribution, 'id'>) => {
+  const addCustomContribution = async (data: NewCustomContributionData) => {
     if (!activeCommunityId) return;
     try {
         await addDoc(collection(db, `communities/${activeCommunityId}/contributions`), data);

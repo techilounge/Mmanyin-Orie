@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **Build Failure**: Resolved a TypeScript build error by creating local type aliases for `NewCustomContributionData` and `MemberWithInvite` in `community-provider.tsx`, ensuring type compatibility without altering global definitions.
 - **Build Failure**: Resolved a TypeScript build error by adding the optional `inviteId` property to the `Member` type in `src/lib/types.ts`. This ensures type safety and consistency with the Firestore data model, allowing the build to complete successfully.
 - **Build Failure**: Resolved a TypeScript build error caused by a missing `NewCustomContributionData` type in `community-provider.tsx`. The type signature has been corrected to use the appropriate `Omit<CustomContribution, 'id'>` type, stabilizing the build.
 - **Invitation Acceptance**: Corrected the invitation acceptance workflow to align with stricter Firestore security rules. The process now successfully completes by having the user create their own member document, resolving a "Missing or insufficient permissions" error that blocked users from joining a community.
@@ -44,3 +45,4 @@ All notable changes to this project will be documented in this file.
 - **Invitation Links**: Ensured that generated invitation links use the correct custom domain specified in the environment variables.
 - **Build Errors**: Corrected various syntax errors in `.tsx` files that were causing the Next.js build to fail.
 - **Multi-Community Routing**: Fixed a bug where a user belonging to multiple communities was not prompted to select a community on login. The logic was corrected to route them to the `/app/switch-community` page if no primary community is set.
+
