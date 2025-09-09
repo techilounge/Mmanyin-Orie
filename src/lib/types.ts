@@ -26,6 +26,7 @@ export interface Member {
   role: 'owner' | 'admin' | 'user';
   status: 'active' | 'invited';
   uid: string | null; // Firebase Auth UID, null if invited but not yet signed up
+  inviteId?: string | null; // The ID of the invitation document
 }
 
 export interface Family {
@@ -102,7 +103,7 @@ export interface Invitation {
 
 
 // Data for creating a new document, omitting the ID
-export type NewMemberData = Omit<Member, 'id' | 'name' | 'contribution' | 'payments' | 'joinDate' | 'role' | 'uid' | 'status'>;
+export type NewMemberData = Omit<Member, 'id' | 'name' | 'contribution' | 'payments' | 'joinDate' | 'role' | 'uid' | 'status' | 'inviteId'>;
 export type NewPaymentData = Omit<Payment, 'id'>;
 export type NewCustomContributionData = Omit<CustomContribution, 'id'>;
 

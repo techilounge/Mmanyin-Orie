@@ -4,10 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-### Added
-- **Family Head Permissions**: The head of a family (patriarch) can now add or invite members directly to their own family, mirroring the functionality available to admins. This is handled through secure server-side actions to ensure proper authorization.
-
 ### Fixed
+- **Build Failure**: Resolved a TypeScript build error by adding the optional `inviteId` property to the `Member` type in `src/lib/types.ts`. This ensures type safety and consistency with the Firestore data model, allowing the build to complete successfully.
+- **Build Failure**: Resolved a TypeScript build error caused by a missing `NewCustomContributionData` type in `community-provider.tsx`. The type signature has been corrected to use the appropriate `Omit<CustomContribution, 'id'>` type, stabilizing the build.
+- **Invitation Acceptance**: Corrected the invitation acceptance workflow to align with stricter Firestore security rules. The process now successfully completes by having the user create their own member document, resolving a "Missing or insufficient permissions" error that blocked users from joining a community.
+- **Firestore Rules**: Finalized Firestore security rules to be more secure and robust, using helper functions for clarity.
 - **Permissions**: Corrected a critical Firestore security rule to allow members of a community to read the member list. The previous rule was causing a "Missing or insufficient permissions" error by incorrectly checking the user's top-level document instead of their existence in the community's `members` subcollection.
 - **Permissions**: Corrected Firestore security rules to grant appropriate read permissions to members with the 'user' role. This resolves a critical "Missing or insufficient permissions" error that prevented non-admins from viewing community data like families, members, and payments. Write permissions remain restricted to admins and owners.
 - **Build Failure**: Resolved a critical build failure caused by a merge conflict in `src/components/community/community-provider.tsx`. The conflicting logic for handling invitation links has been corrected, stabilizing the application.
@@ -20,6 +21,15 @@ All notable changes to this project will be documented in this file.
   - Corrected Firestore security rules to grant appropriate read permissions to members with the 'user' role, allowing them to see community data like families, members, and payments. Write and delete permissions remain restricted to admins and owners.
   - Stabilized the `CommunityProvider` by adding the `user` object to the `useEffect` dependency array. This resolves a critical state management bug that caused the application to switch to the wrong community context for users belonging to multiple communities.
 - **Community Loading**: Corrected Firestore security rules to allow a user to read the top-level document of communities they are a member of. This resolves a critical "Missing or insufficient permissions" error on the "Switch Community" page, which prevented users from loading their list of communities.
+
+### Added
+- **Family Head Permissions**: The head of a family (patriarch) can now add or invite members directly to their own family, mirroring the functionality available to admins.
+
+### Fixed
+- **Invitation Acceptance**: Corrected the Firestore security rules to allow a newly authenticated user to read and update their own invitation document. This resolves the persistent "Missing or in-sufficient permissions" error and allows the user to successfully join a community after accepting an invitation.
+
+### Fixed
+- **Avatar Upload**: Switched from an unreliable server-side API route to a direct client-side upload using the Firebase Web SDK. This resolves persistent CORS and token audience (`aud`) mismatch errors encountered in the Firebase Studio preview environment by no longer using the Admin SDK for this operation. The `lib/upload-avatar.ts` file has been updated with the new client-side logic, and the unused API route at `src/app/api/upload-avatar/route.ts` has been stubbed out.
 
 ### Added
 - Created `CHANGELOG.md` to track project modifications.
