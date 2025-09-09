@@ -40,3 +40,4 @@ All notable changes to this project will be documented in this file.
 - **Invitation Links**: Ensured that generated invitation links use the correct custom domain specified in the environment variables.
 - **Build Errors**: Corrected various syntax errors in `.tsx` files that were causing the Next.js build to fail.
 - **Multi-Community Routing**: Fixed a bug where a user belonging to multiple communities was not prompted to select a community on login. The logic was corrected to route them to the `/app/switch-community` page if no primary community is set.
+
