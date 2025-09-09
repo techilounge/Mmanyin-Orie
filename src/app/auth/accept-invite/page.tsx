@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
@@ -11,6 +12,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 
 type InviteDoc = {
+  id: string;
   communityId: string;
   email?: string;
   status: 'pending' | 'accepted' | 'revoked' | 'expired';
@@ -19,6 +21,16 @@ type InviteDoc = {
   communityName?: string;
   replacedBy?: string;
 };
+
+async function fetchInviteByToken(token: string): Promise<InviteDoc> {
+    const inviteRef = doc(db, 'invitations', token);
+    const snap = await getDoc(inviteRef);
+    if (!snap.exists()) {
+        throw new Error('This invitation link is invalid or has expired.');
+    }
+    return { id: snap.id, ...snap.data() } as InviteDoc;
+}
+
 
 export default function AcceptInvitePage() {
   const router = useRouter();
@@ -39,48 +51,22 @@ export default function AcceptInvitePage() {
           return;
         }
 
-        // Ensure auth state is resolved (your flow likely already signs-in first)
+        // Ensure auth state is resolved
         await new Promise<void>((resolve) => {
           unsub = onAuthStateChanged(auth, () => resolve());
         });
-
-        const snap = await getDoc(doc(db, 'invitations', token));
-        if (!snap.exists()) {
-          setErr('This invitation could not be found.');
-          setLoading(false);
-          return;
-        }
-        const inv = snap.data() as InviteDoc;
+        
+        const inv = await fetchInviteByToken(token);
 
         // Optional expiry check
         const isExpired =
           inv.expiresAt && inv.expiresAt.toMillis && inv.expiresAt.toMillis() < Date.now();
 
-        // If not pending (or expired), try to locate the latest pending invite
         if (inv.status !== 'pending' || isExpired) {
-          // If a newer token replaced this one, prefer that
           if (inv.replacedBy) {
             router.replace(`/auth/accept-invite?token=${inv.replacedBy}`);
             return;
           }
-
-          // Otherwise look up the newest pending invite for the same receiver + community
-          if (inv.communityId && inv.email) {
-            const q = query(
-              collection(db, 'invitations'),
-              where('communityId', '==', inv.communityId),
-              where('email', '==', inv.email),
-              where('status', '==', 'pending'),
-              orderBy('createdAt', 'desc'),
-              qlimit(1)
-            );
-            const newer = await getDocs(q);
-            if (!newer.empty && newer.docs[0].id !== token) {
-              router.replace(`/auth/accept-invite?token=${newer.docs[0].id}`);
-              return;
-            }
-          }
-
           setErr('This invitation has already been used or has expired.');
           setLoading(false);
           return;
@@ -118,7 +104,6 @@ export default function AcceptInvitePage() {
     );
   }
 
-  // Your existing “Accept” action still applies; route wherever you do the join
   return (
     <div className="mx-auto max-w-md py-16 text-center">
       <h1 className="mb-2 text-xl font-semibold">You’re invited</h1>

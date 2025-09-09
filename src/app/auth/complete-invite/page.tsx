@@ -2,16 +2,11 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  collection,
-  query,
-  where,
-  limit,
-  getDocs,
   doc,
-  runTransaction,
-  serverTimestamp,
   getDoc,
-  writeBatch,
+  setDoc,
+  updateDoc,
+  serverTimestamp,
   arrayUnion,
 } from 'firebase/firestore';
 import { useAuth } from '@/lib/auth';
@@ -19,6 +14,16 @@ import { db, auth } from '@/lib/firebase';
 import { notifyAdminsOwnerNewMember } from '@/lib/notify-new-member';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+
+async function fetchInviteByToken(token: string) {
+    const inviteRef = doc(db, 'invitations', token);
+    const snap = await getDoc(inviteRef);
+    if (!snap.exists()) {
+        throw new Error('This invitation link is invalid or has expired.');
+    }
+    return { id: snap.id, ...snap.data() } as any;
+}
+
 
 export default function CompleteInvitePage() {
   const router = useRouter();
@@ -36,84 +41,57 @@ export default function CompleteInvitePage() {
     }
 
     if (!user) {
-        // Auth context is loading or user is not signed in.
-        // The auth guard will handle redirection to sign-in page.
         return;
     }
 
     const processInvite = async () => {
       setIsLoading(true);
       try {
-        const invitesRef = collection(db, 'invitations');
-        const q = query(invitesRef, where('token', '==', token), limit(1));
-        const snap = await getDocs(q);
-
-        if (snap.empty) {
-          throw new Error('This invitation link is invalid or has expired.');
-        }
-
-        const inviteDoc = snap.docs[0];
-        const invite = inviteDoc.data() as any;
+        // 1. Fetch the invitation by ID
+        const invite = await fetchInviteByToken(token);
 
         if (invite.status !== 'pending') {
-          throw new Error('This invitation has already been used or has expired.');
+          throw new Error('This invitation is no longer available or has been used.');
         }
-        if (invite.expiresAt?.toDate && invite.expiresAt.toDate() < new Date()) {
-           throw new Error('This invitation has expired.');
+        if (!user?.email || user.email.toLowerCase() !== String(invite.email).toLowerCase()) {
+            throw new Error('This invitation does not match the signed-in user.');
         }
 
         const communityId: string = invite.communityId;
-        const invitedMemberId: string = invite.memberId;
-        
-        if (!communityId || !invitedMemberId) {
-            throw new Error('This invitation is corrupted and cannot be processed.');
-        }
-        
-        // Use a write batch for atomic operations
-        const batch = writeBatch(db);
 
-        // 1. Get the original member document created at invite time
-        const memberSrcRef = doc(db, 'communities', communityId, 'members', invitedMemberId);
-        const srcSnap = await getDoc(memberSrcRef);
-        if (!srcSnap.exists()) {
-          throw new Error('The original member record for this invite could not be found.');
-        }
-        const srcData = srcSnap.data();
+        // 2. Create/merge the caller's member doc (allowed by rules)
+        const myMemberRef = doc(db, `communities/${communityId}/members/${user.uid}`);
+        await setDoc(myMemberRef, {
+            uid: user.uid,
+            email: user.email,
+            role: 'user',
+            status: 'active',
+            family: invite.family || 'Unassigned',
+            name: user.displayName || user.email,
+            firstName: invite.firstName || '',
+            lastName: invite.lastName || '',
+            middleName: '',
+            tier: invite.tier || 'N/A',
+            gender: invite.gender || 'male',
+            joinDate: new Date().toISOString(),
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+        }, { merge: true });
 
-        // 2. Define the new member document reference using the user's actual UID
-        const memberDstRef = doc(db, 'communities', communityId, 'members', user.uid);
-        
-        // 3. Create or update the definitive member document
-        const mergedMemberData = {
-          ...srcData,
-          uid: user.uid,
-          email: user.email ?? srcData.email,
-          name: user.displayName ?? srcData.name,
-          status: 'active',
-          joinDate: new Date().toISOString(), // Or keep original invite date if preferred
-        };
-        batch.set(memberDstRef, mergedMemberData, { merge: true });
-        
-        // 4. If the source ID is different, delete the original temporary member doc
-        if (memberSrcRef.id !== memberDstRef.id) {
-          batch.delete(memberSrcRef);
-        }
-
-        // 5. Update the user's main document with the new community membership
-        const userRef = doc(db, 'users', user.uid);
-        batch.update(userRef, {
-            memberships: arrayUnion(communityId)
+        // 3. Update the user profile memberships
+        const userRef = doc(db, `users/${user.uid}`);
+        await updateDoc(userRef, {
+            memberships: arrayUnion(communityId),
+            updatedAt: serverTimestamp()
         });
 
-        // 6. Mark the invitation as accepted
-        batch.update(inviteDoc.ref, {
-          status: 'accepted',
-          acceptedByUid: user.uid,
-          acceptedAt: serverTimestamp(),
+        // 4. Mark invitation accepted
+        const inviteRef = doc(db, 'invitations', token);
+        await updateDoc(inviteRef, {
+            status: 'accepted',
+            acceptedAt: serverTimestamp(),
+            acceptedByUid: user.uid,
         });
-
-        // Commit all changes at once
-        await batch.commit();
 
         // Notify admins (best-effort, after the critical transaction)
         await notifyAdminsOwnerNewMember({

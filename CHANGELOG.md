@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **Invitation Acceptance**: Corrected the invitation acceptance workflow to align with stricter Firestore security rules. The process now successfully completes by having the user create their own member document, resolving a "Missing or insufficient permissions" error that blocked users from joining a community.
+- **Firestore Rules**: Finalized Firestore security rules to be more secure and robust, using helper functions for clarity.
 - **Permissions**: Corrected a critical Firestore security rule to allow members of a community to read the member list. The previous rule was causing a "Missing or insufficient permissions" error by incorrectly checking the user's top-level document instead of their existence in the community's `members` subcollection.
 - **Permissions**: Corrected Firestore security rules to grant appropriate read permissions to members with the 'user' role. This resolves a critical "Missing or insufficient permissions" error that prevented non-admins from viewing community data like families, members, and payments. Write permissions remain restricted to admins and owners.
 - **Build Failure**: Resolved a critical build failure caused by a merge conflict in `src/components/community/community-provider.tsx`. The conflicting logic for handling invitation links has been corrected, stabilizing the application.
@@ -40,4 +42,5 @@ All notable changes to this project will be documented in this file.
 - **Invitation Links**: Ensured that generated invitation links use the correct custom domain specified in the environment variables.
 - **Build Errors**: Corrected various syntax errors in `.tsx` files that were causing the Next.js build to fail.
 - **Multi-Community Routing**: Fixed a bug where a user belonging to multiple communities was not prompted to select a community on login. The logic was corrected to route them to the `/app/switch-community` page if no primary community is set.
+
 
