@@ -12,7 +12,6 @@ import {
   getFirestore, doc, getDoc, setDoc, updateDoc,
   serverTimestamp, arrayUnion,
 } from 'firebase/firestore';
-import { useAuth } from '@/lib/auth';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
