@@ -1,10 +1,13 @@
+
 'use client';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export function ProfileHeader() {
+  const router = useRouter();
   
   return (
     <header className="bg-card shadow-sm">
@@ -17,11 +20,9 @@ export function ProfileHeader() {
               <p className="text-lg text-muted-foreground font-semibold">Account Settings</p>
             </div>
           </div>
-          <Button asChild variant="outline">
-            <Link href="/app">
-                <ArrowLeft className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Back to App</span>
-            </Link>
+          <Button variant="outline" onClick={() => router.back()}>
+              <ArrowLeft className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Back to App</span>
           </Button>
         </div>
       </div>
