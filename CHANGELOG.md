@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **Permissions and Data Integrity**: Corrected the root cause of all "Missing or insufficient permissions" errors by overhauling the member creation and invitation acceptance workflows.
+  - The `complete-invite` page now correctly creates a new member document keyed by the user's Auth UID, aligning with Firestore security rules.
+  - The `switch-community` page has been made more robust to handle malformed membership data gracefully.
+  - A new self-service `repair-memberships` tool has been added to allow existing users to fix their own data inconsistencies.
 - **Profile Navigation**: Fixed a minor UX issue in the profile header where the "Back to App" button used a static link instead of navigating to the previous page. The button now correctly uses `router.back()` for a more intuitive user experience.
 - **Build Failure**: Resolved a TypeScript build error by adding local type aliases for `NewCustomContributionData` and `MemberWithInvite` in `community-provider.tsx`, ensuring type compatibility without altering global definitions.
 - **Build Failure**: Resolved a TypeScript build error by adding the optional `inviteId` property to the `Member` type in `src/lib/types.ts`. This ensures type safety and consistency with the Firestore data model, allowing the build to complete successfully.
@@ -26,18 +30,11 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - **Family Head Permissions**: The head of a family (patriarch) can now add or invite members directly to their own family, mirroring the functionality available to admins.
-
-### Fixed
-- **Invitation Acceptance**: Corrected the Firestore security rules to allow a newly authenticated user to read and update their own invitation document. This resolves the persistent "Missing or in-sufficient permissions" error and allows the user to successfully join a community after accepting an invitation.
-
-### Fixed
-- **Avatar Upload**: Switched from an unreliable server-side API route to a direct client-side upload using the Firebase Web SDK. This resolves persistent CORS and token audience (`aud`) mismatch errors encountered in the Firebase Studio preview environment by no longer using the Admin SDK for this operation. The `lib/upload-avatar.ts` file has been updated with the new client-side logic, and the unused API route at `src/app/api/upload-avatar/route.ts` has been stubbed out.
-
-### Added
 - Created `CHANGELOG.md` to track project modifications.
 - Added an instruction to `README.md` to prevent AI from modifying `.env.local` without approval.
 
 ### Fixed
+- **Avatar Upload**: Switched from an unreliable server-side API route to a direct client-side upload using the Firebase Web SDK. This resolves persistent CORS and token audience (`aud`) mismatch errors encountered in the Firebase Studio preview environment by no longer using the Admin SDK for this operation. The `lib/upload-avatar.ts` file has been updated with the new client-side logic, and the unused API route at `src/app/api/upload-avatar/route.ts` has been stubbed out.
 - **Avatar Upload**: Implemented a server-side API route (`/api/upload-avatar`) to handle avatar uploads. This bypasses client-side CSP restrictions in Firebase Studio. The client-side code in `avatar-uploader.tsx` now posts to this route instead of directly to Firebase Storage.
 - **Avatar Upload**: Added `firebase-admin` dependency and a dedicated Admin SDK initializer (`src/src/lib/firebase-admin.ts`) to ensure robust and correctly configured server-side operations.
 - **Email Sending**: Resolved a persistent issue with sending invitation emails via the Resend API.
