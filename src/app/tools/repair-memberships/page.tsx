@@ -80,14 +80,23 @@ export default function RepairMembershipsPage() {
 
       for (const communityId of memberships) {
         const memberRef = doc(db, 'communities', communityId, 'members', user.uid);
-        const memberSnap = await getDoc(memberRef);
-        if (memberSnap.exists()) {
+        
+        let exists = false;
+        try {
+          // This read might fail if rules are very strict, but we catch it.
+          const memberSnap = await getDoc(memberRef);
+          exists = memberSnap.exists();
+        } catch {
+          // If the read fails, we assume the doc doesn't exist and proceed to create it.
+          exists = false;
+        }
+
+        if (exists) {
           append(`- OK: Membership for community ${communityId} is correctly configured.`);
           continue;
         }
 
-        // IMPORTANT: Do NOT query members collection (blocked by rules).
-        // Just create the minimal, rule-compliant doc:
+        // Create the minimal, rule-compliant doc.
         await setDoc(memberRef, {
           uid: user.uid,
           email: user.email ?? '',

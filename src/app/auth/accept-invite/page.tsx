@@ -1,121 +1,107 @@
-
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import {
-  collection, doc, getDoc, getDocs, query, where,
-  orderBy, limit as qlimit
-} from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { getApp, getApps, initializeApp } from 'firebase/app';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
 
-type InviteDoc = {
-  id: string;
-  communityId: string;
-  email?: string;
-  status: 'pending' | 'accepted' | 'revoked' | 'expired';
-  createdAt?: any;
-  expiresAt?: any;
-  communityName?: string;
-  replacedBy?: string;
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-async function fetchInviteByToken(token: string): Promise<InviteDoc> {
-    const inviteRef = doc(db, 'invitations', token);
-    const snap = await getDoc(inviteRef);
-    if (!snap.exists()) {
-        throw new Error('This invitation link is invalid or has expired.');
-    }
-    return { id: snap.id, ...snap.data() } as InviteDoc;
+function getFirebase() {
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig as any);
+  return { app, db: getFirestore(app), auth: getAuth(app) };
 }
-
 
 export default function AcceptInvitePage() {
   const router = useRouter();
-  const sp = useSearchParams();
-  const token = useMemo(() => sp.get('token')?.trim() ?? '', [sp]);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState<string | null>(null);
-  const [invite, setInvite] = useState<InviteDoc | null>(null);
-  const [communityName, setCommunityName] = useState<string>('Community');
+  const params = useSearchParams();
+  const token = params.get('token')?.trim() ?? '';
+  const { toast } = useToast();
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState('Verifying invitation...');
 
   useEffect(() => {
-    let unsub = () => {};
-    async function run() {
-      try {
-        if (!token) {
-          setErr('Invalid invitation link (missing token).');
-          setLoading(false);
-          return;
-        }
+    const { db, auth } = getFirebase();
 
-        // Ensure auth state is resolved
-        await new Promise<void>((resolve) => {
-          unsub = onAuthStateChanged(auth, () => resolve());
-        });
-        
-        const inv = await fetchInviteByToken(token);
-
-        // Optional expiry check
-        const isExpired =
-          inv.expiresAt && inv.expiresAt.toMillis && inv.expiresAt.toMillis() < Date.now();
-
-        if (inv.status !== 'pending' || isExpired) {
-          if (inv.replacedBy) {
-            router.replace(`/auth/accept-invite?token=${inv.replacedBy}`);
-            return;
-          }
-          setErr('This invitation has already been used or has expired.');
-          setLoading(false);
-          return;
-        }
-
-        setInvite(inv);
-        setCommunityName(inv.communityName || 'Community');
-
-      } catch (e: any) {
-        setErr(e?.message || 'Failed to retrieve invitation details.');
-      } finally {
-        setLoading(false);
+    const run = async () => {
+      if (!token) {
+        setError('Invalid invitation link. No token provided.');
+        return;
       }
-    }
 
-    run();
-    return () => unsub();
-  }, [token, router]);
+      // 1. Try to read the invitation. Firestore allows this if status is 'pending'.
+      try {
+        const inviteSnap = await getDoc(doc(db, 'invitations', token));
+        if (!inviteSnap.exists()) {
+          setError('This invitation link is invalid or has expired.');
+          return;
+        }
+        if (inviteSnap.data().status !== 'pending') {
+            setError('This invitation has already been accepted or is no longer valid.');
+            return;
+        }
+      } catch (e: any) {
+        // If rules block the read, it means the invite is not 'pending' or invalid.
+        console.error('Failed to fetch invitation:', e);
+        setError('This invitation link appears to be invalid or has expired.');
+        return;
+      }
 
-  if (loading) {
+      // 2. Resolve auth state.
+      setMessage('Checking authentication...');
+      await new Promise<void>((resolve) => {
+        const unsub = onAuthStateChanged(auth, () => resolve());
+      });
+
+      // 3. Redirect to complete the process or to sign-in page.
+      const user = auth.currentUser;
+      const redirectUrl = `/auth/complete-invite?token=${encodeURIComponent(token)}`;
+      if (user) {
+        setMessage('Redirecting to complete setup...');
+        router.replace(redirectUrl);
+      } else {
+        setMessage('Please sign in to continue...');
+        router.replace(`/auth/sign-in?next=${encodeURIComponent(redirectUrl)}`);
+      }
+    };
+
+    run().catch((e) => {
+        console.error("Error processing invitation:", e);
+        setError('A problem occurred while trying to process your invitation. Please try again.');
+    });
+  }, [router, token]);
+
+  if (error) {
     return (
       <div className="mx-auto max-w-md py-16 text-center">
-        <p className="text-muted-foreground">Loading invitation…</p>
-      </div>
-    );
-  }
-
-  if (err) {
-    return (
-      <div className="mx-auto max-w-md py-16 text-center">
-        <h1 className="mb-2 text-xl font-semibold">Invitation Error</h1>
-        <p className="mb-6 text-muted-foreground">{err}</p>
-        <Button onClick={() => router.push('/auth/sign-in')}>Return to Sign In</Button>
+        <h1 className="mb-2 text-xl font-semibold text-destructive">Invitation Error</h1>
+        <p className="mb-6 text-muted-foreground">{error}</p>
+        <Button asChild>
+          <Link href="/auth/sign-in">Return to Sign In</Link>
+        </Button>
       </div>
     );
   }
 
   return (
     <div className="mx-auto max-w-md py-16 text-center">
-      <h1 className="mb-2 text-xl font-semibold">You’re invited</h1>
-      <p className="mb-6 text-muted-foreground">
-        You’ve been invited to join <span className="font-medium">{communityName}</span>.
-      </p>
-      <div className="flex items-center justify-center gap-3">
-        <Button variant="secondary" onClick={() => router.push('/')}>Cancel</Button>
-        <Button onClick={() => router.push(`/auth/complete-invite?token=${token}`)}>
-          Continue
-        </Button>
-      </div>
+        <div className="flex items-center justify-center gap-2">
+            <Loader2 className="h-6 w-6 animate-spin" />
+            <h1 className="text-2xl font-semibold">{message}</h1>
+        </div>
+        <p className="mt-4 text-muted-foreground">Please wait...</p>
     </div>
   );
 }
