@@ -2,21 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { getApp, getApps, initializeApp } from 'firebase/app';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import {
-  getApp, getApps, initializeApp,
-} from 'firebase/app';
-import {
-  getAuth, onAuthStateChanged,
-} from 'firebase/auth';
-import {
-  getFirestore, doc, getDoc, setDoc, updateDoc,
+  getFirestore,
+  doc, getDoc, setDoc, updateDoc,
   serverTimestamp, arrayUnion,
 } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-// This page uses its own Firebase instance to avoid circular dependencies
-// with the main AuthProvider during the critical invite-completion step.
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -34,8 +29,9 @@ function getFirebase() {
 export default function CompleteInvitePage() {
   const router = useRouter();
   const params = useSearchParams();
-  const token = params.get('token') || '';
-  const [msg, setMsg] = useState('Completing your invitation…');
+  const token = params.get('token') ?? '';
+
+  const [message, setMessage] = useState('Completing your invitation…');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -47,60 +43,58 @@ export default function CompleteInvitePage() {
         return;
       }
 
+      // Ensure we’re signed in
       await new Promise<void>((resolve) => {
-        const unsub = onAuthStateChanged(auth, (u) => {
-          if (u) resolve();
-        });
-        // If already signed in, this resolves immediately:
-        setTimeout(() => resolve(), 500);
+        const unsub = onAuthStateChanged(auth, () => resolve());
+        setTimeout(() => resolve(), 500); // Give auth state a moment
         return () => unsub();
       });
 
       const user = auth.currentUser;
       if (!user) {
         setError('Please sign in to accept your invitation.');
-        router.push(`/auth/sign-in?next=/auth/complete-invite?token=${encodeURIComponent(token)}`);
+        router.replace(`/auth/sign-in?next=/auth/complete-invite?token=${encodeURIComponent(token)}`);
         return;
       }
 
-      // 1) Load invitation
+      // 1) Load invite
       const inviteRef = doc(db, 'invitations', token);
       const inviteSnap = await getDoc(inviteRef);
-      if (!inviteSnap.exists() || inviteSnap.data().status !== 'pending') {
-        setError('This invitation is invalid, has expired, or has already been used.');
+      if (!inviteSnap.exists()) {
+        setError('This invitation is invalid or has expired.');
         return;
       }
       const invite = inviteSnap.data() as {
         communityId: string;
         email?: string;
-        family?: string;
-        tier?: string;
         firstName?: string;
         lastName?: string;
         gender?: 'male' | 'female';
-        placeholderMemberId?: string;
+        family?: string;
+        tier?: string;
+        status?: string;
       };
 
-      // (Soft) email match guard
       if (invite.email && user.email && invite.email.toLowerCase() !== user.email.toLowerCase()) {
         setError('This invitation was sent to a different email address.');
         return;
       }
 
-      // 2) Create/merge the UID-keyed membership document
+      // 2) Create/merge UID-keyed member doc — THIS satisfies your rules:
+      //    role must be 'user' and status must be in ['active','accepted','member'].
       const memberRef = doc(db, 'communities', invite.communityId, 'members', user.uid);
       await setDoc(
         memberRef,
         {
           uid: user.uid,
           email: user.email ?? '',
-          name: user.displayName ?? `${invite.firstName} ${invite.lastName}`.trim(),
-          firstName: invite.firstName || '',
-          lastName: invite.lastName || '',
+          name: user.displayName ?? `${invite.firstName ?? ''} ${invite.lastName ?? ''}`.trim(),
+          firstName: invite.firstName ?? '',
+          lastName: invite.lastName ?? '',
           middleName: '',
-          gender: invite.gender || 'male',
-          role: 'user', // invitees are always plain users
-          status: 'active',
+          gender: invite.gender ?? 'male',
+          role: 'user',
+          status: 'active',              // <-- REQUIRED by your rules
           joinDate: new Date().toISOString(),
           family: invite.family ?? 'Unassigned',
           tier: invite.tier ?? 'N/A',
@@ -108,24 +102,31 @@ export default function CompleteInvitePage() {
         { merge: true }
       );
 
-      // 3) Add community to user's memberships array
+      // 3) Ensure user doc + memberships
       const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, { memberships: arrayUnion(invite.communityId) }).catch(async () => {
-        // if user doc doesn't exist yet (rare), create it
-        await setDoc(userRef, {
-          uid: user.uid,
-          email: user.email ?? '',
-          displayName: user.displayName ?? '',
-          photoURL: user.photoURL ?? '',
-          memberships: [invite.communityId],
-          createdAt: serverTimestamp(),
-        }, { merge: true });
-      });
+      try {
+        await updateDoc(userRef, { memberships: arrayUnion(invite.communityId) });
+      } catch {
+        await setDoc(
+          userRef,
+          {
+            uid: user.uid,
+            email: user.email ?? '',
+            displayName: user.displayName ?? '',
+            photoURL: user.photoURL ?? '',
+            memberships: [invite.communityId],
+            createdAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+      }
 
-      // 4) Mark invitation as accepted
-      await updateDoc(inviteRef, { status: 'accepted', acceptedAt: serverTimestamp(), acceptedByUid: user.uid }).catch(() => {});
+      // 4) Mark invite accepted (best-effort)
+      try {
+        await updateDoc(inviteRef, { status: 'accepted', acceptedAt: serverTimestamp(), acceptedByUid: user.uid });
+      } catch {}
 
-      setMsg('Invitation accepted. Redirecting…');
+      setMessage('Invitation accepted. Redirecting…');
       router.replace(`/app/${invite.communityId}`);
     };
 
@@ -134,7 +135,6 @@ export default function CompleteInvitePage() {
       setError('Could not complete invitation. Please contact your community administrator.');
     });
   }, [router, token]);
-
 
   if (error) {
     return (
@@ -150,7 +150,7 @@ export default function CompleteInvitePage() {
     <div className="mx-auto max-w-md py-16 text-center">
         <div className="flex items-center justify-center gap-2">
             <Loader2 className="h-6 w-6 animate-spin" />
-            <h1 className="text-2xl font-semibold">{msg}</h1>
+            <h1 className="text-2xl font-semibold">{message}</h1>
         </div>
         <p className="mt-4 text-muted-foreground">Please wait while we set up your account.</p>
     </div>

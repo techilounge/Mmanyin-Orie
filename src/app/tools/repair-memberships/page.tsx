@@ -9,7 +9,7 @@ import {
 } from 'firebase/auth';
 import {
   getFirestore, collection, query, where, getDocs, doc, getDoc, setDoc,
-  serverTimestamp, updateDoc, arrayUnion,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
@@ -39,91 +39,74 @@ export default function RepairMembershipsPage() {
 
   const run = async () => {
     setRunning(true);
-    setLog([]);
     setDone(false);
+    setLog([]);
     const { db, auth } = getFirebase();
 
-    await new Promise<void>((resolve) => {
-      const unsub = onAuthStateChanged(auth, () => resolve());
-      setTimeout(() => resolve(), 500);
-      return () => unsub();
-    });
-
-    const user = auth.currentUser;
-    if (!user) {
-      append('Error: Please sign in first.');
-      setRunning(false);
-      return;
-    }
-    
-    append(`Signed in as ${user.email}. Starting repair...`);
-
-    const userRef = doc(db, 'users', user.uid);
-    const userSnap = await getDoc(userRef);
-    if (!userSnap.exists()) {
-      append(`Warning: User document at /users/${user.uid} not found. Trying to create it.`);
-      await setDoc(userRef, {
-        email: user.email,
-        displayName: user.displayName,
-        memberships: [],
-        createdAt: serverTimestamp(),
+    try {
+      // wait for auth
+      await new Promise<void>((resolve) => {
+        const unsub = onAuthStateChanged(auth, () => resolve());
+        setTimeout(() => resolve(), 500); // Give auth a moment
+        return () => unsub();
       });
-      append("User document created. Please accept any invitations again.");
-      setRunning(false);
-      setDone(true);
-      return;
-    }
-    
-    const userDoc = userSnap.data() as any;
-    const memberships: string[] = Array.isArray(userDoc.memberships) ? userDoc.memberships : [];
-    if (memberships.length === 0) {
-      append('No memberships found on your user document. Nothing to repair.');
-      setRunning(false);
-      setDone(true);
-      return;
-    }
-    
-    append(`Found ${memberships.length} communities in your profile.`);
 
-    for (const communityId of memberships) {
-      const uidDocRef = doc(db, 'communities', communityId, 'members', user.uid);
-      const uidDoc = await getDoc(uidDocRef);
-      if (uidDoc.exists()) {
-        append(`- OK: Membership for community ${communityId} is correctly configured.`);
-        continue;
+      const user = auth.currentUser;
+      if (!user) {
+        append('Error: Please sign in first.');
+        return;
       }
 
-      append(`- INFO: Membership for ${communityId} needs repair. Searching for placeholder...`);
-      // Look for any placeholder member doc that carries your UID in a field
-      const q = query(
-        collection(db, 'communities', communityId, 'members'),
-        where('uid', '==', user.uid)
-      );
-      const res = await getDocs(q);
-      const placeholder = res.docs[0]?.data() as any | undefined;
+      append(`Signed in as ${user.email}. Starting repair...`);
 
-      const base = placeholder ?? {
-        uid: user.uid,
-        email: user.email ?? '',
-        name: user.displayName ?? '',
-        role: 'user',
-        status: 'active',
-      };
+      const userRef = doc(db, 'users', user.uid);
+      const userSnap = await getDoc(userRef);
+      if (!userSnap.exists()) {
+        append(`User profile not found at /users/${user.uid}. Creating…`);
+        await setDoc(userRef, {
+          uid: user.uid,
+          email: user.email ?? '',
+          displayName: user.displayName ?? '',
+          memberships: [],
+          createdAt: serverTimestamp(),
+        });
+        append('Created user profile. Nothing else to repair.');
+        return;
+      }
 
-      await setDoc(uidDocRef, {
-        ...base,
-        uid: user.uid,
-        role: 'user',         // enforce plain user
-        status: base.status ?? 'active',
-        joinDate: base.joinDate ?? new Date().toISOString(),
-      }, { merge: true });
+      const userDoc = userSnap.data() as any;
+      const memberships: string[] = Array.isArray(userDoc.memberships) ? userDoc.memberships : [];
+      append(`Found ${memberships.length} communities in your profile.`);
 
-      append(`- FIXED: Created correct membership document for community ${communityId}.`);
+      for (const communityId of memberships) {
+        const memberRef = doc(db, 'communities', communityId, 'members', user.uid);
+        const memberSnap = await getDoc(memberRef);
+        if (memberSnap.exists()) {
+          append(`- OK: Membership for community ${communityId} is correctly configured.`);
+          continue;
+        }
+
+        // IMPORTANT: Do NOT query members collection (blocked by rules).
+        // Just create the minimal, rule-compliant doc:
+        await setDoc(memberRef, {
+          uid: user.uid,
+          email: user.email ?? '',
+          name: user.displayName ?? '',
+          role: 'user',
+          status: 'active',
+          joinDate: new Date().toISOString(),
+        });
+        append(`- FIXED: Created membership for community ${communityId}.`);
+      }
+
+      append('\nRepair process complete.');
+    } catch (err: any) {
+      console.error(err);
+      append(`Unexpected error: ${err?.message ?? String(err)}`);
+    } finally {
+      setRunning(false);
+      setDone(true);
     }
-
-    append('\nRepair process complete.');
-    setRunning(false);
-    setDone(true);
   };
 
   return (
