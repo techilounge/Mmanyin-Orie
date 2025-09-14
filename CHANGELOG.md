@@ -4,7 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **Family Head Permissions**: The head of a family (patriarch) can now add or invite members directly to their own family, mirroring the functionality available to admins.
+- Created `CHANGELOG.md` to track project modifications.
+- Added an instruction to `README.md` to prevent AI from modifying `.env.local` without approval.
+
 ### Fixed
+- **Invitation Workflow**: Corrected the entire invitation creation and acceptance workflow to align with Firestore security rules. Invitations are now centrally created with a `pending` status, ensuring new invite links are always valid and readable by unauthenticated users. This resolves the "Missing or insufficient permissions" error that blocked users from accepting invites.
 - **Permissions and Data Integrity**: Corrected the root cause of all "Missing or insufficient permissions" errors by overhauling the member creation and invitation acceptance workflows.
   - The `complete-invite` page now correctly creates a new member document keyed by the user's Auth UID, aligning with Firestore security rules.
   - The `switch-community` page has been made more robust to handle malformed membership data gracefully.
@@ -27,13 +33,6 @@ All notable changes to this project will be documented in this file.
   - Corrected Firestore security rules to grant appropriate read permissions to members with the 'user' role, allowing them to see community data like families, members, and payments. Write and delete permissions remain restricted to admins and owners.
   - Stabilized the `CommunityProvider` by adding the `user` object to the `useEffect` dependency array. This resolves a critical state management bug that caused the application to switch to the wrong community context for users belonging to multiple communities.
 - **Community Loading**: Corrected Firestore security rules to allow a user to read the top-level document of communities they are a member of. This resolves a critical "Missing or insufficient permissions" error on the "Switch Community" page, which prevented users from loading their list of communities.
-
-### Added
-- **Family Head Permissions**: The head of a family (patriarch) can now add or invite members directly to their own family, mirroring the functionality available to admins.
-- Created `CHANGELOG.md` to track project modifications.
-- Added an instruction to `README.md` to prevent AI from modifying `.env.local` without approval.
-
-### Fixed
 - **Avatar Upload**: Switched from an unreliable server-side API route to a direct client-side upload using the Firebase Web SDK. This resolves persistent CORS and token audience (`aud`) mismatch errors encountered in the Firebase Studio preview environment by no longer using the Admin SDK for this operation. The `lib/upload-avatar.ts` file has been updated with the new client-side logic, and the unused API route at `src/app/api/upload-avatar/route.ts` has been stubbed out.
 - **Avatar Upload**: Implemented a server-side API route (`/api/upload-avatar`) to handle avatar uploads. This bypasses client-side CSP restrictions in Firebase Studio. The client-side code in `avatar-uploader.tsx` now posts to this route instead of directly to Firebase Storage.
 - **Avatar Upload**: Added `firebase-admin` dependency and a dedicated Admin SDK initializer (`src/src/lib/firebase-admin.ts`) to ensure robust and correctly configured server-side operations.

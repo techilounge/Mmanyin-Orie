@@ -1,9 +1,10 @@
+
 // src/lib/patriarch-actions.ts
 'use server';
 
-import { getAdminInfo, getAdminAuth, getAdminStorage } from './firebase-admin';
-import { db } from './firebase'; // Use client SDK for some checks for consistency
-import { collection, doc, getDoc, serverTimestamp, writeBatch, query, where, getDocs } from 'firebase/firestore';
+import { getAdminInfo } from './firebase-admin';
+import { db, auth } from './firebase'; // Use client SDK for some checks for consistency
+import { collection, doc, addDoc, serverTimestamp, writeBatch, query, where, getDocs } from 'firebase/firestore';
 import { sendInvitationEmail } from '@/lib/email';
 import type { NewMemberData, Member } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
@@ -40,15 +41,6 @@ async function isPatriarchOrAdmin(communityId: string, familyName: string, uid: 
   return false;
 }
 
-function generateInviteCode(length = 8) {
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < length; i++) {
-    result += characters.charAt(Math.floor(Math.random() * characters.length));
-  }
-  return result;
-}
-
 // NOTE: This function is very similar to `inviteMember` in CommunityProvider, but runs on the server
 // with elevated privileges after performing a security check.
 export async function inviteMemberAsPatriarchAction(
@@ -68,63 +60,16 @@ export async function inviteMemberAsPatriarchAction(
     }
 
     try {
-        const batch = adminDb.batch();
-
         const fullName = [data.firstName, data.middleName, data.lastName]
             .filter(part => part && part.trim())
             .join(' ');
         
-        const joinDate = new Date().toISOString();
-        const memberDocRef = adminDb.collection(`communities/${communityId}/members`).doc();
-        const inviteDocRef = adminDb.collection('invitations').doc();
-
-        const newMember = {
-            name: fullName,
-            firstName: data.firstName,
-            middleName: data.middleName || '',
-            lastName: data.lastName,
-            family: data.family,
-            email: data.email,
-            phone: data.phone || '',
-            phoneCountryCode: data.phoneCountryCode || '',
-            gender: data.gender,
-            tier: data.tier,
-            payments: [],
-            joinDate: joinDate,
-            role: 'user' as const, // Patriarchs can only invite users
-            status: 'invited' as const,
-            uid: null,
-            isPatriarch: false, // Only existing members can be patriarchs
-            inviteId: inviteDocRef.id,
-            contribution: 0, // Will be calculated on client, but needs a default
-        };
-        
-        batch.set(memberDocRef, newMember);
-        
-        batch.set(inviteDocRef, {
-            communityId: communityId,
-            communityName: communityName,
-            memberId: memberDocRef.id,
-            email: data.email,
-            firstName: data.firstName,
-            lastName: data.lastName,
-            role: 'user',
-            status: 'pending',
-            code: generateInviteCode(),
-            createdAt: serverTimestamp(),
-            createdBy: callerUid,
-        });
-
-        await batch.commit();
-        
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-        const inviteLink = `${appUrl}/auth/accept-invite?token=${inviteDocRef.id}`;
-
         await sendInvitationEmail({
             to: data.email,
-            communityName: communityName,
-            inviteLink: inviteLink,
-            inviterName: inviterName,
+            communityId,
+            communityName,
+            inviterName,
+            memberData: { ...data, email: data.email },
         });
         
         revalidatePath(`/app/${communityId}`);

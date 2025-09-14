@@ -4,13 +4,16 @@ import { Resend } from 'resend';
 import InvitationEmail from '@/emails/invitation-email';
 import NewMemberEmail from '@/emails/new-member-email';
 import { db } from './firebase';
-import { collection, query, where, getDocs }from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import type { NewMemberData } from './types';
 
 interface SendInvitationEmailParams {
   to: string;
+  communityId: string;
   communityName: string;
-  inviteLink: string;
   inviterName: string;
+  memberData: Omit<NewMemberData, 'email'> & { email: string };
+  newFamilyName?: string;
 }
 
 interface SendNewMemberNotificationParams {
@@ -70,9 +73,11 @@ function sanitizeRecipient(v: string): string {
 
 export async function sendInvitationEmail({
   to,
+  communityId,
   communityName,
-  inviteLink,
   inviterName,
+  memberData,
+  newFamilyName,
 }: SendInvitationEmailParams) {
   const resendApiKey = process.env.RESEND_API_KEY;
   if (!resendApiKey) {
@@ -83,6 +88,69 @@ export async function sendInvitationEmail({
 
   const from = buildFrom();
   const recipient = sanitizeRecipient(to);
+  const user = auth.currentUser;
+
+  // This function now also creates the Firestore documents
+  const batch = writeBatch(db);
+
+  let familyToUse = memberData.family;
+  if (newFamilyName && newFamilyName.trim() && memberData.family === 'new') {
+      familyToUse = newFamilyName.trim();
+      const familyDocRef = doc(collection(db, `communities/${communityId}/families`));
+      batch.set(familyDocRef, { name: familyToUse });
+  }
+
+  const fullName = [memberData.firstName, memberData.middleName, memberData.lastName]
+      .filter(part => part && part.trim())
+      .join(' ');
+  
+  const memberDocRef = doc(collection(db, `communities/${communityId}/members`));
+  const inviteDocRef = doc(collection(db, 'invitations'));
+  
+  const newMemberBase = {
+      name: fullName,
+      firstName: memberData.firstName,
+      middleName: memberData.middleName || '',
+      lastName: memberData.lastName,
+      family: familyToUse,
+      email: memberData.email,
+      phone: memberData.phone || '',
+      phoneCountryCode: memberData.phoneCountryCode || '',
+      gender: memberData.gender,
+      tier: memberData.tier,
+      payments: [],
+      joinDate: new Date().toISOString(),
+      role: 'user' as const,
+      status: 'invited' as const,
+      uid: null,
+      isPatriarch: memberData.isPatriarch,
+      inviteId: inviteDocRef.id,
+      contribution: 0, // Default contribution
+  };
+  
+  batch.set(memberDocRef, newMemberBase);
+
+  batch.set(inviteDocRef, {
+      communityId: communityId,
+      communityName: communityName,
+      memberId: memberDocRef.id,
+      email: memberData.email,
+      firstName: memberData.firstName,
+      lastName: memberData.lastName,
+      gender: memberData.gender,
+      family: familyToUse,
+      tier: memberData.tier,
+      role: 'user',
+      status: 'pending', // REQUIRED by rules
+      createdAt: serverTimestamp(),
+      createdBy: user?.uid ?? 'system',
+  });
+
+  await batch.commit();
+  
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+  const inviteLink = `${appUrl}/auth/accept-invite?token=${inviteDocRef.id}`;
+
 
   try {
     const resend = new Resend(resendApiKey);
@@ -100,7 +168,7 @@ export async function sendInvitationEmail({
       throw new Error(error.message);
     }
 
-    return data;
+    return { data, success: true };
   } catch (error) {
     console.error('Failed to send invitation email:', error);
     throw error;
