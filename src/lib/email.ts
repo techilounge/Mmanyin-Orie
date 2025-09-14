@@ -3,7 +3,7 @@
 import { Resend } from 'resend';
 import InvitationEmail from '@/emails/invitation-email';
 import NewMemberEmail from '@/emails/new-member-email';
-import { db } from './firebase';
+import { db, auth } from './firebase';
 import { collection, query, where, getDocs, doc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import type { NewMemberData } from './types';
 

@@ -4,7 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-### Added
+### Fixed
+- **Build Failure**: Resolved a TypeScript build error in `src/lib/email.ts` by importing the `auth` object from Firebase, which was being used without being declared in scope.
 - **Family Head Permissions**: The head of a family (patriarch) can now add or invite members directly to their own family, mirroring the functionality available to admins.
 - Created `CHANGELOG.md` to track project modifications.
 - Added an instruction to `README.md` to prevent AI from modifying `.env.local` without approval.
