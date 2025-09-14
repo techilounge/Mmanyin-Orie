@@ -141,7 +141,8 @@ export async function sendInvitationEmail({
       family: familyToUse,
       tier: memberData.tier,
       role: 'user',
-      status: 'pending', // REQUIRED by rules
+      isPatriarch: memberData.isPatriarch, // preserve patriarch flag
+      status: 'pending',                  // REQUIRED by rules
       createdAt: serverTimestamp(),
       createdBy: user?.uid ?? 'system',
   });

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -73,6 +74,7 @@ export default function CompleteInvitePage() {
         family?: string;
         tier?: string;
         status?: string;
+        isPatriarch?: boolean;
       };
 
       if (invite.email && user.email && invite.email.toLowerCase() !== user.email.toLowerCase()) {
@@ -94,10 +96,11 @@ export default function CompleteInvitePage() {
           middleName: '',
           gender: invite.gender ?? 'male',
           role: 'user',
-          status: 'active',              // <-- REQUIRED by your rules
-          joinDate: new Date().toISOString(),
+          status: 'active', // <-- REQUIRED by your rules
+          joinDate: serverTimestamp(),
           family: invite.family ?? 'Unassigned',
           tier: invite.tier ?? 'N/A',
+          isPatriarch: invite.isPatriarch ?? false,
         },
         { merge: true }
       );
@@ -121,10 +124,15 @@ export default function CompleteInvitePage() {
         );
       }
 
-      // 4) Mark invite accepted (best-effort)
+      // 4) Mark invite accepted (allowed fields only)
       try {
-        await updateDoc(inviteRef, { status: 'accepted', acceptedAt: serverTimestamp(), acceptedByUid: user.uid });
-      } catch {}
+        await updateDoc(inviteRef, {
+          status: 'accepted',
+          acceptedAt: serverTimestamp(),
+        });
+      } catch {
+        // ignore failure; membership is created
+      }
 
       setMessage('Invitation accepted. Redirecting…');
       router.replace(`/app/${invite.communityId}`);

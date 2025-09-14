@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **Family Head Permissions**: Corrected the invitation acceptance workflow to properly preserve the `isPatriarch` flag, ensuring that family heads retain their ability to manage their family members after accepting an invitation. Also removed a forbidden field (`acceptedByUid`) from the invitation update process to prevent permission errors.
 - **Build Failure**: Resolved a TypeScript build error in `src/lib/email.ts` by importing the `auth` object from Firebase, which was being used without being declared in scope.
 - **Family Head Permissions**: The head of a family (patriarch) can now add or invite members directly to their own family, mirroring the functionality available to admins.
 - Created `CHANGELOG.md` to track project modifications.
