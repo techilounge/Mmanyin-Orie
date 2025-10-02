@@ -5,38 +5,14 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
-- **Build Failure**: Resolved a TypeScript build error by creating local type aliases for `NewCustomContributionData` and `MemberWithInvite` in `community-provider.tsx`, ensuring type compatibility without altering global definitions.
-- **Build Failure**: Resolved a TypeScript build error by adding the optional `inviteId` property to the `Member` type in `src/lib/types.ts`. This ensures type safety and consistency with the Firestore data model, allowing the build to complete successfully.
-- **Build Failure**: Resolved a TypeScript build error caused by a missing `NewCustomContributionData` type in `community-provider.tsx`. The type signature has been corrected to use the appropriate `Omit<CustomContribution, 'id'>` type, stabilizing the build.
-- **Invitation Acceptance**: Corrected the invitation acceptance workflow to align with stricter Firestore security rules. The process now successfully completes by having the user create their own member document, resolving a "Missing or insufficient permissions" error that blocked users from joining a community.
-- **Firestore Rules**: Finalized Firestore security rules to be more secure and robust, using helper functions for clarity.
-- **Permissions**: Corrected a critical Firestore security rule to allow members of a community to read the member list. The previous rule was causing a "Missing or insufficient permissions" error by incorrectly checking the user's top-level document instead of their existence in the community's `members` subcollection.
-- **Permissions**: Corrected Firestore security rules to grant appropriate read permissions to members with the 'user' role. This resolves a critical "Missing or insufficient permissions" error that prevented non-admins from viewing community data like families, members, and payments. Write permissions remain restricted to admins and owners.
-- **Build Failure**: Resolved a critical build failure caused by a merge conflict in `src/components/community/community-provider.tsx`. The conflicting logic for handling invitation links has been corrected, stabilizing the application.
-- **Finalized Security Rules**: Corrected and finalized all Firestore security rules to resolve all outstanding permission errors. This includes fixing data visibility for regular users, stabilizing the "Switch Community" page, and securing the invitation acceptance workflow. Added a rule to restrict community document updates to admins and owners.
-- **Invitation Acceptance**: Corrected the Firestore security rules to allow a newly authenticated user to read and update their own invitation document. This resolves the persistent "Missing or in-sufficient permissions" error and allows the user to successfully join a community after accepting an invitation.
-- **Email Sending**: Fixed a critical bug where invitation emails failed to send via Resend. The `from` address was not being formatted correctly as `Name <email@domain.com>`, which is required by the Resend API, causing silent delivery failures. The logic has been corrected to ensure proper formatting.
-- **Invitation Link Retrieval**: Fixed an infinite loop and multiple error toasts in the "Resend Invite" dialog. The `getInviteLink` function was removed from a `useEffect` dependency array to prevent re-renders, and its internal logic was corrected to avoid showing redundant error messages, allowing the UI to handle the error state gracefully.
 - **Invitation Link Retrieval**: Fixed a critical bug where retrieving an invitation link for a member would fail due to a Firestore security rule violation. The logic in `getInviteLink` was incorrectly trying to read the `/invitations` collection, which is restricted. The function has been simplified to construct the link directly from the `inviteId` stored on the member document, resolving the error.
+- **Invitation Link Retrieval**: Fixed an infinite loop and multiple error toasts in the "Resend Invite" dialog. The `getInviteLink` function was removed from a `useEffect` dependency array to prevent re-renders, and its internal logic was corrected to avoid showing redundant error messages, allowing the UI to handle the error state gracefully.
+- **Invitation Resend**: Fixed a `PERMISSION_DENIED` error that occurred when resending an invitation. The logic was incorrectly creating a reference to a new, non-existent member document instead of using the ID of the existing member. The `sendInvitationEmail` and `resendInvitation` functions have been updated to correctly associate the new invitation with the existing member, resolving the error.
 - **Permissions and State Management**: 
   - Corrected Firestore security rules to grant appropriate read permissions to members with the 'user' role, allowing them to see community data like families, members, and payments. Write and delete permissions remain restricted to admins and owners.
   - Stabilized the `CommunityProvider` by adding the `user` object to the `useEffect` dependency array. This resolves a critical state management bug that caused the application to switch to the wrong community context for users belonging to multiple communities.
 - **Community Loading**: Corrected Firestore security rules to allow a user to read the top-level document of communities they are a member of. This resolves a critical "Missing or insufficient permissions" error on the "Switch Community" page, which prevented users from loading their list of communities.
-
-### Added
-- **Family Head Permissions**: The head of a family (patriarch) can now add or invite members directly to their own family, mirroring the functionality available to admins.
-
-### Fixed
-- **Invitation Acceptance**: Corrected the Firestore security rules to allow a newly authenticated user to read and update their own invitation document. This resolves the persistent "Missing or in-sufficient permissions" error and allows the user to successfully join a community after accepting an invitation.
-
-### Fixed
 - **Avatar Upload**: Switched from an unreliable server-side API route to a direct client-side upload using the Firebase Web SDK. This resolves persistent CORS and token audience (`aud`) mismatch errors encountered in the Firebase Studio preview environment by no longer using the Admin SDK for this operation. The `lib/upload-avatar.ts` file has been updated with the new client-side logic, and the unused API route at `src/app/api/upload-avatar/route.ts` has been stubbed out.
-
-### Added
-- Created `CHANGELOG.md` to track project modifications.
-- Added an instruction to `README.md` to prevent AI from modifying `.env.local` without approval.
-
-### Fixed
 - **Avatar Upload**: Implemented a server-side API route (`/api/upload-avatar`) to handle avatar uploads. This bypasses client-side CSP restrictions in Firebase Studio. The client-side code in `avatar-uploader.tsx` now posts to this route instead of directly to Firebase Storage.
 - **Avatar Upload**: Added `firebase-admin` dependency and a dedicated Admin SDK initializer (`src/src/lib/firebase-admin.ts`) to ensure robust and correctly configured server-side operations.
 - **Email Sending**: Resolved a persistent issue with sending invitation emails via the Resend API.
@@ -45,4 +21,24 @@ All notable changes to this project will be documented in this file.
 - **Invitation Links**: Ensured that generated invitation links use the correct custom domain specified in the environment variables.
 - **Build Errors**: Corrected various syntax errors in `.tsx` files that were causing the Next.js build to fail.
 - **Multi-Community Routing**: Fixed a bug where a user belonging to multiple communities was not prompted to select a community on login. The logic was corrected to route them to the `/app/switch-community` page if no primary community is set.
+- **Finalized Security Rules**: Corrected and finalized all Firestore security rules to resolve all outstanding permission errors. This includes fixing data visibility for regular users, stabilizing the "Switch Community" page, and securing the invitation acceptance workflow. Added a rule to restrict community document updates to admins and owners.
+- **Invitation Acceptance**: Corrected the Firestore security rules to allow a newly authenticated user to read and update their own invitation document. This resolves the persistent "Missing or in-sufficient permissions" error and allows the user to successfully join a community after accepting an invitation.
+- **Email Sending**: Fixed a critical bug where invitation emails failed to send via Resend. The `from` address was not being formatted correctly as `Name <email@domain.com>`, which is required by the Resend API, causing silent delivery failures. The logic has been corrected to ensure proper formatting.
+- **Build Failure**: Resolved a Next.js routing error (`Cannot find module for page: /page`) by replacing a `router.push()` with `router.replace()` in the authentication guard (`src/lib/auth.tsx`), preventing an invalid intermediate navigation state.
+- **Build Failure**: Resolved a critical build failure caused by a merge conflict in `src/components/community/community-provider.tsx`. The conflicting logic for handling invitation links has been corrected, stabilizing the application.
+- **Permissions**: Corrected Firestore security rules to grant appropriate read permissions to members with the 'user' role. This resolves a critical "Missing or insufficient permissions" error that prevented non-admins from viewing community data like families, members, and payments. Write permissions remain restricted to admins and owners.
+- **Permissions**: Corrected a critical Firestore security rule to allow members of a community to read the member list. The previous rule was causing a "Missing or insufficient permissions" error by incorrectly checking the user's top-level document instead of their existence in the community's `members` subcollection.
+- **Firestore Rules**: Finalized Firestore security rules to be more secure and robust, using helper functions for clarity.
+- **Invitation Acceptance**: Corrected the invitation acceptance workflow to align with stricter Firestore security rules. The process now successfully completes by having the user create their own member document, resolving a "Missing or insufficient permissions" error that blocked users from joining a community.
+- **Build Failure**: Resolved a TypeScript build error caused by a missing `NewCustomContributionData` type in `community-provider.tsx`. The type signature has been corrected to use the appropriate `Omit<CustomContribution, 'id'>` type, stabilizing the build.
+- **Build Failure**: Resolved a TypeScript build error by adding the optional `inviteId` property to the `Member` type in `src/lib/types.ts`. This ensures type safety and consistency with the Firestore data model, allowing the build to complete successfully.
+- **Build Failure**: Resolved a TypeScript build error by adding local type aliases for `NewCustomContributionData` and `MemberWithInvite` in `community-provider.tsx`, ensuring type compatibility without altering global definitions.
+- **Build Failure**: Resolved a TypeScript build error by adding `auth` to the import statement in `src/lib/email.ts`, which was missing.
 
+### Added
+- **Family Head Permissions**: The head of a family (patriarch) can now add or invite members directly to their own family, mirroring the functionality available to admins.
+- Created `CHANGELOG.md` to track project modifications.
+- Added an instruction to `README.md` to prevent AI from modifying `.env.local` without approval.
+
+### Fixed
+- **Family Head Permissions**: Corrected the invitation acceptance workflow to properly preserve the `isPatriarch` flag, ensuring that family heads retain their ability to manage their family members after accepting an invitation. Also removed a forbidden field (`acceptedByUid`) from the invitation update process to prevent permission errors.

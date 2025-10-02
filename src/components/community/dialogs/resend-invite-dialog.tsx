@@ -22,17 +22,24 @@ export function ResendInviteDialog() {
   const [hasCopied, setHasCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isResending, setIsResending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const isOpen = dialogState?.type === 'resend-invite';
   
   const fetchLink = useCallback(async () => {
     if (member) {
       setIsLoading(true);
-      const link = await getInviteLink(member.id);
-      setInviteLink(link);
-      setIsLoading(false);
+      setError(null);
+      try {
+        const link = await getInviteLink(member.id);
+        setInviteLink(link);
+      } catch (e: any) {
+        setError("Could not retrieve invitation link. It may have expired or been revoked.");
+      } finally {
+        setIsLoading(false);
+      }
     }
-  }, [member, getInviteLink]);
+  }, [member]); // Removed getInviteLink to prevent re-renders
 
   useEffect(() => {
     if (isOpen) {
@@ -44,6 +51,7 @@ export function ResendInviteDialog() {
     setInviteLink(null);
     setHasCopied(false);
     setIsLoading(true);
+    setError(null);
     closeDialog(); 
   };
   
@@ -89,7 +97,7 @@ export function ResendInviteDialog() {
              <Alert variant="destructive">
                 <AlertTitle>No Invitation Found</AlertTitle>
                 <AlertDescription>
-                    Could not find an invitation record for this member. They may have already accepted the invite.
+                    {error || 'Could not find an active invitation for this member. They may have already accepted the invite.'}
                 </AlertDescription>
             </Alert>
           )}
@@ -100,7 +108,7 @@ export function ResendInviteDialog() {
                   {hasCopied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
                   {hasCopied ? 'Copied!' : 'Copy Link'}
               </Button>
-              <Button onClick={handleResend} disabled={!inviteLink || isLoading || isResending}>
+              <Button onClick={handleResend} disabled={isLoading || isResending}>
                   {isResending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
                   {isResending ? 'Sending...' : 'Resend Email'}
               </Button>

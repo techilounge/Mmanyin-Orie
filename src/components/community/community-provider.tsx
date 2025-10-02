@@ -348,31 +348,17 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
 
   const getInviteLink = useCallback(async (memberId: string): Promise<string | null> => {
     if (!activeCommunityId) return null;
-    try {
-        const memberDocRef = doc(db, 'communities', activeCommunityId, 'members', memberId);
-        const memberSnap = await getDoc(memberDocRef);
+    const member = members.find((m) => m.id === memberId);
+    const inviteId = member?.inviteId;
 
-        if (!memberSnap.exists()) {
-            return null;
-        }
-
-        const memberData = memberSnap.data() as MemberWithInvite;
-        const inviteId = memberData?.inviteId;
-        
-        if (!inviteId) {
-            // This is a valid state, let UI handle it. Don't show toast.
-            return null;
-        }
-
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
-        return `${appUrl}/auth/accept-invite?token=${inviteId}`;
-
-    } catch (error: any) {
-        console.error("Error getting invite link:", error);
-        // Let UI handle showing a generic error.
-        return null;
+    if (!inviteId) {
+      // This is a valid state, let UI handle it. Don't show toast.
+      return null;
     }
-  }, [activeCommunityId]);
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+    return `${appUrl}/auth/accept-invite?token=${inviteId}`;
+  }, [activeCommunityId, members]);
   
   const addMember = async (data: NewMemberData) => {
     if (!user || !activeCommunityId) return;
