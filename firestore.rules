@@ -62,27 +62,26 @@ service cloud.firestore {
       // Any member of the community can read the members list
       allow read: if isMember(communityId);
 
-      // Admins/owners can create/delete any member
-      allow create, delete: if isRole(communityId, ['owner', 'admin']);
+      // Create: allow an admin/owner to create any member OR allow a user to create their own doc when accepting an invite
+      allow create: if (
+        // admins/owners can create any member
+        isRole(communityId, ['owner', 'admin'])
+        // OR invite acceptance by the user themselves
+        || (
+          request.auth != null
+          && request.auth.uid == memberId
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.role == 'user'
+          && request.resource.data.status in ['active', 'accepted', 'member']
+        )
+      );
 
-      // --- Invite acceptance path (non-admin):
-      // Allow a user to CREATE *their own* member doc to accept an invite,
-      // but constrain what they can set so they cannot grant themselves privileges.
-      allow create: if request.auth != null
-                    && request.auth.uid == memberId
-                    // Must be binding to the caller
-                    && request.resource.data.uid == request.auth.uid
-                    // Role must be basic member
-                    && request.resource.data.role == 'user'
-                    // Recommended to start as 'active'
-                    && request.resource.data.status in ['active', 'accepted', 'member'];
+      // Only admins/owners can delete member docs
+      allow delete: if isRole(communityId, ['owner', 'admin']);
 
       // Update: admins/owners can update any; a user can update their own doc
       allow update: if isRole(communityId, ['owner', 'admin'])
                     || (request.auth != null && request.auth.uid == memberId);
-
-      // No client-side delete by non-admins (cleanup via server if needed)
-      // (already covered by create, delete rule above)
     }
 
     // ----------------------
@@ -105,8 +104,7 @@ service cloud.firestore {
                          .changedKeys()
                          .hasOnly(['status','acceptedAt']);
 
-      // Any authed user can create an invite (your UI restricts to admins/owners;
-      // patriarchs will use privileged server functions in §2)
+      // Any authed user can create an invite (your UI restricts to admins/owners)
       allow create: if request.auth != null;
 
       // No client delete
