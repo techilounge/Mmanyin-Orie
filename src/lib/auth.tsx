@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import type { ReactNode } from 'react';
@@ -67,33 +68,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     let unsubscribeMemberDoc: () => void;
     if (user && communityId) {
-        const memberDocRef = doc(db, 'communities', communityId, 'members', user.uid);
-        unsubscribeMemberDoc = onSnapshot(memberDocRef, (docSnap) => {
-            if (docSnap.exists()) {
-                setCommunityRole((docSnap.data() as Member).role);
-            } else {
-                setCommunityRole(null);
-            }
-            setLoading(false);
-        }, (error) => {
-            console.error("Error listening to member document:", error);
+      const memberDocRef = doc(
+        db,
+        'communities',
+        communityId,
+        'members',
+        user.uid
+      );
+      unsubscribeMemberDoc = onSnapshot(
+        memberDocRef,
+        (docSnap) => {
+          if (docSnap.exists()) {
+            setCommunityRole((docSnap.data() as Member).role);
+          } else {
             setCommunityRole(null);
-            setLoading(false);
-        });
-    } else if (!user) {
-        setCommunityRole(null);
-    } else {
-        // If there's a user but no communityId in path, we are not in a community context
-        // But we still need to set loading to false.
-        if (loading) { // only set loading if it's currently true
+          }
+          setLoading(false);
+        },
+        (error) => {
+          // If the user is not yet a member, ignore the permission error
+          if ((error as any).code !== 'permission-denied') {
+            console.error('Error listening to member document:', error);
+          }
+          setCommunityRole(null);
           setLoading(false);
         }
+      );
+    } else if (!user) {
+      setCommunityRole(null);
+    } else {
+      if (loading) {
+        setLoading(false);
+      }
     }
-
     return () => {
-        if (unsubscribeMemberDoc) unsubscribeMemberDoc();
-    }
-  }, [user, communityId]); // IMPORTANT: User dependency is critical here.
+      if (unsubscribeMemberDoc) unsubscribeMemberDoc();
+    };
+  }, [user, communityId]);
 
   useEffect(() => {
     setMounted(true);

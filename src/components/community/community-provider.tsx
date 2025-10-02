@@ -114,6 +114,16 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         setCommunityName('');
         return;
     }
+    // Only listen if the user actually has a role in this community
+    if (!communityRole) {
+      setIsLoading(false);
+      setMembers([]);
+      setFamilies([]);
+      setCustomContributions([]);
+      setSettings(DEFAULT_SETTINGS);
+      setCommunityName('');
+      return;
+    }
     
     setIsLoading(true);
 
@@ -162,7 +172,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         clearTimeout(timer);
     };
 
-  }, [activeCommunityId, user]);
+  }, [activeCommunityId, user, communityRole]);
 
  const getContribution = useCallback((member: Omit<Member, 'id' | 'contribution'>, currentCustomContributions: CustomContribution[]) => {
     const applicableContributions = currentCustomContributions.filter(c => c.tiers.includes(member.tier || ''));
@@ -466,21 +476,15 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
 
   const resendInvitation = async (member: Member) => {
     if (!user || !member.email) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Member does not have an email to send an invitation to.' });
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Member does not have an email to send an invitation to.',
+      });
       return;
     }
     try {
-      const inviteLink = await getInviteLink(member.id);
-      
-      if (!inviteLink) {
-        toast({ variant: 'destructive', title: 'No Invitation Found', description: 'This member may have already accepted their invite, or no invite was created.' });
-        return;
-      }
-      
-      // The sendInvitationEmail now handles document creation, which we don't want here.
-      // We need to re-implement just the email sending part for resending.
-      // For now, let's simplify and use the centralized function, which will create a new invite.
-      // This is safe because old invites are implicitly revoked.
+      // Prepare data for resending
       const memberDataForResend = {
         firstName: member.firstName,
         lastName: member.lastName,
@@ -493,18 +497,37 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         phoneCountryCode: member.phoneCountryCode,
         email: member.email,
       };
-
-      await sendInvitationEmail({
+      // Call sendInvitationEmail with skipMemberCreation = true
+      const result = await sendInvitationEmail({
         to: member.email,
         communityId: activeCommunityId!,
         communityName: communityName,
         inviterName: user.displayName || 'The community admin',
         memberData: memberDataForResend,
+        skipMemberCreation: true,
       });
-
-      toast({ title: 'Invitation Resent', description: `A new invitation email has been sent to ${member.name}.` });
+      // Update the existing member document with the new invite ID and set status back to 'invited'
+      const memberDocRef = doc(
+        db,
+        'communities',
+        activeCommunityId!,
+        'members',
+        member.id
+      );
+      await updateDoc(memberDocRef, {
+        inviteId: result.inviteId,
+        status: 'invited',
+      });
+      toast({
+        title: 'Invitation Resent',
+        description: `A new invitation email has been sent to ${member.name}.`,
+      });
     } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Failed to Resend', description: error.message });
+      toast({
+        variant: 'destructive',
+        title: 'Failed to Resend',
+        description: error.message,
+      });
     }
   };
 
