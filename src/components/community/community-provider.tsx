@@ -497,7 +497,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         phoneCountryCode: member.phoneCountryCode,
         email: member.email,
       };
-      // Call sendInvitationEmail with skipMemberCreation = true
+      // Call sendInvitationEmail with skipMemberCreation = true and the existing member ID
       const result = await sendInvitationEmail({
         to: member.email,
         communityId: activeCommunityId!,
@@ -505,6 +505,7 @@ export function CommunityProvider({ children, communityId: activeCommunityId }: 
         inviterName: user.displayName || 'The community admin',
         memberData: memberDataForResend,
         skipMemberCreation: true,
+        existingMemberId: member.id,
       });
       // Update the existing member document with the new invite ID and set status back to 'invited'
       const memberDocRef = doc(

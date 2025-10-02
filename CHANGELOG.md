@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **Invitation Resend**: Fixed a `PERMISSION_DENIED` error that occurred when resending an invitation. The logic was incorrectly creating a reference to a new, non-existent member document instead of using the ID of the existing member. The `sendInvitationEmail` and `resendInvitation` functions have been updated to correctly associate the new invitation with the existing member, resolving the error.
 - **Permissions and State Management**: 
   - Corrected Firestore security rules to grant appropriate read permissions to members with the 'user' role, allowing them to see community data like families, members, and payments. Write and delete permissions remain restricted to admins and owners.
   - Stabilized the `CommunityProvider` by adding the `user` object to the `useEffect` dependency array. This resolves a critical state management bug that caused the application to switch to the wrong community context for users belonging to multiple communities.

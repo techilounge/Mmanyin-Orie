@@ -26,6 +26,10 @@ interface SendInvitationEmailParams {
    * another member document. Use this for resends.
    */
   skipMemberCreation?: boolean;
+  /**
+   * The ID of the existing member document, used when resending.
+   */
+  existingMemberId?: string;
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -93,6 +97,7 @@ export async function sendInvitationEmail({
   memberData,
   newFamilyName,
   skipMemberCreation = false,
+  existingMemberId,
 }: SendInvitationEmailParams) {
   const resendApiKey = process.env.RESEND_API_KEY;
   if (!resendApiKey) {
@@ -115,10 +120,15 @@ export async function sendInvitationEmail({
     batch.set(familyDocRef, { name: familyToUse });
   }
 
-  // Always create a new invitation record
-  const memberDocRef = doc(collection(db, `communities/${communityId}/members`));
-  const inviteDocRef = doc(collection(db, 'invitations'));
+  let memberDocRef;
+  if (skipMemberCreation && existingMemberId) {
+    memberDocRef = doc(db, `communities/${communityId}/members`, existingMemberId);
+  } else {
+    memberDocRef = doc(collection(db, `communities/${communityId}/members`));
+  }
 
+  const inviteDocRef = doc(collection(db, 'invitations'));
+  
   if (!skipMemberCreation) {
     // Only create a member document when not resending
     const fullName = [
@@ -155,7 +165,7 @@ export async function sendInvitationEmail({
   batch.set(inviteDocRef, {
     communityId,
     communityName,
-    memberId: memberDocRef.id,
+    memberId: memberDocRef.id, // This now correctly points to the existing member ID on resend
     email: memberData.email,
     firstName: memberData.firstName,
     lastName: memberData.lastName,
