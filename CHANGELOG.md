@@ -47,3 +47,4 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Created `CHANGELOG.md` to track project modifications.
 - Added an instruction to `README.md` to prevent AI from modifying `.env.local` without approval.
+
