@@ -121,12 +121,12 @@ export async function sendInvitationEmail({
     batch.set(familyDocRef, { name: familyToUse });
   }
 
-  let memberDocRef;
-  if (skipMemberCreation && existingMemberId) {
-    memberDocRef = doc(db, `communities/${communityId}/members`, existingMemberId);
-  } else {
-    memberDocRef = doc(collection(db, `communities/${communityId}/members`));
-  }
+  // --- THIS IS THE CORE FIX ---
+  // Determine which member ID to use. For a resend, it's the existing one.
+  // For a new invite, it's a newly generated one.
+  const memberIdToUse = existingMemberId || doc(collection(db, `communities/${communityId}/members`)).id;
+  const memberDocRef = doc(db, `communities/${communityId}/members`, memberIdToUse);
+  // --- END OF CORE FIX ---
 
   const inviteDocRef = doc(collection(db, 'invitations'));
   
@@ -166,7 +166,7 @@ export async function sendInvitationEmail({
   batch.set(inviteDocRef, {
     communityId,
     communityName,
-    memberId: memberDocRef.id, // This now correctly points to the existing member ID on resend
+    memberId: memberIdToUse, // This now correctly points to the existing member ID on resend
     email: memberData.email,
     firstName: memberData.firstName,
     lastName: memberData.lastName,
@@ -174,7 +174,7 @@ export async function sendInvitationEmail({
     family: familyToUse,
     tier: memberData.tier,
     role: 'user',
-    isPatriarch: memberData.isPatriarch, // << preserve patriarch flag
+    isPatriarch: memberData.isPatriarch,
     status: 'pending',
     createdAt: serverTimestamp(),
     createdBy: user?.uid ?? 'system',
