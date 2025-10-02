@@ -36,15 +36,9 @@ All notable changes to this project will be documented in this file.
 - **Build Failure**: Resolved a Next.js routing error (`Cannot find module for page: /page`) by replacing a `router.push()` with `router.replace()` in the authentication guard (`src/lib/auth.tsx`), preventing an invalid intermediate navigation state.
 - **Family Head Permissions**: The head of a family (patriarch) can now add or invite members directly to their own family, mirroring the functionality available to admins.
 - **Family Head Permissions**: Corrected the invitation acceptance workflow to properly preserve the `isPatriarch` flag, ensuring that family heads retain their ability to manage their family members after accepting an invitation. Also removed a forbidden field (`acceptedByUid`) from the invitation update process to prevent permission errors.
-- **Build Failure**: Resolved a TypeScript build error in `src/lib/email.ts` by importing the `auth` object from Firebase, which was being used without being declared in scope.
-- **Permissions and Data Integrity**: Corrected the root cause of all "Missing or insufficient permissions" errors by overhauling the member creation and invitation acceptance workflows.
-  - The `complete-invite` page now correctly creates a new member document keyed by the user's Auth UID, aligning with Firestore security rules.
-  - The `switch-community` page has been made more robust to handle malformed membership data gracefully.
-  - A new self-service `repair-memberships` tool has been added to allow existing users to fix their own data inconsistencies.
-- **Profile Navigation**: Fixed a minor UX issue in the profile header where the "Back to App" button used a static link instead of navigating to the previous page. The button now correctly uses `router.back()` for a more intuitive user experience.
-- **Invitation Workflow**: Corrected the entire invitation creation and acceptance workflow to align with Firestore security rules. Invitations are now centrally created with a `pending` status, ensuring new invite links are always valid and readable by unauthenticated users. This resolves the "Missing or insufficient permissions" error that blocked users from accepting invites.
 
 ### Added
 - Created `CHANGELOG.md` to track project modifications.
 - Added an instruction to `README.md` to prevent AI from modifying `.env.local` without approval.
+
 

@@ -82,8 +82,7 @@ export default function CompleteInvitePage() {
         return;
       }
 
-      // 2) Create/merge UID-keyed member doc — THIS satisfies your rules:
-      //    role must be 'user' and status must be in ['active','accepted','member'].
+      // 2) Create/merge UID-keyed member doc, copying fields from the invitation
       const memberRef = doc(db, 'communities', invite.communityId, 'members', user.uid);
       await setDoc(
         memberRef,
@@ -96,7 +95,7 @@ export default function CompleteInvitePage() {
           middleName: '',
           gender: invite.gender ?? 'male',
           role: 'user',
-          status: 'active', // <-- REQUIRED by your rules
+          status: 'active', // satisfies invite-acceptance rule
           joinDate: serverTimestamp(),
           family: invite.family ?? 'Unassigned',
           tier: invite.tier ?? 'N/A',

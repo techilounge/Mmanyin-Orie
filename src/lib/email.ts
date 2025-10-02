@@ -11,6 +11,7 @@ import {
   getDocs,
   query,
   where,
+  updateDoc,
 } from 'firebase/firestore';
 import type { NewMemberData } from './types';
 
@@ -173,7 +174,7 @@ export async function sendInvitationEmail({
     family: familyToUse,
     tier: memberData.tier,
     role: 'user',
-    isPatriarch: memberData.isPatriarch,
+    isPatriarch: memberData.isPatriarch, // << preserve patriarch flag
     status: 'pending',
     createdAt: serverTimestamp(),
     createdBy: user?.uid ?? 'system',
