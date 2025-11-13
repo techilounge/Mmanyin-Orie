@@ -124,7 +124,7 @@ export async function sendInvitationEmail({
   // --- THIS IS THE CORE FIX ---
   // Determine which member ID to use. For a resend, it's the existing one.
   // For a new invite, it's a newly generated one.
-  const memberIdToUse = existingMemberId || doc(collection(db, `communities/${communityId}/members`)).id;
+  const memberIdToUse = existingMemberId || doc(collection(db, 'dummy')).id;
   const memberDocRef = doc(db, `communities/${communityId}/members`, memberIdToUse);
   // --- END OF CORE FIX ---
 

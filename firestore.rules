@@ -104,8 +104,9 @@ service cloud.firestore {
                          .changedKeys()
                          .hasOnly(['status','acceptedAt']);
 
-      // Any authed user can create an invite (your UI restricts to admins/owners)
-      allow create: if request.auth != null;
+      // Create only by admins/owners of the target community
+      allow create: if request.auth != null 
+      							&& isRole(request.resource.data.communityId, ['owner', 'admin']);
 
       // No client delete
       allow delete: if false;
