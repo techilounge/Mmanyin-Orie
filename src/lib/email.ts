@@ -121,17 +121,11 @@ export async function sendInvitationEmail({
     batch.set(familyDocRef, { name: familyToUse });
   }
 
-  // --- THIS IS THE CORE FIX ---
-  // Determine which member ID to use. For a resend, it's the existing one.
-  // For a new invite, it's a newly generated one.
   const memberIdToUse = existingMemberId || doc(collection(db, 'dummy')).id;
   const memberDocRef = doc(db, `communities/${communityId}/members`, memberIdToUse);
-  // --- END OF CORE FIX ---
-
   const inviteDocRef = doc(collection(db, 'invitations'));
   
   if (!skipMemberCreation) {
-    // Only create a member document when not resending
     const fullName = [
       memberData.firstName,
       memberData.middleName,
@@ -162,11 +156,10 @@ export async function sendInvitationEmail({
     batch.set(memberDocRef, newMemberBase);
   }
 
-  // Create/replace invitation doc
   batch.set(inviteDocRef, {
     communityId,
     communityName,
-    memberId: memberIdToUse, // This now correctly points to the existing member ID on resend
+    memberId: memberIdToUse,
     email: memberData.email,
     firstName: memberData.firstName,
     lastName: memberData.lastName,
@@ -199,7 +192,6 @@ export async function sendInvitationEmail({
   if (error) {
     throw new Error(error.message);
   }
-  // Return the invite ID so the caller can update the member document when resending
   return { data, success: true, inviteId: inviteDocRef.id };
 }
 
@@ -219,7 +211,6 @@ export async function sendNewMemberNotificationEmail({
   }
 
   try {
-    // 1. Find all admins and owners of the community
     const membersRef = collection(db, 'communities', communityId, 'members');
     const q = query(membersRef, where('role', 'in', ['admin', 'owner']));
     const querySnapshot = await getDocs(q);
@@ -237,7 +228,6 @@ export async function sendNewMemberNotificationEmail({
       return;
     }
 
-    // 2. Send the email
     const resend = new Resend(resendApiKey);
     const from = buildFrom();
 
@@ -251,12 +241,10 @@ export async function sendNewMemberNotificationEmail({
 
     if (error) {
       console.error('Resend API Error (New Member Notification):', error);
-      // Don't throw, just log the error
     }
 
     return data;
   } catch (error) {
     console.error('Failed to send new member notification email:', error);
-    // Don't throw, just log the error
   }
 }
