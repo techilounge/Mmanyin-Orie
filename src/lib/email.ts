@@ -2,17 +2,8 @@
 import { Resend } from 'resend';
 import InvitationEmail from '@/emails/invitation-email';
 import NewMemberEmail from '@/emails/new-member-email';
-import { db, auth } from './firebase';
-import {
-  collection,
-  doc,
-  writeBatch,
-  serverTimestamp,
-  getDocs,
-  query,
-  where,
-  updateDoc,
-} from 'firebase/firestore';
+import { getAdminFirestore } from './firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 import type { NewMemberData } from './types';
 
 interface SendInvitationEmailParams {
@@ -31,6 +22,10 @@ interface SendInvitationEmailParams {
    * The ID of the existing member document, used when resending.
    */
   existingMemberId?: string;
+  /**
+   * UID of the user performing the action (passed from the client).
+   */
+  callerUid?: string;
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -71,14 +66,14 @@ function buildFrom(): string {
     const email = `no-reply@${domain}`;
     if (!EMAIL_RE.test(email)) {
       throw new Error(
-        'RESEND_DOMAIN/NEXT_PUBLIC_APP_URL must be a bare domain like "example.com" (no https://, no path).'
+        'RESEND_DOMAIN/APP_URL must be a bare domain like "example.com" (no https://, no path).'
       );
     }
     return `Mmanyin Orie <${email}>`;
   }
 
   throw new Error(
-    'Email sending is not configured. Set RESEND_FROM, RESEND_DOMAIN, or NEXT_PUBLIC_APP_URL.'
+    'Email sending is not configured. Set RESEND_FROM, RESEND_DOMAIN, or APP_URL.'
   );
 }
 
@@ -100,6 +95,7 @@ export async function sendInvitationEmail({
   newFamilyName,
   skipMemberCreation = false,
   existingMemberId,
+  callerUid,
 }: SendInvitationEmailParams) {
   const resendApiKey = process.env.RESEND_API_KEY;
   if (!resendApiKey) {
@@ -108,23 +104,23 @@ export async function sendInvitationEmail({
     );
   }
 
+  const adminDb = getAdminFirestore();
   const from = buildFrom();
   const recipient = sanitizeRecipient(to);
-  const user = auth.currentUser;
 
-  const batch = writeBatch(db);
+  const batch = adminDb.batch();
   let familyToUse = memberData.family;
   if (newFamilyName && newFamilyName.trim() && memberData.family === 'new') {
     familyToUse = newFamilyName.trim();
-    const familyDocRef = doc(
-      collection(db, `communities/${communityId}/families`)
-    );
+    const familyDocRef = adminDb
+      .collection(`communities/${communityId}/families`)
+      .doc();
     batch.set(familyDocRef, { name: familyToUse });
   }
 
-  const memberIdToUse = existingMemberId || doc(collection(db, 'dummy')).id;
-  const memberDocRef = doc(db, `communities/${communityId}/members`, memberIdToUse);
-  const inviteDocRef = doc(collection(db, 'invitations'));
+  const memberIdToUse = existingMemberId || adminDb.collection('dummy').doc().id;
+  const memberDocRef = adminDb.doc(`communities/${communityId}/members/${memberIdToUse}`);
+  const inviteDocRef = adminDb.collection('invitations').doc();
 
   if (!skipMemberCreation) {
     const fullName = [
@@ -170,8 +166,8 @@ export async function sendInvitationEmail({
     role: 'user',
     isPatriarch: memberData.isPatriarch,
     status: 'pending',
-    createdAt: serverTimestamp(),
-    createdBy: user?.uid ?? 'system',
+    createdAt: FieldValue.serverTimestamp(),
+    createdBy: callerUid ?? 'system',
   });
 
   await batch.commit();
@@ -212,9 +208,11 @@ export async function sendNewMemberNotificationEmail({
   }
 
   try {
-    const membersRef = collection(db, 'communities', communityId, 'members');
-    const q = query(membersRef, where('role', 'in', ['admin', 'owner']));
-    const querySnapshot = await getDocs(q);
+    const adminDb = getAdminFirestore();
+    const membersRef = adminDb.collection(`communities/${communityId}/members`);
+    const querySnapshot = await membersRef
+      .where('role', 'in', ['admin', 'owner'])
+      .get();
 
     const recipients: string[] = [];
     querySnapshot.forEach((doc) => {
@@ -249,3 +247,4 @@ export async function sendNewMemberNotificationEmail({
     console.error('Failed to send new member notification email:', error);
   }
 }
+
