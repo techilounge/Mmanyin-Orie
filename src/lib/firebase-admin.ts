@@ -1,5 +1,5 @@
 // src/lib/firebase-admin.ts
-import { getApps, initializeApp, applicationDefault, App } from 'firebase-admin/app';
+import { getApps, initializeApp, applicationDefault, cert, App } from 'firebase-admin/app';
 import { getAuth as _getAuth } from 'firebase-admin/auth';
 import { getStorage as _getStorage } from 'firebase-admin/storage';
 import { getFirestore as _getFirestore } from 'firebase-admin/firestore';
@@ -34,15 +34,25 @@ function pickBucket(): string | undefined {
 function getAdminApp(): App {
   const app = getApps().find(a => a.name === 'admin');
   if (app) return app;
-  
+
+  let credential = applicationDefault();
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+    try {
+      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+      credential = cert(serviceAccount);
+    } catch (e) {
+      console.warn('Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY. Falling back to applicationDefault()', e);
+    }
+  }
+
   return initializeApp({
-    credential: applicationDefault(),
+    credential,
     projectId: pickProjectId(),
     storageBucket: pickBucket(),
   }, 'admin');
 }
 
-export function getAdminAuth()    { return _getAuth(getAdminApp()); }
+export function getAdminAuth() { return _getAuth(getAdminApp()); }
 export function getAdminStorage() { return _getStorage(getAdminApp()); }
 export function getAdminFirestore() { return _getFirestore(getAdminApp()); }
 
