@@ -28,7 +28,10 @@ export default function SignInPage() {
     try {
       await setPersistence(auth, browserLocalPersistence);
       await signInWithEmailAndPassword(auth, email, password);
-      router.push('/app');
+
+      const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+      const nextUrl = searchParams?.get('next') || '/app';
+      router.push(nextUrl);
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -45,7 +48,10 @@ export default function SignInPage() {
       const cred = await signInWithGoogle();
       if (cred?.user) {
         await ensureUserDocument(cred.user);
-        router.push('/app');
+
+        const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+        const nextUrl = searchParams?.get('next') || '/app';
+        router.push(nextUrl);
       }
     } catch (err: any) {
       if (err.code !== 'auth/popup-closed-by-user') {
@@ -76,7 +82,7 @@ export default function SignInPage() {
             {isLoading ? 'Signing In...' : 'Sign In'}
           </Button>
         </form>
-         <div className="relative">
+        <div className="relative">
           <div className="absolute inset-0 flex items-center">
             <span className="w-full border-t" />
           </div>

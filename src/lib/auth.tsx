@@ -119,53 +119,60 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       router.push('/auth/sign-in');
       return;
     }
-    
+
     if (user && appUser) {
       const memberships = appUser.memberships || [];
       const hasCommunity = memberships.length > 0;
 
-      if (isAuthPage(pathname) && !pathname.startsWith('/auth/accept-invite')) {
-        if (hasCommunity) {
+      if (isAuthPage(pathname) && !pathname.startsWith('/auth/accept-invite') && !pathname.startsWith('/auth/complete-invite')) {
+        // They are logged in but on sign-in or sign-up. 
+        // If there's a 'next' param, honor it.
+        const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+        const next = searchParams?.get('next');
+
+        if (next) {
+          router.replace(next);
+        } else if (hasCommunity) {
           router.push('/app');
         } else {
           router.push('/subscribe');
         }
         return;
       }
-      
+
       if (!hasCommunity && !pathIsPublic) {
         router.push('/subscribe');
         return;
       }
-      
+
       if (hasCommunity && (pathname === '/subscribe' || pathname === '/create-community')) {
-          router.push('/app');
-          return;
+        router.push('/app');
+        return;
       }
 
       if (pathname === '/app') {
-          if (appUser.primaryCommunityId) {
-              router.replace(`/app/${appUser.primaryCommunityId}`);
-          } else if (memberships.length > 1) {
-              router.replace('/app/switch-community');
-          } else if (memberships.length === 1) {
-              router.replace(`/app/${memberships[0]}`);
-          } else {
-              router.replace('/subscribe');
-          }
+        if (appUser.primaryCommunityId) {
+          router.replace(`/app/${appUser.primaryCommunityId}`);
+        } else if (memberships.length > 1) {
+          router.replace('/app/switch-community');
+        } else if (memberships.length === 1) {
+          router.replace(`/app/${memberships[0]}`);
+        } else {
+          router.replace('/subscribe');
+        }
       }
     }
 
   }, [user, appUser, loading, router, pathname, mounted]);
-  
+
   if (!mounted) {
     return null;
   }
-  
+
   const pathIsPublic = publicPaths.some(p => pathname.startsWith(p));
 
   if (loading && !pathIsPublic) {
-     return (
+    return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="p-8 space-y-4 w-full max-w-md">
           <div className="flex justify-center mb-4">
