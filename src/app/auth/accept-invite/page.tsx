@@ -2,27 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { getApp, getApps, initializeApp } from 'firebase/app';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth, db } from '@/lib/firebase';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-};
-
-function getFirebase() {
-  const app = getApps().length ? getApp() : initializeApp(firebaseConfig as any);
-  return { app, db: getFirestore(app), auth: getAuth(app) };
-}
 
 export default function AcceptInvitePage() {
   const router = useRouter();
@@ -33,7 +20,6 @@ export default function AcceptInvitePage() {
   const [message, setMessage] = useState('Verifying invitation...');
 
   useEffect(() => {
-    const { db, auth } = getFirebase();
 
     const run = async () => {
       if (!token) {
@@ -49,8 +35,8 @@ export default function AcceptInvitePage() {
           return;
         }
         if (inviteSnap.data().status !== 'pending') {
-            setError('This invitation has already been accepted or is no longer valid.');
-            return;
+          setError('This invitation has already been accepted or is no longer valid.');
+          return;
         }
       } catch (e: any) {
         // If rules block the read, it means the invite is not 'pending' or invalid.
@@ -78,8 +64,8 @@ export default function AcceptInvitePage() {
     };
 
     run().catch((e) => {
-        console.error("Error processing invitation:", e);
-        setError('A problem occurred while trying to process your invitation. Please try again.');
+      console.error("Error processing invitation:", e);
+      setError('A problem occurred while trying to process your invitation. Please try again.');
     });
   }, [router, token]);
 
@@ -97,11 +83,11 @@ export default function AcceptInvitePage() {
 
   return (
     <div className="mx-auto max-w-md py-16 text-center">
-        <div className="flex items-center justify-center gap-2">
-            <Loader2 className="h-6 w-6 animate-spin" />
-            <h1 className="text-2xl font-semibold">{message}</h1>
-        </div>
-        <p className="mt-4 text-muted-foreground">Please wait...</p>
+      <div className="flex items-center justify-center gap-2">
+        <Loader2 className="h-6 w-6 animate-spin" />
+        <h1 className="text-2xl font-semibold">{message}</h1>
+      </div>
+      <p className="mt-4 text-muted-foreground">Please wait...</p>
     </div>
   );
 }

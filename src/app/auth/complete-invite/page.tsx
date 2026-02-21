@@ -3,28 +3,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { getApp, getApps, initializeApp } from 'firebase/app';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import {
-  getFirestore,
-} from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { acceptInvitationAction } from '@/lib/invite-actions';
-
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-};
-
-function getFirebase() {
-  const app = getApps().length ? getApp() : initializeApp(firebaseConfig as any);
-  return { app, db: getFirestore(app), auth: getAuth(app) };
-}
 
 export default function CompleteInvitePage() {
   const router = useRouter();
@@ -35,7 +18,6 @@ export default function CompleteInvitePage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const { db, auth } = getFirebase();
 
     const run = async () => {
       if (!token) {
