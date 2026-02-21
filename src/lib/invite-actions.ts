@@ -25,6 +25,7 @@ export async function acceptInvitationAction(
 
     const invite = inviteSnap.data() as {
       communityId: string;
+      memberId?: string;
       email?: string;
       firstName?: string;
       lastName?: string;
@@ -44,7 +45,8 @@ export async function acceptInvitationAction(
     }
 
     const communityId = invite.communityId;
-    const memberRef = adminDb.collection('communities').doc(communityId).collection('members').doc(userUid);
+    const memberDocId = invite.memberId || userUid; // Fallback to userUid for legacy invites that might lack memberId
+    const memberRef = adminDb.collection('communities').doc(communityId).collection('members').doc(memberDocId);
     const userRef = adminDb.collection('users').doc(userUid);
 
     // Use a batch to write everything atomically
