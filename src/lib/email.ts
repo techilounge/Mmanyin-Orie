@@ -41,6 +41,7 @@ function buildFrom(): string {
   const fromEnv = process.env.RESEND_FROM?.trim();
   const domainEnv =
     process.env.RESEND_DOMAIN?.trim() ||
+    process.env.APP_URL?.trim() ||
     process.env.NEXT_PUBLIC_APP_URL?.trim();
 
   if (fromEnv) {
@@ -124,7 +125,7 @@ export async function sendInvitationEmail({
   const memberIdToUse = existingMemberId || doc(collection(db, 'dummy')).id;
   const memberDocRef = doc(db, `communities/${communityId}/members`, memberIdToUse);
   const inviteDocRef = doc(collection(db, 'invitations'));
-  
+
   if (!skipMemberCreation) {
     const fullName = [
       memberData.firstName,
@@ -175,9 +176,9 @@ export async function sendInvitationEmail({
 
   await batch.commit();
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL;
   if (!appUrl) {
-    throw new Error('NEXT_PUBLIC_APP_URL must be configured on the server.');
+    throw new Error('APP_URL must be configured on the server.');
   }
   const inviteLink = `${appUrl}/auth/accept-invite?token=${inviteDocRef.id}`;
 
