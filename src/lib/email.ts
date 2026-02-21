@@ -97,99 +97,104 @@ export async function sendInvitationEmail({
   existingMemberId,
   callerUid,
 }: SendInvitationEmailParams) {
-  const resendApiKey = process.env.RESEND_API_KEY;
-  if (!resendApiKey) {
-    throw new Error(
-      'Email sending is not configured. Administrator must set RESEND_API_KEY.'
-    );
-  }
+  try {
+    const resendApiKey = process.env.RESEND_API_KEY;
+    if (!resendApiKey) {
+      throw new Error(
+        'Email sending is not configured. Administrator must set RESEND_API_KEY.'
+      );
+    }
 
-  const adminDb = getAdminFirestore();
-  const from = buildFrom();
-  const recipient = sanitizeRecipient(to);
+    const adminDb = getAdminFirestore();
+    const from = buildFrom();
+    const recipient = sanitizeRecipient(to);
 
-  const batch = adminDb.batch();
-  let familyToUse = memberData.family;
-  if (newFamilyName && newFamilyName.trim() && memberData.family === 'new') {
-    familyToUse = newFamilyName.trim();
-    const familyDocRef = adminDb
-      .collection(`communities/${communityId}/families`)
-      .doc();
-    batch.set(familyDocRef, { name: familyToUse });
-  }
+    const batch = adminDb.batch();
+    let familyToUse = memberData.family;
+    if (newFamilyName && newFamilyName.trim() && memberData.family === 'new') {
+      familyToUse = newFamilyName.trim();
+      const familyDocRef = adminDb
+        .collection(`communities/${communityId}/families`)
+        .doc();
+      batch.set(familyDocRef, { name: familyToUse });
+    }
 
-  const memberIdToUse = existingMemberId || adminDb.collection('dummy').doc().id;
-  const memberDocRef = adminDb.doc(`communities/${communityId}/members/${memberIdToUse}`);
-  const inviteDocRef = adminDb.collection('invitations').doc();
+    const memberIdToUse = existingMemberId || adminDb.collection('dummy').doc().id;
+    const memberDocRef = adminDb.doc(`communities/${communityId}/members/${memberIdToUse}`);
+    const inviteDocRef = adminDb.collection('invitations').doc();
 
-  if (!skipMemberCreation) {
-    const fullName = [
-      memberData.firstName,
-      memberData.middleName,
-      memberData.lastName,
-    ]
-      .filter((p) => p && p.trim())
-      .join(' ');
-    const newMemberBase = {
-      name: fullName,
-      firstName: memberData.firstName,
-      middleName: memberData.middleName || '',
-      lastName: memberData.lastName,
-      family: familyToUse,
+    if (!skipMemberCreation) {
+      const fullName = [
+        memberData.firstName,
+        memberData.middleName,
+        memberData.lastName,
+      ]
+        .filter((p) => p && p.trim())
+        .join(' ');
+      const newMemberBase = {
+        name: fullName,
+        firstName: memberData.firstName,
+        middleName: memberData.middleName || '',
+        lastName: memberData.lastName,
+        family: familyToUse,
+        email: memberData.email,
+        phone: memberData.phone || '',
+        phoneCountryCode: memberData.phoneCountryCode || '',
+        gender: memberData.gender,
+        tier: memberData.tier,
+        payments: [],
+        joinDate: new Date().toISOString(),
+        role: 'user' as const,
+        status: 'invited' as const,
+        uid: null,
+        isPatriarch: memberData.isPatriarch,
+        inviteId: inviteDocRef.id,
+        contribution: 0,
+      };
+      batch.set(memberDocRef, newMemberBase);
+    }
+
+    batch.set(inviteDocRef, {
+      communityId,
+      communityName,
+      memberId: memberIdToUse,
       email: memberData.email,
-      phone: memberData.phone || '',
-      phoneCountryCode: memberData.phoneCountryCode || '',
+      firstName: memberData.firstName,
+      lastName: memberData.lastName,
       gender: memberData.gender,
+      family: familyToUse,
       tier: memberData.tier,
-      payments: [],
-      joinDate: new Date().toISOString(),
-      role: 'user' as const,
-      status: 'invited' as const,
-      uid: null,
+      role: 'user',
       isPatriarch: memberData.isPatriarch,
-      inviteId: inviteDocRef.id,
-      contribution: 0,
-    };
-    batch.set(memberDocRef, newMemberBase);
+      status: 'pending',
+      createdAt: FieldValue.serverTimestamp(),
+      createdBy: callerUid ?? 'system',
+    });
+
+    await batch.commit();
+
+    const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL;
+    if (!appUrl) {
+      throw new Error('APP_URL must be configured on the server.');
+    }
+    const inviteLink = `${appUrl}/auth/accept-invite?token=${inviteDocRef.id}`;
+
+    const resend = new Resend(resendApiKey);
+    const { data, error } = await resend.emails.send({
+      from,
+      to: [recipient],
+      subject: `Invitation to join ${communityName}`,
+      react: InvitationEmail({ communityName, inviteLink, inviterName }),
+      text: `You have been invited to join ${communityName}. Accept your invitation here: ${inviteLink}`,
+    });
+    if (error) {
+      throw new Error(error.message);
+    }
+    return { data, success: true, inviteId: inviteDocRef.id };
+  } catch (err: any) {
+    console.error('sendInvitationEmail error:', err);
+    return { success: false, message: err.message || 'An unexpected error occurred during email sending.' };
   }
-
-  batch.set(inviteDocRef, {
-    communityId,
-    communityName,
-    memberId: memberIdToUse,
-    email: memberData.email,
-    firstName: memberData.firstName,
-    lastName: memberData.lastName,
-    gender: memberData.gender,
-    family: familyToUse,
-    tier: memberData.tier,
-    role: 'user',
-    isPatriarch: memberData.isPatriarch,
-    status: 'pending',
-    createdAt: FieldValue.serverTimestamp(),
-    createdBy: callerUid ?? 'system',
-  });
-
-  await batch.commit();
-
-  const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL;
-  if (!appUrl) {
-    throw new Error('APP_URL must be configured on the server.');
-  }
-  const inviteLink = `${appUrl}/auth/accept-invite?token=${inviteDocRef.id}`;
-
-  const resend = new Resend(resendApiKey);
-  const { data, error } = await resend.emails.send({
-    from,
-    to: [recipient],
-    subject: `Invitation to join ${communityName}`,
-    react: InvitationEmail({ communityName, inviteLink, inviterName }),
-    text: `You have been invited to join ${communityName}. Accept your invitation here: ${inviteLink}`,
-  });
-  if (error) {
-    throw new Error(error.message);
-  }
-  return { data, success: true, inviteId: inviteDocRef.id };
 }
 
 export async function sendNewMemberNotificationEmail({
