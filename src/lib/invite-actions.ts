@@ -4,14 +4,13 @@ import { getAdminInfo } from './firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { revalidatePath } from 'next/cache';
 
-const adminDb = getAdminInfo().db;
-
 export async function acceptInvitationAction(
   token: string,
   userUid: string,
   userEmail: string,
   userDisplayName: string
 ): Promise<{ success: boolean; communityId?: string; message: string }> {
+  const adminDb = getAdminInfo().db;
   if (!token || !userUid || !userEmail) {
     return { success: false, message: 'Missing required parameters.' };
   }
@@ -84,7 +83,7 @@ export async function acceptInvitationAction(
       },
       { merge: true }
     );
-    
+
     // We also want to set createdAt if it doesn't exist. Admin SDK set merges gracefully.
     // However, to mimic the previous logic exactly, since we can't do setIfMissing in one pass easily,
     // we'll just set it.
