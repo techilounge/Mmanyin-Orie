@@ -62,19 +62,9 @@ service cloud.firestore {
       // Any member of the community can read the members list
       allow read: if isMember(communityId);
 
-      // Create: allow an admin/owner to create any member OR allow a user to create their own doc when accepting an invite
-      allow create: if (
-        // admins/owners can create any member
-        isRole(communityId, ['owner', 'admin'])
-        // OR invite acceptance by the user themselves
-        || (
-          request.auth != null
-          && request.auth.uid == memberId
-          && request.resource.data.uid == request.auth.uid
-          && request.resource.data.role == 'user'
-          && request.resource.data.status in ['active', 'accepted', 'member']
-        )
-      );
+      // Create: allow an admin/owner to create any member
+      // (User invitation acceptance is now handled securely via Server Actions)
+      allow create: if isRole(communityId, ['owner', 'admin']);
 
       // Only admins/owners can delete member docs
       allow delete: if isRole(communityId, ['owner', 'admin']);

@@ -7,11 +7,10 @@ import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import {
   getFirestore,
-  doc, getDoc, setDoc, updateDoc,
-  serverTimestamp, arrayUnion,
 } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { acceptInvitationAction } from '@/lib/invite-actions';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -58,83 +57,16 @@ export default function CompleteInvitePage() {
         return;
       }
 
-      // 1) Load invite
-      const inviteRef = doc(db, 'invitations', token);
-      const inviteSnap = await getDoc(inviteRef);
-      if (!inviteSnap.exists()) {
-        setError('This invitation is invalid or has expired.');
+      // Call the secure Server Action
+      const result = await acceptInvitationAction(token, user.uid, user.email || '', user.displayName || '');
+
+      if (!result.success) {
+        setError(result.message);
         return;
-      }
-      const invite = inviteSnap.data() as {
-        communityId: string;
-        email?: string;
-        firstName?: string;
-        lastName?: string;
-        gender?: 'male' | 'female';
-        family?: string;
-        tier?: string;
-        status?: string;
-        isPatriarch?: boolean;
-      };
-
-      if (invite.email && user.email && invite.email.toLowerCase() !== user.email.toLowerCase()) {
-        setError('This invitation was sent to a different email address.');
-        return;
-      }
-
-      // 2) Create/merge UID-keyed member doc, copying fields from the invitation
-      const memberRef = doc(db, 'communities', invite.communityId, 'members', user.uid);
-      await setDoc(
-        memberRef,
-        {
-          uid: user.uid,
-          email: user.email ?? '',
-          name: user.displayName ?? `${invite.firstName ?? ''} ${invite.lastName ?? ''}`.trim(),
-          firstName: invite.firstName ?? '',
-          lastName: invite.lastName ?? '',
-          middleName: '',
-          gender: invite.gender ?? 'male',
-          role: 'user',
-          status: 'active', // satisfies invite-acceptance rule
-          joinDate: serverTimestamp(),
-          family: invite.family ?? 'Unassigned',
-          tier: invite.tier ?? 'N/A',
-          isPatriarch: invite.isPatriarch ?? false,
-        },
-        { merge: true }
-      );
-
-      // 3) Ensure user doc + memberships
-      const userRef = doc(db, 'users', user.uid);
-      try {
-        await updateDoc(userRef, { memberships: arrayUnion(invite.communityId) });
-      } catch {
-        await setDoc(
-          userRef,
-          {
-            uid: user.uid,
-            email: user.email ?? '',
-            displayName: user.displayName ?? '',
-            photoURL: user.photoURL ?? '',
-            memberships: [invite.communityId],
-            createdAt: serverTimestamp(),
-          },
-          { merge: true }
-        );
-      }
-
-      // 4) Mark invite accepted (allowed fields only)
-      try {
-        await updateDoc(inviteRef, {
-          status: 'accepted',
-          acceptedAt: serverTimestamp(),
-        });
-      } catch {
-        // ignore failure; membership is created
       }
 
       setMessage('Invitation accepted. Redirecting…');
-      router.replace(`/app/${invite.communityId}`);
+      router.replace(`/app/${result.communityId}`);
     };
 
     run().catch((e) => {
@@ -155,11 +87,11 @@ export default function CompleteInvitePage() {
 
   return (
     <div className="mx-auto max-w-md py-16 text-center">
-        <div className="flex items-center justify-center gap-2">
-            <Loader2 className="h-6 w-6 animate-spin" />
-            <h1 className="text-2xl font-semibold">{message}</h1>
-        </div>
-        <p className="mt-4 text-muted-foreground">Please wait while we set up your account.</p>
+      <div className="flex items-center justify-center gap-2">
+        <Loader2 className="h-6 w-6 animate-spin" />
+        <h1 className="text-2xl font-semibold">{message}</h1>
+      </div>
+      <p className="mt-4 text-muted-foreground">Please wait while we set up your account.</p>
     </div>
   );
 }

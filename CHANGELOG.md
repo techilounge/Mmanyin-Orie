@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **Invitation Security**: Secured the invitation acceptance user flow by migrating the logic from client-side Firestore operations to a secure Server Action (`acceptInvitationAction`) using the Firebase Admin SDK. Patched a critical vulnerability by removing the insecure client-side `allow create` rule for community members in `firestore.rules`.
 - **Invitation Resend**: Fixed a `PERMISSION_DENIED` error that occurred when resending an invitation. The server-side logic was incorrectly creating a reference to a new, non-existent member document instead of using the ID of the existing member. The `sendInvitationEmail` function has been updated to correctly associate the new invitation with the existing member, resolving the error.
 - **Permissions and State Management**: 
   - Corrected Firestore security rules to grant appropriate read permissions to members with the 'user' role, allowing them to see community data like families, members, and payments. Write and delete permissions remain restricted to admins and owners.
