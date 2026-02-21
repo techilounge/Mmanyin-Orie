@@ -5,6 +5,56 @@ runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
   maxInstances: 1
+
+env:
+  # Firebase client config – these are public values inlined into
+  # the client bundle at build time via the NEXT_PUBLIC_ prefix.
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: AIzaSyBUbeZbtpCZczcoV5c6dzC-uruSvZ3myns
+    availability:
+      - BUILD
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: mmanyin-orie.firebaseapp.com
+    availability:
+      - BUILD
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: mmanyin-orie
+    availability:
+      - BUILD
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: "1:682483710818:web:2d83085f55f3aba238ca3b"
+    availability:
+      - BUILD
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "682483710818"
+    availability:
+      - BUILD
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: mmanyin-orie.firebasestorage.app
+    availability:
+      - BUILD
+  - variable: NEXT_PUBLIC_APP_URL
+    value: https://www.mmanyinorie.com
+    availability:
+      - BUILD
+  # Server-side secrets (available at runtime only)
+  - variable: RESEND_API_KEY
+    value: re_kSEUcEK8_tA85kV6daC2EzTixJax4NZHj
+    availability:
+      - RUNTIME
+  - variable: RESEND_FROM
+    value: "Mmanyin Orie <no-reply@mmanyinorie.com>"
+    availability:
+      - RUNTIME
+  - variable: RESEND_DOMAIN
+    value: mmanyinorie.com
+    availability:
+      - RUNTIME
+  - variable: APP_URL
+    value: https://www.mmanyinorie.com
+    availability:
+      - RUNTIME
+
 iam:
   - role: roles/run.invoker
     members:
