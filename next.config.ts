@@ -14,14 +14,14 @@ const securityHeaders = [
       "default-src 'self'",
       "base-uri 'self'",
       "object-src 'none'",
-      // Allow Storage + Firebase APIs
-      "connect-src 'self' https://*.firebaseio.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://apis.google.com https://accounts.google.com https://firebasestorage.googleapis.com https://*.firebasestorage.app",
+      // Allow Storage + Firebase APIs + Vercel Analytics
+      "connect-src 'self' https://*.firebaseio.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://apis.google.com https://accounts.google.com https://firebasestorage.googleapis.com https://*.firebasestorage.app https://vercel.live https://va.vercel-scripts.com",
       // Images from Storage + Google profile images + data/blob for previews
       "img-src 'self' data: blob: https://firebasestorage.googleapis.com https://*.firebasestorage.app https://lh3.googleusercontent.com",
       // Frames for Google sign-in AND the Firebase Auth helper
       "frame-src 'self' https://accounts.google.com https://mmanyin-orie.firebaseapp.com",
       // Scripts (dev-friendly; you can tighten in prod)
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.gstatic.com https://apis.google.com",
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://va.vercel-scripts.com",
       // Styles (Tailwind + shadcn often needs inline)
       "style-src 'self' 'unsafe-inline'",
       // Fonts
